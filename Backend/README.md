@@ -24,6 +24,22 @@ uvicorn app.main:app --reload
 
 The service exposes OpenAPI docs at `http://localhost:8000/docs`.
 
+## Running with Docker
+
+Build the image from the repository root of the backend:
+
+```bash
+docker build -t manpower-backend .
+```
+
+Run the container, publishing port `8000` by default:
+
+```bash
+docker run --rm -p 8000:8000 --env-file .env manpower-backend
+```
+
+Supply an `.env` file alongside the Dockerfile (or pass individual `-e` flags) to configure runtime settings such as `DEBUG` or CORS origins.
+
 ## Available endpoints
 
 All API routes are grouped under `/statements`:
