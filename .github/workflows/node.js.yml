@@ -25,6 +25,9 @@ jobs:
   build:
     name: Build and Check
     runs-on: ubuntu-latest
+    env:
+      VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+    
     defaults:
       run:
         working-directory: Frontend
