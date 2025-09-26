@@ -1,0 +1,33 @@
+# Node dependencies and build outputs
+/node_modules/
+Frontend/node_modules/
+Frontend/dist/
+Frontend/.vite/
+
+# Environment files
+.env
+.env.*
+Frontend/.env
+Frontend/.env.*
+Backend/.env
+Backend/.env.*
+
+# Python caches and virtual envs
+/__pycache__/
+Backend/.venv/
+Backend/.mypy_cache/
+Backend/.pytest_cache/
+Backend/.ruff_cache/
+*.pyc
+
+# Coverage and reports
+Backend/.coverage
+Backend/coverage/
+
+# IDE/editor junk
+.DS_Store
+.vscode/
+.idea/
+
+# Logs
+*.log
