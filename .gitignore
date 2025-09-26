@@ -12,6 +12,10 @@ Frontend/.env.*
 Backend/.env
 Backend/.env.*
 
+# Allow committed environment templates
+!Frontend/.env.example
+!Backend/.env.example
+
 # Python caches and virtual envs
 /__pycache__/
 Backend/.venv/

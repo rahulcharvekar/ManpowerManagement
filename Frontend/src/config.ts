@@ -2,9 +2,14 @@ import { StatementFormat } from "./types/mt940";
 
 const DEFAULT_API_BASE_URL = "http://localhost:8000";
 
-export const API_BASE_URL = (
-  import.meta.env?.VITE_API_BASE_URL as string | undefined
-)?.replace(/\/$/, "") || DEFAULT_API_BASE_URL;
+const configuredBaseUrl = (
+  (import.meta.env?.VITE_API_URL as string | undefined) ??
+  (import.meta.env?.VITE_API_BASE_URL as string | undefined)
+);
+
+export const API_BASE_URL = configuredBaseUrl
+  ? configuredBaseUrl.replace(/\/$/, "")
+  : DEFAULT_API_BASE_URL;
 
 const STATEMENT_BASE = `${API_BASE_URL}/statements`;
 

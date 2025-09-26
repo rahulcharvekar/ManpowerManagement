@@ -24,6 +24,10 @@ uvicorn app.main:app --reload
 
 The service exposes OpenAPI docs at `http://localhost:8000/docs`.
 
+To expose the API to browser clients hosted on other domains, set the `BACKEND_CORS_ORIGINS`
+environment variable (comma-separated or JSON array) before starting the app. An example is
+included in `.env.example`.
+
 ## Running with Docker
 
 Build the image from the repository root of the backend:

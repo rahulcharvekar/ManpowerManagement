@@ -2,9 +2,10 @@
 
 from fastapi import APIRouter
 
-from app.api.routers import iso20022, mt942, statements
+from app.api.routers import iso20022, mt942, statements, system
 
 api_router = APIRouter()
+api_router.include_router(system.router, tags=["system"])
 api_router.include_router(
     statements.router,
     prefix="/statements",

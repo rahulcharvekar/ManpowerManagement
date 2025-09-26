@@ -15,13 +15,17 @@ npm install
 npm run dev
 ```
 
-Open the printed URL (typically `http://localhost:5173`). The app expects the backend to be reachable at `http://localhost:8000`. To point at a different backend, create a `.env` file in the `Frontend` directory with:
+Open the printed URL (typically `http://localhost:5173`). The app defaults to the backend at `http://localhost:8000`.
+
+To point at a different backend, create a `.env` file in the `Frontend` directory with either variable (both supported for compatibility):
 
 ```
-VITE_API_BASE_URL=http://your-backend-host:port
+VITE_API_URL=https://statement-processor.internal.delightfulsand-562b205d.westus2.azurecontainerapps.io/
+# or the legacy name
+VITE_API_BASE_URL=https://statement-processor.internal.delightfulsand-562b205d.westus2.azurecontainerapps.io/
 ```
 
-Restart `npm run dev` after changing environment variables.
+Restart `npm run dev` after changing environment variables. A ready-to-copy example lives in `Frontend/.env.example`.
 
 ## Available scripts
 
