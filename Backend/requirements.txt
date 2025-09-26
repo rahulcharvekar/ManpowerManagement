@@ -1,0 +1,7 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic[email]>=2.6
+pydantic-settings>=2.2
+email-validator>=2.1
+mt-940>=4.30
+pyiso20022>=0.8
