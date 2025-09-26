@@ -27,6 +27,12 @@ VITE_API_BASE_URL=https://statement-processor.internal.delightfulsand-562b205d.w
 
 Restart `npm run dev` after changing environment variables. A ready-to-copy example lives in `Frontend/.env.example`.
 
+When deploying to GitHub Pages, the build output must be served from `/ManpowerManagement/`. The Vite config sets this automatically on GitHub Actions (via `GITHUB_ACTIONS=true`). To test locally with the same base path, run:
+
+```bash
+VITE_BASE_PATH=/ManpowerManagement/ npm run build
+```
+
 ## Available scripts
 
 - `npm run dev` – start local dev server with hot reload.
