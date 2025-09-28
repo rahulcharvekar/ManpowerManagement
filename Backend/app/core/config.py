@@ -19,6 +19,7 @@ class Settings(BaseSettings):
             "http://127.0.0.1:5173",
             "http://localhost:4173",
             "http://127.0.0.1:4173",
+            "https://rahulcharvekar.github.io",
         ],
         description="Allowed origins for CORS requests.",
     )
