@@ -9,6 +9,8 @@ import org.slf4j.Logger;
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 @Transactional
@@ -59,6 +61,30 @@ public class WorkerPaymentService {
     public List<WorkerPayment> findByReferencePrefixAndStatus(String prefix, WorkerPaymentStatus status) {
         log.info("Finding worker payments with reference prefix: {} and status: {}", prefix, status);
         return repository.findByRequestReferenceNumberStartingWithAndStatus(prefix, status);
+    }
+
+    @Transactional(readOnly = true)
+    public List<WorkerPayment> findByFileId(String fileId) {
+        log.info("Finding worker payments with fileId: {}", fileId);
+        return repository.findByFileId(fileId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<WorkerPayment> findByFileIdAndStatus(String fileId, WorkerPaymentStatus status) {
+        log.info("Finding worker payments with fileId: {} and status: {}", fileId, status);
+        return repository.findByFileIdAndStatus(fileId, status);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<WorkerPayment> findByFileIdPaginated(String fileId, Pageable pageable) {
+        log.info("Finding worker payments with fileId: {} (paginated)", fileId);
+        return repository.findByFileId(fileId, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<WorkerPayment> findByFileIdAndStatusPaginated(String fileId, WorkerPaymentStatus status, Pageable pageable) {
+        log.info("Finding worker payments with fileId: {} and status: {} (paginated)", fileId, status);
+        return repository.findByFileIdAndStatus(fileId, status, pageable);
     }
 
     @Transactional(readOnly = true)

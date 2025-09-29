@@ -11,12 +11,23 @@ public class WebCorsConfig {
 
     @Bean
     public CorsFilter corsFilter() {
-        CorsConfiguration config = new CorsConfiguration().applyPermitDefaultValues();
+        CorsConfiguration config = new CorsConfiguration();
+        
+        // Use allowedOriginPatterns instead of allowedOrigins when allowCredentials is true
+        config.addAllowedOriginPattern("*"); // This allows all origins with credentials
         config.setAllowCredentials(true);
+        
+        // Set allowed headers
+        config.addAllowedHeader("*");
+        
+        // Set allowed methods
+        config.addAllowedMethod("GET");
+        config.addAllowedMethod("POST");
+        config.addAllowedMethod("PUT");
         config.addAllowedMethod("PATCH");
         config.addAllowedMethod("DELETE");
-        config.addAllowedMethod("PUT");
         config.addAllowedMethod("OPTIONS");
+        config.addAllowedMethod("HEAD");
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

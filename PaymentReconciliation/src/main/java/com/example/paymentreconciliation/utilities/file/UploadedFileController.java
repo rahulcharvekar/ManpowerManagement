@@ -208,6 +208,42 @@ public class UploadedFileController {
         }
     }
 
+    @Operation(
+        summary = "Get uploaded files by date criteria", 
+        description = "Retrieve uploaded files based on single date or date range. " +
+                     "Supports single date, date range (start + end), or open-ended ranges (start only or end only). " +
+                     "Date format: YYYY-MM-DD. Examples: " +
+                     "Single date: ?singleDate=2025-09-29, " +
+                     "Date range: ?startDate=2025-09-01&endDate=2025-09-30, " +
+                     "From date: ?startDate=2025-09-01, " +
+                     "Up to date: ?endDate=2025-09-30"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Files retrieved successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid date format")
+    })
+    @GetMapping("/by-date")
+    public ResponseEntity<?> getFilesByDate(
+            @Parameter(description = "Single date in YYYY-MM-DD format (optional)")
+            @RequestParam(required = false) String singleDate,
+            
+            @Parameter(description = "Start date in YYYY-MM-DD format (optional)")
+            @RequestParam(required = false) String startDate,
+            
+            @Parameter(description = "End date in YYYY-MM-DD format (optional)")
+            @RequestParam(required = false) String endDate) {
+        
+        log.info("Request to get files by date: singleDate={}, startDate={}, endDate={}", singleDate, startDate, endDate);
+        
+        Map<String, Object> result = uploadedFileService.getFilesByDate(singleDate, startDate, endDate);
+        
+        if (!(Boolean) result.get("success")) {
+            return ResponseEntity.badRequest().body(result);
+        }
+        
+        return ResponseEntity.ok(result);
+    }
+
     @Operation(summary = "Delete uploaded file", description = "Delete both database record and physical file")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "204", description = "File deleted successfully"),

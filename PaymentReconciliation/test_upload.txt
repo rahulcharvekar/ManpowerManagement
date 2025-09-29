@@ -1,0 +1,4 @@
+worker_id,hours_worked,hourly_rate
+101,40,15.50
+102,35,16.00
+103,45,14.75

@@ -45,8 +45,10 @@ public class WorkerPayment {
     @Column(name = "payment_amount", precision = 15, scale = 2, nullable = false)
     private BigDecimal paymentAmount;
 
+    @Column(name = "file_id", nullable = true, length = 20)
+    private String fileId;
 
-    @Column(name = "request_reference_number", nullable = false, unique = true, length = 40)
+    @Column(name = "request_reference_number", nullable = false, length = 40)
     private String requestReferenceNumber;
 
     @Enumerated(EnumType.STRING)
@@ -144,6 +146,14 @@ public class WorkerPayment {
 
     public void setPaymentAmount(BigDecimal paymentAmount) {
         this.paymentAmount = paymentAmount;
+    }
+
+    public String getFileId() {
+        return fileId;
+    }
+
+    public void setFileId(String fileId) {
+        this.fileId = fileId;
     }
 
     public String getRequestReferenceNumber() {

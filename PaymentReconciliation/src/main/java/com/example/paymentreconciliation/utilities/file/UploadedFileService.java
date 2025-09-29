@@ -15,6 +15,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 @Transactional
@@ -149,5 +155,98 @@ public class UploadedFileService {
                 fileId, true, exists);
         
         return exists;
+    }
+    
+    /**
+     * Get uploaded files by date criteria
+     * @param singleDate Single date in YYYY-MM-DD format (optional)
+     * @param startDate Start date in YYYY-MM-DD format (optional)
+     * @param endDate End date in YYYY-MM-DD format (optional)
+     * @return Map containing the results or error information
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getFilesByDate(String singleDate, String startDate, String endDate) {
+        log.info("Getting files by date criteria: singleDate={}, startDate={}, endDate={}", singleDate, startDate, endDate);
+        
+        try {
+            List<UploadedFile> files;
+            String queryDescription;
+            
+            if (singleDate != null && !singleDate.trim().isEmpty()) {
+                // Single date query
+                LocalDateTime startOfDay = parseDate(singleDate).atStartOfDay();
+                LocalDateTime startOfNextDay = startOfDay.plusDays(1);
+                files = uploadedFileRepository.findByUploadDateOnly(startOfDay, startOfNextDay);
+                queryDescription = "Files uploaded on " + singleDate;
+                
+            } else if (startDate != null && endDate != null && 
+                      !startDate.trim().isEmpty() && !endDate.trim().isEmpty()) {
+                // Date range query
+                LocalDateTime start = parseDate(startDate).atStartOfDay();
+                LocalDateTime end = parseDate(endDate).atTime(23, 59, 59);
+                files = uploadedFileRepository.findByUploadDateBetweenOrderByUploadDateDesc(start, end);
+                queryDescription = "Files uploaded between " + startDate + " and " + endDate;
+                
+            } else if (startDate != null && !startDate.trim().isEmpty()) {
+                // From start date onwards
+                LocalDateTime start = parseDate(startDate).atStartOfDay();
+                files = uploadedFileRepository.findByUploadDateGreaterThanEqualOrderByUploadDateDesc(start);
+                queryDescription = "Files uploaded from " + startDate + " onwards";
+                
+            } else if (endDate != null && !endDate.trim().isEmpty()) {
+                // Up to end date
+                LocalDateTime end = parseDate(endDate).atTime(23, 59, 59);
+                files = uploadedFileRepository.findByUploadDateLessThanEqualOrderByUploadDateDesc(end);
+                queryDescription = "Files uploaded up to " + endDate;
+                
+            } else {
+                // No date criteria provided, return all files
+                files = uploadedFileRepository.findAll();
+                queryDescription = "All uploaded files";
+            }
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("files", files.stream().map(this::createFileSummary).toList());
+            result.put("totalCount", files.size());
+            result.put("queryDescription", queryDescription);
+            result.put("success", true);
+            
+            log.info("Found {} files for date criteria", files.size());
+            return result;
+            
+        } catch (DateTimeParseException e) {
+            log.error("Invalid date format provided", e);
+            return Map.of(
+                "success", false,
+                "error", "Invalid date format. Please use YYYY-MM-DD format.",
+                "details", e.getMessage()
+            );
+        } catch (Exception e) {
+            log.error("Error retrieving files by date", e);
+            return Map.of(
+                "success", false,
+                "error", "Failed to retrieve files: " + e.getMessage()
+            );
+        }
+    }
+    
+    private LocalDate parseDate(String dateString) throws DateTimeParseException {
+        return LocalDate.parse(dateString, DateTimeFormatter.ISO_LOCAL_DATE);
+    }
+    
+    private Map<String, Object> createFileSummary(UploadedFile file) {
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("id", file.getId());
+        summary.put("filename", file.getFilename());
+        summary.put("fileType", file.getFileType());
+        summary.put("uploadDate", file.getUploadDate());
+        summary.put("status", file.getStatus());
+        summary.put("totalRecords", file.getTotalRecords());
+        summary.put("successCount", file.getSuccessCount());
+        summary.put("failureCount", file.getFailureCount());
+        summary.put("uploadedBy", file.getUploadedBy());
+        summary.put("fileHash", file.getFileHash());
+        summary.put("requestReferenceNumber", file.getRequestReferenceNumber());
+        return summary;
     }
 }

@@ -36,6 +36,7 @@ com/example/paymentreconciliation/board/service/BoardReceiptService.class
 com/example/paymentreconciliation/config/OpenApiConfig.class
 com/example/paymentreconciliation/reconciliation/service/ReconciliationService.class
 com/example/paymentreconciliation/worker/entity/WorkerPayment.class
+com/example/paymentreconciliation/worker/service/WorkerPaymentFileService$1.class
 com/example/paymentreconciliation/employer/dao/EmployerPaymentRepository.class
 com/example/paymentreconciliation/employer/service/EmployerPaymentReceiptService.class
 com/example/paymentreconciliation/worker/dao/WorkerPaymentRepository.class
