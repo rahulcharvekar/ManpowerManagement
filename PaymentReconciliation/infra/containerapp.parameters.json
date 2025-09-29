@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "East US"
+    },
+    "environmentName": {
+      "value": "payment-reconciliation-env"
+    },
+    "containerAppName": {
+      "value": "payment-reconciliation-app"
+    },
+    "registryServer": {
+      "value": "yourregistry.azurecr.io"
+    },
+    "registryUsername": {
+      "value": "yourregistry"
+    },
+    "registryPassword": {
+      "value": "REPLACE_WITH_ACR_PASSWORD"
+    },
+    "containerImage": {
+      "value": "yourregistry.azurecr.io/payment-reconciliation:latest"
+    },
+    "dbConnectionString": {
+      "value": "jdbc:mysql://your-mysql-server.mysql.database.azure.com:3306/paymentreconciliation_prod?useSSL=true&requireSSL=true&serverTimezone=UTC"
+    },
+    "dbUsername": {
+      "value": "adminuser@your-mysql-server"
+    },
+    "dbPassword": {
+      "value": "REPLACE_WITH_DB_PASSWORD"
+    },
+    "fileUploadDir": {
+      "value": "/app/uploads"
+    },
+    "minReplicas": {
+      "value": 1
+    },
+    "maxReplicas": {
+      "value": 5
+    },
+    "cpuRequest": {
+      "value": "0.5"
+    },
+    "memoryRequest": {
+      "value": "1Gi"
+    }
+  }
+}

@@ -1,11 +1,55 @@
-# Maven build output
-/target
+# Build artifacts
+target/
+!target/payment-reconciliation-*.jar
 
 # IDE files
-/.idea
-/.project
-/.settings
-/.classpath
+.idea/
+.vscode/
+.project
+.settings/
+.classpath
+*.iml
+*.ipr
+*.iws
 
 # OS files
 .DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Documentation
+*.md
+docs/
+
+# Test files
+src/test/
+
+# Local development files
+uploads/dev/
+uploads/staging/
+logs/
+
+# Maven wrapper (optional, depends on preference)
+.mvn/
+mvnw
+mvnw.cmd
+
+# Environment files
+.env
+*.env
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Temporary files
+*.tmp
+*.temp

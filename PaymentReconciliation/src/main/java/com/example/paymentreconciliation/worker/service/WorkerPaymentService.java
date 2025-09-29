@@ -1,6 +1,7 @@
 package com.example.paymentreconciliation.worker.service;
 
 import com.example.paymentreconciliation.worker.entity.WorkerPayment;
+import com.example.paymentreconciliation.worker.entity.WorkerPaymentStatus;
 import com.example.paymentreconciliation.exception.ResourceNotFoundException;
 import com.example.paymentreconciliation.worker.dao.WorkerPaymentRepository;
 import java.util.List;
@@ -26,6 +27,38 @@ public class WorkerPaymentService {
         WorkerPayment saved = repository.save(workerPayment);
         log.info("Persisted worker payment id={}", saved.getId());
         return saved;
+    }
+
+    public List<WorkerPayment> createBulk(List<WorkerPayment> workerPayments) {
+        log.info("Bulk persisting {} worker payments", workerPayments.size());
+        List<WorkerPayment> saved = repository.saveAll(workerPayments);
+        log.info("Bulk persisted {} worker payments", saved.size());
+        return saved;
+    }
+
+    public List<WorkerPayment> updateBulk(List<WorkerPayment> workerPayments) {
+        log.info("Bulk updating {} worker payments", workerPayments.size());
+        List<WorkerPayment> saved = repository.saveAll(workerPayments);
+        log.info("Bulk updated {} worker payments", saved.size());
+        return saved;
+    }
+
+    @Transactional(readOnly = true)
+    public List<WorkerPayment> findByRequestReferencePrefix(String prefix) {
+        log.info("Finding worker payments with request reference starting with: {}", prefix);
+        return repository.findByRequestReferenceNumberStartingWith(prefix);
+    }
+
+    @Transactional(readOnly = true)
+    public List<WorkerPayment> findByStatus(WorkerPaymentStatus status) {
+        log.info("Finding worker payments with status: {}", status);
+        return repository.findByStatus(status);
+    }
+
+    @Transactional(readOnly = true)
+    public List<WorkerPayment> findByReferencePrefixAndStatus(String prefix, WorkerPaymentStatus status) {
+        log.info("Finding worker payments with reference prefix: {} and status: {}", prefix, status);
+        return repository.findByRequestReferenceNumberStartingWithAndStatus(prefix, status);
     }
 
     @Transactional(readOnly = true)

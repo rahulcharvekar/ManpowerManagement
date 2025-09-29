@@ -10,6 +10,8 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
 
 @Entity
 @Table(name = "worker_payments")
@@ -43,8 +45,24 @@ public class WorkerPayment {
     @Column(name = "payment_amount", precision = 15, scale = 2, nullable = false)
     private BigDecimal paymentAmount;
 
+
     @Column(name = "request_reference_number", nullable = false, unique = true, length = 40)
     private String requestReferenceNumber;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private WorkerPaymentStatus status = WorkerPaymentStatus.UPLOADED;
+
+    @Column(name = "receipt_number", length = 40)
+    private String receiptNumber;
+    
+    public String getReceiptNumber() {
+        return receiptNumber;
+    }
+
+    public void setReceiptNumber(String receiptNumber) {
+        this.receiptNumber = receiptNumber;
+    }
 
     public WorkerPayment() {
     }
@@ -134,5 +152,13 @@ public class WorkerPayment {
 
     public void setRequestReferenceNumber(String requestReferenceNumber) {
         this.requestReferenceNumber = requestReferenceNumber;
+    }
+
+    public WorkerPaymentStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(WorkerPaymentStatus status) {
+        this.status = status;
     }
 }

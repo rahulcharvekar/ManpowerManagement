@@ -1,0 +1,12 @@
+{"properties": [
+  {
+    "name": "workerpayment.file.upload-dir",
+    "type": "java.lang.String",
+    "description": "A description for 'workerpayment.file.upload-dir'"
+  },
+  {
+    "name": "file.upload.base-dir",
+    "type": "java.lang.String",
+    "description": "A description for 'file.upload.base-dir'"
+  }
+]}

@@ -1,22 +1,15 @@
+# Common configuration for all environments
 spring:
   application:
     name: payment-reconciliation
-  datasource:
-    url: jdbc:h2:mem:paymentrecon;DB_CLOSE_DELAY=-1
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-  h2:
-    console:
-      enabled: true
-      settings:
-        web-allow-others: false
+  profiles:
+    active: dev
   jpa:
     hibernate:
       ddl-auto: update
     properties:
       hibernate:
-        format_sql: true
+        "[format_sql]": true
 
 management:
   endpoints:
@@ -26,4 +19,8 @@ management:
 
 logging:
   level:
-    com.example.paymentreconciliation: INFO
+    "[com.example.paymentreconciliation]": INFO
+
+file:
+  upload:
+    base-dir: uploads/

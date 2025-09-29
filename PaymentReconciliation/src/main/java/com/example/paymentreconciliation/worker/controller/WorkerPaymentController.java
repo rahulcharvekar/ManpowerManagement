@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -47,6 +48,13 @@ public class WorkerPaymentController {
     public ResponseEntity<WorkerPayment> findById(@PathVariable("id") Long id) {
         log.info("Fetching worker payment id={}", id);
         return ResponseEntity.ok(service.findById(id));
+    }
+
+    @GetMapping("/by-reference-prefix")
+    public ResponseEntity<List<WorkerPayment>> findByReferencePrefix(@RequestParam("prefix") String prefix) {
+        log.info("Fetching worker payments with reference prefix={}", prefix);
+        List<WorkerPayment> payments = service.findByRequestReferencePrefix(prefix);
+        return ResponseEntity.ok(payments);
     }
 
     @PutMapping("/{id}")
