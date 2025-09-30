@@ -8,5 +8,10 @@
     "name": "file.upload.base-dir",
     "type": "java.lang.String",
     "description": "A description for 'file.upload.base-dir'"
+  },
+  {
+    "name": "mt940.statements.path",
+    "type": "java.lang.String",
+    "description": "A description for 'mt940.statements.path'"
   }
 ]}

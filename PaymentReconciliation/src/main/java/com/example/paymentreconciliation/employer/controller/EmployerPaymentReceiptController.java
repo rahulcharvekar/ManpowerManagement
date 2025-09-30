@@ -2,7 +2,6 @@ package com.example.paymentreconciliation.employer.controller;
 
 import com.example.paymentreconciliation.employer.entity.EmployerPaymentReceipt;
 import com.example.paymentreconciliation.employer.service.EmployerPaymentReceiptService;
-import com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;

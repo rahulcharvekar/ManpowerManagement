@@ -24,6 +24,13 @@ Backend/.pytest_cache/
 Backend/.ruff_cache/
 *.pyc
 
+# java related
+Backend/*.jar
+Backend/*.war
+Backend/*.ear
+Backend/*.class
+Backend/target/
+
 # Coverage and reports
 Backend/.coverage
 Backend/coverage/
