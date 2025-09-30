@@ -1,7 +1,6 @@
 package com.example.paymentreconciliation.worker.service;
 
 import com.example.paymentreconciliation.worker.entity.WorkerPayment;
-import com.example.paymentreconciliation.worker.entity.WorkerPaymentStatus;
 import com.example.paymentreconciliation.exception.ResourceNotFoundException;
 import com.example.paymentreconciliation.worker.dao.WorkerPaymentRepository;
 import java.util.List;
@@ -52,13 +51,13 @@ public class WorkerPaymentService {
     }
 
     @Transactional(readOnly = true)
-    public List<WorkerPayment> findByStatus(WorkerPaymentStatus status) {
+    public List<WorkerPayment> findByStatus(String status) {
         log.info("Finding worker payments with status: {}", status);
         return repository.findByStatus(status);
     }
 
     @Transactional(readOnly = true)
-    public List<WorkerPayment> findByReferencePrefixAndStatus(String prefix, WorkerPaymentStatus status) {
+    public List<WorkerPayment> findByReferencePrefixAndStatus(String prefix, String status) {
         log.info("Finding worker payments with reference prefix: {} and status: {}", prefix, status);
         return repository.findByRequestReferenceNumberStartingWithAndStatus(prefix, status);
     }
@@ -70,7 +69,7 @@ public class WorkerPaymentService {
     }
 
     @Transactional(readOnly = true)
-    public List<WorkerPayment> findByFileIdAndStatus(String fileId, WorkerPaymentStatus status) {
+    public List<WorkerPayment> findByFileIdAndStatus(String fileId, String status) {
         log.info("Finding worker payments with fileId: {} and status: {}", fileId, status);
         return repository.findByFileIdAndStatus(fileId, status);
     }
@@ -82,7 +81,7 @@ public class WorkerPaymentService {
     }
 
     @Transactional(readOnly = true)
-    public Page<WorkerPayment> findByFileIdAndStatusPaginated(String fileId, WorkerPaymentStatus status, Pageable pageable) {
+    public Page<WorkerPayment> findByFileIdAndStatusPaginated(String fileId, String status, Pageable pageable) {
         log.info("Finding worker payments with fileId: {} and status: {} (paginated)", fileId, status);
         return repository.findByFileIdAndStatus(fileId, status, pageable);
     }
@@ -100,7 +99,7 @@ public class WorkerPaymentService {
     }
     
     @Transactional(readOnly = true)
-    public Page<WorkerPayment> findByStatusPaginated(WorkerPaymentStatus status, Pageable pageable) {
+    public Page<WorkerPayment> findByStatusPaginated(String status, Pageable pageable) {
         log.info("Finding worker payments with status: {} (paginated)", status);
         return repository.findByStatus(status, pageable);
     }
@@ -113,7 +112,7 @@ public class WorkerPaymentService {
     
     @Transactional(readOnly = true)
     public Page<WorkerPayment> findByStatusAndReceiptNumber(
-            WorkerPaymentStatus status,
+            String status,
             String receiptNumber,
             Pageable pageable) {
         log.info("Finding worker payments with status: {}, receipt number: {} (paginated)", 

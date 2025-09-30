@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.paymentreconciliation.worker.dao.WorkerPaymentReceiptRepository;
 import com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt;
-import com.example.paymentreconciliation.worker.entity.WorkerPaymentStatus;
+
 import com.example.paymentreconciliation.employer.dao.EmployerPaymentReceiptRepository;
 import com.example.paymentreconciliation.employer.entity.EmployerPaymentReceipt;
 
@@ -203,7 +203,7 @@ public class MT940ReconciliationService {
                     if (workerReceiptOpt.isPresent()) {
                         WorkerPaymentReceipt workerReceipt = workerReceiptOpt.get();
                         // Update worker payment status to PAYMENT_PROCESSED
-                        workerReceipt.setStatus(WorkerPaymentStatus.PAYMENT_PROCESSED.name());
+                        workerReceipt.setStatus("PAYMENT_PROCESSED");
                         workerPaymentReceiptRepository.save(workerReceipt);
                         log.info("Updated worker payment receipt {} status to PAYMENT_PROCESSED", workerReceipt.getReceiptNumber());
                     } else {

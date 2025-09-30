@@ -2,12 +2,12 @@ package com.example.paymentreconciliation.reconciliation.service;
 
 import com.example.paymentreconciliation.board.dao.BoardReceiptRepository;
 import com.example.paymentreconciliation.board.entity.BoardReceipt;
-import com.example.paymentreconciliation.board.entity.BoardReceiptStatus;
+
 import com.example.paymentreconciliation.employer.dao.EmployerPaymentReceiptRepository;
 import com.example.paymentreconciliation.employer.entity.EmployerPaymentReceipt;
 import com.example.paymentreconciliation.worker.dao.WorkerPaymentReceiptRepository;
 import com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt;
-import com.example.paymentreconciliation.worker.entity.WorkerPaymentStatus;
+
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
 
 import org.slf4j.Logger;
@@ -80,7 +80,7 @@ public class PaymentProcessingService {
                 
                 if (workerReceiptOpt.isPresent()) {
                     WorkerPaymentReceipt workerReceipt = workerReceiptOpt.get();
-                    workerReceipt.setStatus(WorkerPaymentStatus.PAYMENT_PROCESSED.name());
+                    workerReceipt.setStatus("PAYMENT_PROCESSED");
                     workerPaymentReceiptRepository.save(workerReceipt);
                     log.info("Updated worker payment receipt {} to PAYMENT_PROCESSED", workerReceipt.getReceiptNumber());
                 }
@@ -90,7 +90,7 @@ public class PaymentProcessingService {
                 
                 if (boardReceiptOpt.isPresent()) {
                     BoardReceipt boardReceipt = boardReceiptOpt.get();
-                    boardReceipt.setStatus(BoardReceiptStatus.PROCESSED);
+                    boardReceipt.setStatus("PROCESSED");
                     boardReceiptRepository.save(boardReceipt);
                     log.info("Updated board receipt {} to PROCESSED", boardReceipt.getBoardRef());
                 }

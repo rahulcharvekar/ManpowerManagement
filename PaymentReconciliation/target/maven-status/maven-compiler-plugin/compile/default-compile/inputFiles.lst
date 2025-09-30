@@ -25,7 +25,6 @@
 /Users/rahulcharvekar/Documents/Repos/ManpowerManagement/PaymentReconciliation/src/main/java/com/example/paymentreconciliation/worker/entity/WorkerPaymentReceipt.java
 /Users/rahulcharvekar/Documents/Repos/ManpowerManagement/PaymentReconciliation/src/main/java/com/example/paymentreconciliation/system/controller/SystemController.java
 /Users/rahulcharvekar/Documents/Repos/ManpowerManagement/PaymentReconciliation/src/main/java/com/example/paymentreconciliation/worker/service/WorkerPaymentService.java
-/Users/rahulcharvekar/Documents/Repos/ManpowerManagement/PaymentReconciliation/src/main/java/com/example/paymentreconciliation/board/entity/BoardReceiptStatus.java
 /Users/rahulcharvekar/Documents/Repos/ManpowerManagement/PaymentReconciliation/src/main/java/com/example/paymentreconciliation/employer/controller/EmployerPaymentReceiptController.java
 /Users/rahulcharvekar/Documents/Repos/ManpowerManagement/PaymentReconciliation/src/main/java/com/example/paymentreconciliation/utilities/file/UploadedFileService.java
 /Users/rahulcharvekar/Documents/Repos/ManpowerManagement/PaymentReconciliation/src/main/java/com/example/paymentreconciliation/config/WebCorsConfig.java
@@ -42,6 +41,7 @@
 /Users/rahulcharvekar/Documents/Repos/ManpowerManagement/PaymentReconciliation/src/main/java/com/example/paymentreconciliation/reconciliation/controller/ReconciliationController.java
 /Users/rahulcharvekar/Documents/Repos/ManpowerManagement/PaymentReconciliation/src/main/java/com/example/paymentreconciliation/board/controller/BoardReceiptController.java
 /Users/rahulcharvekar/Documents/Repos/ManpowerManagement/PaymentReconciliation/src/main/java/com/example/paymentreconciliation/utilities/file/FileValidationService.java
+/Users/rahulcharvekar/Documents/Repos/ManpowerManagement/PaymentReconciliation/src/main/java/com/example/paymentreconciliation/util/SchemaGenerator.java
 /Users/rahulcharvekar/Documents/Repos/ManpowerManagement/PaymentReconciliation/src/main/java/com/example/paymentreconciliation/utilities/database/DatabaseCleanupUtil.java
 /Users/rahulcharvekar/Documents/Repos/ManpowerManagement/PaymentReconciliation/src/main/java/com/example/paymentreconciliation/worker/dao/WorkerPaymentReceiptRepository.java
 /Users/rahulcharvekar/Documents/Repos/ManpowerManagement/PaymentReconciliation/src/main/java/com/example/paymentreconciliation/utilities/file/FileParsingUtil.java

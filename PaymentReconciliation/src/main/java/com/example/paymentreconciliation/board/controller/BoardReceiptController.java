@@ -121,7 +121,7 @@ public class BoardReceiptController {
                 "boardRef", processedReceipt.getBoardRef(),
                 "employerRef", processedReceipt.getEmployerRef(),
                 "utrNumber", processedReceipt.getUtrNumber(),
-                "status", processedReceipt.getStatus().name(),
+                "status", processedReceipt.getStatus(),
                 "amount", processedReceipt.getAmount(),
                 "checker", processedReceipt.getChecker(),
                 "processedDate", processedReceipt.getDate()

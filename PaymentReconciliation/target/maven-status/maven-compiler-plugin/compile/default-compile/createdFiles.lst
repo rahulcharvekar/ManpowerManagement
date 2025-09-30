@@ -37,7 +37,6 @@ com/example/paymentreconciliation/board/service/BoardReceiptService.class
 com/example/paymentreconciliation/config/OpenApiConfig.class
 com/example/paymentreconciliation/reconciliation/service/ReconciliationService.class
 com/example/paymentreconciliation/worker/entity/WorkerPayment.class
-com/example/paymentreconciliation/worker/service/WorkerPaymentFileService$1.class
 com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.class
 com/example/paymentreconciliation/employer/service/EmployerPaymentReceiptService.class
 com/example/paymentreconciliation/worker/dao/WorkerPaymentRepository.class
@@ -50,7 +49,6 @@ com/example/paymentreconciliation/reconciliation/service/MT940ReconciliationServ
 com/example/paymentreconciliation/config/DatabaseMigrationConfig.class
 com/example/paymentreconciliation/reconciliation/entity/Mt940Transaction.class
 com/example/paymentreconciliation/board/controller/BoardReceiptController$BoardReceiptProcessRequest.class
-com/example/paymentreconciliation/board/entity/BoardReceiptStatus.class
 com/example/paymentreconciliation/board/dao/BoardReceiptRepository.class
 com/example/paymentreconciliation/reconciliation/service/MT940ReconciliationService$ReconciliationResponse.class
 com/example/paymentreconciliation/utilities/file/FileParsingUtil.class

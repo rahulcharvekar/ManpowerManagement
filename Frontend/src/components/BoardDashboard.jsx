@@ -5,6 +5,9 @@ import {
   getEmployerReceiptsByEmpRef 
 } from '../api/workerPayments';
 
+// API configuration
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
 function BoardDashboard({ onGoBack }) {
   // State for board receipts view
   const [receipts, setReceipts] = useState([]);
@@ -124,7 +127,7 @@ function BoardDashboard({ onGoBack }) {
     
     try {
       const response = await fetch(
-        `http://localhost:8080/api/v1/reconciliations/mt940?txnRef=${encodeURIComponent(receipt.transactionReference)}&amount=${receipt.totalAmount}`,
+        `${API_BASE_URL}/api/v1/reconciliations/mt940?txnRef=${encodeURIComponent(receipt.transactionReference)}&amount=${receipt.totalAmount}`,
         {
           method: 'POST',
           headers: {
@@ -168,7 +171,7 @@ function BoardDashboard({ onGoBack }) {
     
     try {
       const response = await fetch(
-        `http://localhost:8080/api/payment-processing/process-and-report/${encodeURIComponent(reconciliationResult.transactionReference)}?processedBy=RAHUL`,
+        `${API_BASE_URL}/api/payment-processing/process-and-report/${encodeURIComponent(reconciliationResult.transactionReference)}?processedBy=RAHUL`,
         {
           method: 'POST',
           headers: {

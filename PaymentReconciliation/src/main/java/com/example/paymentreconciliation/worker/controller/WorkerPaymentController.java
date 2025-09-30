@@ -1,7 +1,7 @@
 package com.example.paymentreconciliation.worker.controller;
 
 import com.example.paymentreconciliation.worker.entity.WorkerPayment;
-import com.example.paymentreconciliation.worker.entity.WorkerPaymentStatus;
+
 import com.example.paymentreconciliation.worker.service.WorkerPaymentService;
 import java.net.URI;
 import java.util.List;
@@ -51,7 +51,7 @@ public class WorkerPaymentController {
     @Operation(summary = "Get all worker payments with filtering", 
                description = "Retrieve worker payments with optional filtering by status and receipt number, with pagination")
     public ResponseEntity<Page<WorkerPayment>> findAll(
-            @Parameter(description = "Payment status filter") @RequestParam(required = false) WorkerPaymentStatus status,
+            @Parameter(description = "Payment status filter") @RequestParam(required = false) String status,
             @Parameter(description = "Receipt number filter") @RequestParam(required = false) String receiptNumber,
             @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size,

@@ -1,7 +1,7 @@
 package com.example.paymentreconciliation.board.dao;
 
 import com.example.paymentreconciliation.board.entity.BoardReceipt;
-import com.example.paymentreconciliation.board.entity.BoardReceiptStatus;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,16 +18,16 @@ public interface BoardReceiptRepository extends JpaRepository<BoardReceipt, Long
     
     Optional<BoardReceipt> findByEmployerRef(String employerRef);
     
-    List<BoardReceipt> findByStatus(BoardReceiptStatus status);
+    List<BoardReceipt> findByStatus(String status);
     
-    Page<BoardReceipt> findByStatus(BoardReceiptStatus status, Pageable pageable);
+    Page<BoardReceipt> findByStatus(String status, Pageable pageable);
     
     List<BoardReceipt> findByMaker(String maker);
     
     // Find by status and date range
     @Query("SELECT b FROM BoardReceipt b WHERE b.status = :status AND b.date BETWEEN :startDate AND :endDate")
     Page<BoardReceipt> findByStatusAndDateBetween(
-        @Param("status") BoardReceiptStatus status, 
+        @Param("status") String status, 
         @Param("startDate") LocalDate startDate, 
         @Param("endDate") LocalDate endDate, 
         Pageable pageable

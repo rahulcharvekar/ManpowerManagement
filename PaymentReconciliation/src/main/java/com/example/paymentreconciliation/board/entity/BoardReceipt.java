@@ -2,8 +2,6 @@ package com.example.paymentreconciliation.board.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -31,9 +29,8 @@ public class BoardReceipt {
     @Column(name = "utr_number", nullable = false, length = 48)
     private String utrNumber;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 32)
-    private BoardReceiptStatus status = BoardReceiptStatus.PENDING;
+    private String status = "PENDING";
 
     @Column(name = "maker", nullable = false, length = 64)
     private String maker;
@@ -83,11 +80,11 @@ public class BoardReceipt {
         this.utrNumber = utrNumber;
     }
 
-    public BoardReceiptStatus getStatus() {
+    public String getStatus() {
         return status;
     }
 
-    public void setStatus(BoardReceiptStatus status) {
+    public void setStatus(String status) {
         this.status = status;
     }
 

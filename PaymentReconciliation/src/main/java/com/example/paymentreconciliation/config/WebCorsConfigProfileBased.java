@@ -42,9 +42,41 @@ public class WebCorsConfigProfileBased {
         CorsConfiguration config = new CorsConfiguration();
         
         // Production: Specify exact allowed origins for security
-        config.addAllowedOrigin("https://your-frontend-domain.com");
-        config.addAllowedOrigin("https://your-admin-panel.com");
-        // Add more specific origins as needed
+        config.addAllowedOrigin("https://rahulcharvekar.github.io");
+        config.addAllowedOrigin("https://rahulcharvekar.github.io/ManpowerManagement");
+        // Add more specific origins as needed for additional frontend applications
+        
+        config.setAllowCredentials(true);
+        
+        // Set allowed headers
+        config.addAllowedHeader("Content-Type");
+        config.addAllowedHeader("Authorization");
+        config.addAllowedHeader("X-Requested-With");
+        config.addAllowedHeader("Accept");
+        
+        // Set allowed methods
+        config.addAllowedMethod("GET");
+        config.addAllowedMethod("POST");
+        config.addAllowedMethod("PUT");
+        config.addAllowedMethod("PATCH");
+        config.addAllowedMethod("DELETE");
+        config.addAllowedMethod("OPTIONS");
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return new CorsFilter(source);
+    }
+
+    @Bean
+    @Profile("staging")
+    public CorsFilter corsFilterStaging() {
+        CorsConfiguration config = new CorsConfiguration();
+        
+        // Staging: Allow GitHub Pages and some development origins
+        config.addAllowedOrigin("https://rahulcharvekar.github.io");
+        config.addAllowedOrigin("https://rahulcharvekar.github.io/ManpowerManagement");
+        config.addAllowedOrigin("http://localhost:3000");
+        config.addAllowedOrigin("http://localhost:8080");
         
         config.setAllowCredentials(true);
         

@@ -5,7 +5,7 @@ import com.example.paymentreconciliation.employer.dao.EmployerPaymentReceiptRepo
 import com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt;
 import com.example.paymentreconciliation.worker.dao.WorkerPaymentReceiptRepository;
 import com.example.paymentreconciliation.worker.entity.WorkerPayment;
-import com.example.paymentreconciliation.worker.entity.WorkerPaymentStatus;
+
 import com.example.paymentreconciliation.worker.service.WorkerPaymentService;
 import com.example.paymentreconciliation.board.service.BoardReceiptService;
 import com.example.paymentreconciliation.board.entity.BoardReceipt;
@@ -167,8 +167,8 @@ public class EmployerPaymentReceiptService {
         // Update all worker payments with this receipt number to PAYMENT_INITIATED
         List<WorkerPayment> workerPayments = workerPaymentService.findByReceiptNumber(workerReceiptNumber);
         for (WorkerPayment payment : workerPayments) {
-            if (payment.getStatus() == WorkerPaymentStatus.PAYMENT_REQUESTED) {
-                payment.setStatus(WorkerPaymentStatus.PAYMENT_INITIATED);
+            if ("PAYMENT_REQUESTED".equals(payment.getStatus())) {
+                payment.setStatus("PAYMENT_INITIATED");
                 workerPaymentService.save(payment);
             }
         }

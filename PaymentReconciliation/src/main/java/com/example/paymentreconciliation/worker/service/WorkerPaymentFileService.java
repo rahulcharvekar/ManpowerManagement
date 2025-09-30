@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.example.paymentreconciliation.utilities.file.FileStorageUtil;
 import com.example.paymentreconciliation.utilities.file.FileParsingUtil;
 import com.example.paymentreconciliation.worker.entity.WorkerPayment;
-import com.example.paymentreconciliation.worker.entity.WorkerPaymentStatus;
 import com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt;
 import com.example.paymentreconciliation.utilities.file.UploadedFileRepository;
 import com.example.paymentreconciliation.utilities.file.UploadedFile;
@@ -119,10 +118,10 @@ public class WorkerPaymentFileService {
             for (WorkerPayment payment : payments) {
                 boolean isValid = validateWorkerPayment(payment);
                 if (isValid) {
-                    payment.setStatus(WorkerPaymentStatus.VALIDATED);
+                    payment.setStatus("VALIDATED");
                     passedCount++;
                 } else {
-                    payment.setStatus(WorkerPaymentStatus.FAILED);
+                    payment.setStatus("FAILED");
                     failedCount++;
                 }
                 updatedPayments.add(payment);
@@ -183,9 +182,9 @@ public class WorkerPaymentFileService {
             for (WorkerPayment payment : payments) {
                 Map<String, Object> record = createPaymentSummary(payment);
                 
-                if (payment.getStatus() == WorkerPaymentStatus.VALIDATED) {
+                if ("VALIDATED".equals(payment.getStatus())) {
                     passedRecords.add(record);
-                } else if (payment.getStatus() == WorkerPaymentStatus.FAILED) {
+                } else if ("FAILED".equals(payment.getStatus())) {
                     failedRecords.add(record);
                 }
             }
@@ -214,7 +213,7 @@ public class WorkerPaymentFileService {
         summary.put("paymentAmount", payment.getPaymentAmount());
         summary.put("bankAccount", payment.getBankAccount());
         summary.put("requestRefNumber", payment.getRequestReferenceNumber());
-        summary.put("status", payment.getStatus().name());
+        summary.put("status", payment.getStatus());
         
         // Include receipt number if available
         if (payment.getReceiptNumber() != null) {
@@ -235,8 +234,8 @@ public class WorkerPaymentFileService {
             
             for (WorkerPayment payment : payments) {
                 // Only process records that passed validation
-                if (payment.getStatus() == WorkerPaymentStatus.VALIDATED) {
-                    payment.setStatus(WorkerPaymentStatus.PAYMENT_REQUESTED);
+                if ("VALIDATED".equals(payment.getStatus())) {
+                    payment.setStatus("PAYMENT_REQUESTED");
                     toUpdate.add(payment);
                     processedCount++;
                 }
@@ -317,31 +316,33 @@ public class WorkerPaymentFileService {
         try {
             List<WorkerPayment> payments = workerPaymentService.findByFileId(fileId);
             
-            Map<WorkerPaymentStatus, Integer> statusCounts = new HashMap<>();
+            Map<String, Integer> statusCounts = new HashMap<>();
             
             // Initialize counts
-            for (WorkerPaymentStatus status : WorkerPaymentStatus.values()) {
+            String[] statuses = {"UPLOADED", "VALIDATED", "FAILED", "PROCESSED", "PAYMENT_REQUESTED", 
+                               "PAYMENT_INITIATED", "PAYMENT_PROCESSED", "GENERATED", "ERROR"};
+            for (String status : statuses) {
                 statusCounts.put(status, 0);
             }
             
             // Count by status
             for (WorkerPayment payment : payments) {
-                WorkerPaymentStatus status = payment.getStatus();
-                statusCounts.put(status, statusCounts.get(status) + 1);
+                String status = payment.getStatus();
+                statusCounts.put(status, statusCounts.getOrDefault(status, 0) + 1);
             }
             
             Map<String, Object> result = new HashMap<>();
             result.put("fileId", fileId);
             result.put("totalRecords", payments.size());
-            result.put("uploadedCount", statusCounts.get(WorkerPaymentStatus.UPLOADED));
-            result.put("validatedCount", statusCounts.get(WorkerPaymentStatus.VALIDATED));
-            result.put("failedCount", statusCounts.get(WorkerPaymentStatus.FAILED));
-            result.put("processedCount", statusCounts.get(WorkerPaymentStatus.PROCESSED));
-            result.put("paymentRequestedCount", statusCounts.get(WorkerPaymentStatus.PAYMENT_REQUESTED));
-            result.put("paymentInitiatedCount", statusCounts.get(WorkerPaymentStatus.PAYMENT_INITIATED));
-            result.put("paymentProcessedCount", statusCounts.get(WorkerPaymentStatus.PAYMENT_PROCESSED));
-            result.put("generatedCount", statusCounts.get(WorkerPaymentStatus.GENERATED));
-            result.put("errorCount", statusCounts.get(WorkerPaymentStatus.ERROR));
+            result.put("uploadedCount", statusCounts.get("UPLOADED"));
+            result.put("validatedCount", statusCounts.get("VALIDATED"));
+            result.put("failedCount", statusCounts.get("FAILED"));
+            result.put("processedCount", statusCounts.get("PROCESSED"));
+            result.put("paymentRequestedCount", statusCounts.get("PAYMENT_REQUESTED"));
+            result.put("paymentInitiatedCount", statusCounts.get("PAYMENT_INITIATED"));
+            result.put("paymentProcessedCount", statusCounts.get("PAYMENT_PROCESSED"));
+            result.put("generatedCount", statusCounts.get("GENERATED"));
+            result.put("errorCount", statusCounts.get("ERROR"));
             
             // Determine workflow status and next action
             String workflowStatus = determineWorkflowStatus(statusCounts);
@@ -358,34 +359,34 @@ public class WorkerPaymentFileService {
         }
     }
     
-    private String determineWorkflowStatus(Map<WorkerPaymentStatus, Integer> statusCounts) {
+    private String determineWorkflowStatus(Map<String, Integer> statusCounts) {
         // Check if any records have been processed (receipts generated)
-        if (statusCounts.get(WorkerPaymentStatus.PAYMENT_REQUESTED) > 0 || 
-            statusCounts.get(WorkerPaymentStatus.GENERATED) > 0) {
+        if (statusCounts.get("PAYMENT_REQUESTED") > 0 || 
+            statusCounts.get("GENERATED") > 0) {
             return "PROCESSED";
         }
         
         // Check if validation is complete
-        if (statusCounts.get(WorkerPaymentStatus.VALIDATED) > 0 || 
-            statusCounts.get(WorkerPaymentStatus.FAILED) > 0) {
+        if (statusCounts.get("VALIDATED") > 0 || 
+            statusCounts.get("FAILED") > 0) {
             return "VALIDATED";
         }
         
         // Default to uploaded status
-        if (statusCounts.get(WorkerPaymentStatus.UPLOADED) > 0) {
+        if (statusCounts.get("UPLOADED") > 0) {
             return "UPLOADED";
         }
         
         return "UNKNOWN";
     }
     
-    private String determineNextAction(String workflowStatus, Map<WorkerPaymentStatus, Integer> statusCounts) {
+    private String determineNextAction(String workflowStatus, Map<String, Integer> statusCounts) {
         switch (workflowStatus) {
             case "UPLOADED":
                 return "START_VALIDATION";
             case "VALIDATED":
                 // Only show generate receipt if there are validated records
-                if (statusCounts.get(WorkerPaymentStatus.VALIDATED) > 0) {
+                if (statusCounts.get("VALIDATED") > 0) {
                     return "GENERATE_RECEIPT";
                 } else {
                     return "START_VALIDATION"; // All failed validation
@@ -424,10 +425,21 @@ public class WorkerPaymentFileService {
             Page<WorkerPayment> paymentsPage;
             
             if (statusFilter != null && !statusFilter.trim().isEmpty()) {
-                try {
-                    WorkerPaymentStatus status = WorkerPaymentStatus.valueOf(statusFilter.toUpperCase());
-                    paymentsPage = workerPaymentService.findByFileIdAndStatusPaginated(fileId, status, pageable);
-                } catch (IllegalArgumentException e) {
+                // Validate status filter
+                String[] validStatuses = {"UPLOADED", "VALIDATED", "FAILED", "PROCESSED", "PAYMENT_REQUESTED", 
+                                        "PAYMENT_INITIATED", "PAYMENT_PROCESSED", "GENERATED", "ERROR"};
+                String upperStatusFilter = statusFilter.toUpperCase();
+                boolean isValidStatus = false;
+                for (String validStatus : validStatuses) {
+                    if (validStatus.equals(upperStatusFilter)) {
+                        isValidStatus = true;
+                        break;
+                    }
+                }
+                
+                if (isValidStatus) {
+                    paymentsPage = workerPaymentService.findByFileIdAndStatusPaginated(fileId, upperStatusFilter, pageable);
+                } else {
                     return Map.of("error", "Invalid status filter: " + statusFilter);
                 }
             } else {
@@ -465,21 +477,21 @@ public class WorkerPaymentFileService {
     
     private String getValidationStatusDetail(WorkerPayment payment) {
         switch (payment.getStatus()) {
-            case UPLOADED:
+            case "UPLOADED":
                 return "Pending validation";
-            case VALIDATED:
+            case "VALIDATED":
                 return "Validation passed";
-            case FAILED:
+            case "FAILED":
                 return "Validation failed - check required fields";
-            case PROCESSED:
+            case "PROCESSED":
                 return "Successfully processed";
-            case PAYMENT_REQUESTED:
+            case "PAYMENT_REQUESTED":
                 return "Payment requested - receipt generated";
-            case PAYMENT_INITIATED:
+            case "PAYMENT_INITIATED":
                 return "Payment initiated by employer";
-            case GENERATED:
+            case "GENERATED":
                 return "Receipt generated";
-            case ERROR:
+            case "ERROR":
                 return "Error during processing";
             default:
                 return "Unknown status";

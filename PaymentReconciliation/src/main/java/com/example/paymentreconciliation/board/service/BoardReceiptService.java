@@ -1,7 +1,7 @@
 package com.example.paymentreconciliation.board.service;
 
 import com.example.paymentreconciliation.board.entity.BoardReceipt;
-import com.example.paymentreconciliation.board.entity.BoardReceiptStatus;
+
 import com.example.paymentreconciliation.employer.entity.EmployerPaymentReceipt;
 import com.example.paymentreconciliation.exception.ResourceNotFoundException;
 import com.example.paymentreconciliation.board.dao.BoardReceiptRepository;
@@ -94,7 +94,7 @@ public class BoardReceiptService {
         boardReceipt.setEmployerRef(employerReceipt.getEmployerReceiptNumber());  
         boardReceipt.setAmount(employerReceipt.getTotalAmount());
         boardReceipt.setUtrNumber(""); // Will be filled when processing
-        boardReceipt.setStatus(BoardReceiptStatus.PENDING);
+        boardReceipt.setStatus("PENDING");
         boardReceipt.setMaker(maker);
         boardReceipt.setDate(LocalDate.now());
         
@@ -129,21 +129,22 @@ public class BoardReceiptService {
                 endLocalDate = LocalDate.parse(endDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
             }
             
-            // Parse status if provided
-            BoardReceiptStatus statusEnum = null;
+            // Validate status if provided
+            String statusValue = null;
             if (status != null && !status.trim().isEmpty()) {
-                try {
-                    statusEnum = BoardReceiptStatus.valueOf(status.toUpperCase());
-                } catch (IllegalArgumentException e) {
-                    throw new RuntimeException("Invalid status: " + status + ". Valid values are: PENDING, VERIFIED, REJECTED");
+                String upperStatus = status.toUpperCase();
+                if (!upperStatus.equals("PENDING") && !upperStatus.equals("VERIFIED") && 
+                    !upperStatus.equals("REJECTED") && !upperStatus.equals("PROCESSED")) {
+                    throw new RuntimeException("Invalid status: " + status + ". Valid values are: PENDING, VERIFIED, REJECTED, PROCESSED");
                 }
+                statusValue = upperStatus;
             }
             
             // Apply filters
-            if (statusEnum != null && startLocalDate != null && endLocalDate != null) {
-                receiptsPage = repository.findByStatusAndDateBetween(statusEnum, startLocalDate, endLocalDate, pageable);
-            } else if (statusEnum != null) {
-                receiptsPage = repository.findByStatus(statusEnum, pageable);
+            if (statusValue != null && startLocalDate != null && endLocalDate != null) {
+                receiptsPage = repository.findByStatusAndDateBetween(statusValue, startLocalDate, endLocalDate, pageable);
+            } else if (statusValue != null) {
+                receiptsPage = repository.findByStatus(statusValue, pageable);
             } else if (startLocalDate != null && endLocalDate != null) {
                 receiptsPage = repository.findByDateBetween(startLocalDate, endLocalDate, pageable);
             } else {
@@ -174,12 +175,12 @@ public class BoardReceiptService {
     @Transactional(readOnly = true)
     public List<BoardReceipt> findByStatus(String status) {
         log.info("Finding board receipts with status: {}", status);
-        try {
-            BoardReceiptStatus statusEnum = BoardReceiptStatus.valueOf(status.toUpperCase());
-            return repository.findByStatus(statusEnum);
-        } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Invalid status: " + status + ". Valid values are: PENDING, VERIFIED, REJECTED");
+        String upperStatus = status.toUpperCase();
+        if (!upperStatus.equals("PENDING") && !upperStatus.equals("VERIFIED") && 
+            !upperStatus.equals("REJECTED") && !upperStatus.equals("PROCESSED")) {
+            throw new RuntimeException("Invalid status: " + status + ". Valid values are: PENDING, VERIFIED, REJECTED, PROCESSED");
         }
+        return repository.findByStatus(upperStatus);
     }
     
     @Transactional(readOnly = true)
@@ -206,14 +207,14 @@ public class BoardReceiptService {
         BoardReceipt boardReceipt = boardReceiptOpt.get();
         
         // Check if already processed
-        if (boardReceipt.getStatus() != BoardReceiptStatus.PENDING) {
+        if (!"PENDING".equals(boardReceipt.getStatus())) {
             throw new RuntimeException("Board receipt already processed: " + boardRef + " (Status: " + boardReceipt.getStatus() + ")");
         }
         
         // Update board receipt
         boardReceipt.setUtrNumber(utrNumber);
         boardReceipt.setChecker(checker);
-        boardReceipt.setStatus(BoardReceiptStatus.VERIFIED);
+        boardReceipt.setStatus("VERIFIED");
         
         // Save board receipt
         BoardReceipt savedReceipt = repository.save(boardReceipt);

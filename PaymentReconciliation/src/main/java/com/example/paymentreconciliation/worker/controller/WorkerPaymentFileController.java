@@ -144,13 +144,13 @@ public class WorkerPaymentFileController {
                     "id", payments.get(0).getId(),
                     "fileId", payments.get(0).getFileId(),
                     "workerRef", payments.get(0).getWorkerRef(),
-                    "status", payments.get(0).getStatus().name()
+                    "status", payments.get(0).getStatus()
                 ));
                 
                 // Count by status
                 Map<String, Long> statusCounts = payments.stream()
                     .collect(java.util.stream.Collectors.groupingBy(
-                        p -> p.getStatus().name(),
+                        WorkerPayment::getStatus,
                         java.util.stream.Collectors.counting()
                     ));
                 debugInfo.put("statusCounts", statusCounts);
