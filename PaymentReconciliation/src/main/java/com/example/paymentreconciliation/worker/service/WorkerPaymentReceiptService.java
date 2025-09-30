@@ -3,6 +3,7 @@ package com.example.paymentreconciliation.worker.service;
 import com.example.paymentreconciliation.worker.entity.WorkerPayment;
 import com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt;
 import com.example.paymentreconciliation.worker.dao.WorkerPaymentReceiptRepository;
+import com.example.paymentreconciliation.employer.service.EmployerPaymentReceiptService;
 import org.slf4j.Logger;
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
 import org.springframework.stereotype.Service;
@@ -20,9 +21,12 @@ public class WorkerPaymentReceiptService {
     private static final Logger log = LoggerFactoryProvider.getLogger(WorkerPaymentReceiptService.class);
     
     private final WorkerPaymentReceiptRepository repository;
+    private final EmployerPaymentReceiptService employerReceiptService;
 
-    public WorkerPaymentReceiptService(WorkerPaymentReceiptRepository repository) {
+    public WorkerPaymentReceiptService(WorkerPaymentReceiptRepository repository,
+                                     EmployerPaymentReceiptService employerReceiptService) {
         this.repository = repository;
+        this.employerReceiptService = employerReceiptService;
     }
 
     public WorkerPaymentReceipt createReceipt(List<WorkerPayment> processedPayments) {
@@ -46,6 +50,14 @@ public class WorkerPaymentReceiptService {
         
         // Save receipt first to get ID
         WorkerPaymentReceipt savedReceipt = repository.save(receipt);
+        
+        // Automatically create corresponding employer receipt with PENDING status
+        try {
+            employerReceiptService.createPendingEmployerReceipt(savedReceipt);
+            log.info("Auto-created pending employer receipt for worker receipt {}", receiptNumber);
+        } catch (Exception e) {
+            log.error("Failed to create pending employer receipt for worker receipt {}", receiptNumber, e);
+        }
         
         log.info("Created receipt {} with {} payments totaling {}", receiptNumber, processedPayments.size(), totalAmount);
         

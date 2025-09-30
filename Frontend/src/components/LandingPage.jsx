@@ -51,7 +51,13 @@ export function LandingPage({ onEntitySelect }) {
             <p className="text-gray-600 mb-6 leading-relaxed">
               Administrative dashboard to oversee the entire system, manage users, and view comprehensive analytics.
             </p>
-            <button className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-200 transform hover:-translate-y-1 hover:shadow-lg">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onEntitySelect("board");
+              }}
+              className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-200 transform hover:-translate-y-1 hover:shadow-lg"
+            >
               Enter as Board Member
             </button>
           </div>

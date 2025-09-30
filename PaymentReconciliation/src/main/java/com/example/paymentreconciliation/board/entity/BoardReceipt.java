@@ -32,7 +32,7 @@ public class BoardReceipt {
     private String utrNumber;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 16)
+    @Column(name = "status", nullable = false, length = 32)
     private BoardReceiptStatus status = BoardReceiptStatus.PENDING;
 
     @Column(name = "maker", nullable = false, length = 64)

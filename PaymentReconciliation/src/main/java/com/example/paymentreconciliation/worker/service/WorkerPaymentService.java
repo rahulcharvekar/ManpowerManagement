@@ -92,6 +92,34 @@ public class WorkerPaymentService {
         log.info("Retrieving all worker payments");
         return repository.findAll();
     }
+    
+    @Transactional(readOnly = true)
+    public Page<WorkerPayment> findAllPaginated(Pageable pageable) {
+        log.info("Retrieving all worker payments (paginated)");
+        return repository.findAll(pageable);
+    }
+    
+    @Transactional(readOnly = true)
+    public Page<WorkerPayment> findByStatusPaginated(WorkerPaymentStatus status, Pageable pageable) {
+        log.info("Finding worker payments with status: {} (paginated)", status);
+        return repository.findByStatus(status, pageable);
+    }
+    
+    @Transactional(readOnly = true)
+    public Page<WorkerPayment> findByReceiptNumber(String receiptNumber, Pageable pageable) {
+        log.info("Finding worker payments with receipt number: {} (paginated)", receiptNumber);
+        return repository.findByReceiptNumber(receiptNumber, pageable);
+    }
+    
+    @Transactional(readOnly = true)
+    public Page<WorkerPayment> findByStatusAndReceiptNumber(
+            WorkerPaymentStatus status,
+            String receiptNumber,
+            Pageable pageable) {
+        log.info("Finding worker payments with status: {}, receipt number: {} (paginated)", 
+                status, receiptNumber);
+        return repository.findByStatusAndReceiptNumber(status, receiptNumber, pageable);
+    }
 
     @Transactional(readOnly = true)
     public WorkerPayment findById(Long id) {
@@ -130,5 +158,17 @@ public class WorkerPaymentService {
         }
         repository.deleteById(id);
         log.info("Deleted worker payment id={}", id);
+    }
+
+    public WorkerPayment save(WorkerPayment workerPayment) {
+        log.info("Saving worker payment with id={}", workerPayment.getId());
+        WorkerPayment saved = repository.save(workerPayment);
+        log.info("Saved worker payment with id={}", saved.getId());
+        return saved;
+    }
+
+    public List<WorkerPayment> findByReceiptNumber(String receiptNumber) {
+        log.info("Finding worker payments by receipt number: {}", receiptNumber);
+        return repository.findByReceiptNumber(receiptNumber);
     }
 }

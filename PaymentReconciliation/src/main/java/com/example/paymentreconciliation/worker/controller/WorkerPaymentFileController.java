@@ -89,7 +89,9 @@ public class WorkerPaymentFileController {
     }
 
     @PostMapping("/validate/{fileId}")
-    public ResponseEntity<?> validateFile(@PathVariable String fileId) {
+    @Operation(summary = "Validate file records", 
+               description = "Validates uploaded worker payment records. Returns validation results with nextAction indicating next workflow step.")
+    public ResponseEntity<?> validateFile(@Parameter(description = "File ID from upload") @PathVariable String fileId) {
         return ResponseEntity.ok(fileService.validateFileRecords(fileId));
     }
 
@@ -109,7 +111,9 @@ public class WorkerPaymentFileController {
     }
 
     @PostMapping("/process/{fileId}")
-    public ResponseEntity<?> processValidRecords(@PathVariable String fileId) {
+    @Operation(summary = "Generate receipt for validated records", 
+               description = "Processes validated worker payment records and generates receipt. Returns receipt details with completion status.")
+    public ResponseEntity<?> processValidRecords(@Parameter(description = "File ID from upload") @PathVariable String fileId) {
         return ResponseEntity.ok(fileService.processValidRecords(fileId));
     }
 
@@ -122,12 +126,6 @@ public class WorkerPaymentFileController {
     @Operation(summary = "Get file processing status summary", description = "Returns status breakdown by payment record status")
     public ResponseEntity<?> getFileStatusSummary(@Parameter(description = "File ID from upload") @PathVariable String fileId) {
         return ResponseEntity.ok(fileService.getFileStatusSummary(fileId));
-    }
-
-    @GetMapping("/receipt/{fileId}")
-    @Operation(summary = "Get receipt details for processed payments", description = "Returns receipt information and payment details for processed records")
-    public ResponseEntity<?> getReceiptDetails(@Parameter(description = "File ID from upload") @PathVariable String fileId) {
-        return ResponseEntity.ok(fileService.getReceiptDetails(fileId));
     }
 
     @GetMapping("/debug/{fileId}")

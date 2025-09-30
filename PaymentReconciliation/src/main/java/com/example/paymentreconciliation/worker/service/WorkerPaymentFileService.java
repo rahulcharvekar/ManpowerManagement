@@ -139,7 +139,15 @@ public class WorkerPaymentFileService {
             uploadedFileRepository.save(uploadedFile);
             
             log.info("Validation complete for fileId={}: {} passed, {} failed", fileId, passedCount, failedCount);
-            return Map.of("passed", passedCount, "failed", failedCount);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("passed", passedCount);
+            response.put("failed", failedCount);
+            response.put("status", "VALIDATED");
+            response.put("nextAction", "GENERATE_RECEIPT");
+            response.put("message", "Validation completed. " + passedCount + " records passed validation. Ready to generate receipt.");
+            
+            return response;
             
         } catch (Exception e) {
             log.error("Error validating records for fileId={}", fileId, e);
@@ -228,7 +236,7 @@ public class WorkerPaymentFileService {
             for (WorkerPayment payment : payments) {
                 // Only process records that passed validation
                 if (payment.getStatus() == WorkerPaymentStatus.VALIDATED) {
-                    payment.setStatus(WorkerPaymentStatus.PROCESSED);
+                    payment.setStatus(WorkerPaymentStatus.PAYMENT_REQUESTED);
                     toUpdate.add(payment);
                     processedCount++;
                 }
@@ -252,24 +260,23 @@ public class WorkerPaymentFileService {
                 log.info("Generated receipt {} for {} processed payments", receipt.getReceiptNumber(), processedCount);
             }
             
-            // Update file status
-            Long uploadedFileId = Long.parseLong(fileId);
-            Optional<UploadedFile> uploadedFileOpt = uploadedFileRepository.findById(uploadedFileId);
-            if (uploadedFileOpt.isPresent()) {
-                UploadedFile uploadedFile = uploadedFileOpt.get();
-                uploadedFile.setStatus("PROCESSED");
-                uploadedFileRepository.save(uploadedFile);
-            }
+            // Keep uploaded file status as UPLOADED - do not change it to PROCESSED
+            // The uploaded file status should remain UPLOADED only
+            log.info("Keeping uploaded file status as UPLOADED for fileId={}", fileId);
             
-            log.info("Processing complete for fileId={}: {} records processed", fileId, processedCount);
+            log.info("Receipt generation complete for fileId={}: {} records updated to PAID status", fileId, processedCount);
             
             Map<String, Object> result = new HashMap<>();
             result.put("processed", processedCount);
             if (receiptNumber != null) {
                 result.put("receiptNumber", receiptNumber);
-                result.put("message", "Processed " + processedCount + " valid records and generated receipt: " + receiptNumber);
+                result.put("status", "PROCESSED");
+                result.put("nextAction", "RECEIPT_GENERATED");
+                result.put("message", "Generated receipt for " + processedCount + " valid records. Receipt: " + receiptNumber);
             } else {
-                result.put("message", "No valid records found to process.");
+                result.put("status", "NO_VALID_RECORDS");
+                result.put("nextAction", "VALIDATION_REQUIRED");
+                result.put("message", "No valid records found to generate receipt.");
             }
             
             return result;
@@ -330,7 +337,18 @@ public class WorkerPaymentFileService {
             result.put("validatedCount", statusCounts.get(WorkerPaymentStatus.VALIDATED));
             result.put("failedCount", statusCounts.get(WorkerPaymentStatus.FAILED));
             result.put("processedCount", statusCounts.get(WorkerPaymentStatus.PROCESSED));
+            result.put("paymentRequestedCount", statusCounts.get(WorkerPaymentStatus.PAYMENT_REQUESTED));
+            result.put("paymentInitiatedCount", statusCounts.get(WorkerPaymentStatus.PAYMENT_INITIATED));
+            result.put("paymentProcessedCount", statusCounts.get(WorkerPaymentStatus.PAYMENT_PROCESSED));
+            result.put("generatedCount", statusCounts.get(WorkerPaymentStatus.GENERATED));
             result.put("errorCount", statusCounts.get(WorkerPaymentStatus.ERROR));
+            
+            // Determine workflow status and next action
+            String workflowStatus = determineWorkflowStatus(statusCounts);
+            String nextAction = determineNextAction(workflowStatus, statusCounts);
+            
+            result.put("workflowStatus", workflowStatus);
+            result.put("nextAction", nextAction);
             
             return result;
             
@@ -339,54 +357,43 @@ public class WorkerPaymentFileService {
             return Map.of("error", "Failed to get status summary: " + e.getMessage());
         }
     }
-
-    public Map<String, Object> getReceiptDetails(String fileId) {
-        log.info("Getting receipt details for fileId={}", fileId);
+    
+    private String determineWorkflowStatus(Map<WorkerPaymentStatus, Integer> statusCounts) {
+        // Check if any records have been processed (receipts generated)
+        if (statusCounts.get(WorkerPaymentStatus.PAYMENT_REQUESTED) > 0 || 
+            statusCounts.get(WorkerPaymentStatus.GENERATED) > 0) {
+            return "PROCESSED";
+        }
         
-        try {
-            List<WorkerPayment> processedPayments = workerPaymentService.findByFileIdAndStatus(
-                fileId, WorkerPaymentStatus.PROCESSED);
-            
-            if (processedPayments.isEmpty()) {
-                return Map.of("message", "No processed payments found for fileId: " + fileId);
-            }
-            
-            // Get receipt number from the first processed payment (all should have the same receipt number)
-            String receiptNumber = processedPayments.get(0).getReceiptNumber();
-            
-            if (receiptNumber == null) {
-                return Map.of("message", "No receipt number found for processed payments in fileId: " + fileId);
-            }
-            
-            // Find the receipt by receipt number
-            // Note: We would need a method in receiptService to find by receipt number
-            // For now, let's create a simplified response
-            Map<String, Object> result = new HashMap<>();
-            result.put("fileId", fileId);
-            result.put("receiptNumber", receiptNumber);
-            
-            // Calculate totals from processed payments
-            int totalRecords = processedPayments.size();
-            BigDecimal totalAmount = processedPayments.stream()
-                    .map(WorkerPayment::getPaymentAmount)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            
-            result.put("totalRecords", totalRecords);
-            result.put("totalAmount", totalAmount);
-            result.put("status", "PROCESSED");
-            
-            // Include payment details
-            List<Map<String, Object>> paymentDetails = new ArrayList<>();
-            for (WorkerPayment payment : processedPayments) {
-                paymentDetails.add(createPaymentSummary(payment));
-            }
-            result.put("payments", paymentDetails);
-            
-            return result;
-            
-        } catch (Exception e) {
-            log.error("Error getting receipt details for fileId={}", fileId, e);
-            return Map.of("error", "Failed to get receipt details: " + e.getMessage());
+        // Check if validation is complete
+        if (statusCounts.get(WorkerPaymentStatus.VALIDATED) > 0 || 
+            statusCounts.get(WorkerPaymentStatus.FAILED) > 0) {
+            return "VALIDATED";
+        }
+        
+        // Default to uploaded status
+        if (statusCounts.get(WorkerPaymentStatus.UPLOADED) > 0) {
+            return "UPLOADED";
+        }
+        
+        return "UNKNOWN";
+    }
+    
+    private String determineNextAction(String workflowStatus, Map<WorkerPaymentStatus, Integer> statusCounts) {
+        switch (workflowStatus) {
+            case "UPLOADED":
+                return "START_VALIDATION";
+            case "VALIDATED":
+                // Only show generate receipt if there are validated records
+                if (statusCounts.get(WorkerPaymentStatus.VALIDATED) > 0) {
+                    return "GENERATE_RECEIPT";
+                } else {
+                    return "START_VALIDATION"; // All failed validation
+                }
+            case "PROCESSED":
+                return "RECEIPT_GENERATED";
+            default:
+                return "START_VALIDATION";
         }
     }
 
@@ -466,6 +473,12 @@ public class WorkerPaymentFileService {
                 return "Validation failed - check required fields";
             case PROCESSED:
                 return "Successfully processed";
+            case PAYMENT_REQUESTED:
+                return "Payment requested - receipt generated";
+            case PAYMENT_INITIATED:
+                return "Payment initiated by employer";
+            case GENERATED:
+                return "Receipt generated";
             case ERROR:
                 return "Error during processing";
             default:

@@ -33,9 +33,16 @@ export function WorkerDashboard({ onGoBack }) {
   
   // File list state
   const [filesList, setFilesList] = useState([]);
+  const [filteredFilesList, setFilteredFilesList] = useState([]);
   const [isLoadingFiles, setIsLoadingFiles] = useState(true);
   const [filesError, setFilesError] = useState(null);
-  const [currentDate, setCurrentDate] = useState(formatDateForAPI(new Date()));
+  
+  // Filter states
+  const [filters, setFilters] = useState({
+    startDate: formatDateForAPI(new Date()),
+    endDate: formatDateForAPI(new Date()),
+    status: 'ALL'
+  });
   
   // Upload popup state
   const [showUploadPopup, setShowUploadPopup] = useState(false);
@@ -55,28 +62,42 @@ export function WorkerDashboard({ onGoBack }) {
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize] = useState(20);
 
-  // Load files by date
-  const loadFilesByDate = async (date) => {
+  // Load files by date range
+  const loadFilesByDateRange = async (startDate, endDate) => {
     setIsLoadingFiles(true);
     setFilesError(null);
     
-    // Ensure date is in correct YYYY-MM-DD format
-    const formattedDate = formatDateForAPI(date);
-    
     try {
-      // Try to fetch from API, fallback to empty array if API is not available
-      console.log('Fetching files for date:', formattedDate);
-      const files = await getUploadedFilesByDate(formattedDate);
-      console.log('Files received:', files);
+      let allFiles = [];
       
-      setFilesList(Array.isArray(files) ? files : []);
+      // If start and end date are the same, use single date API
+      if (startDate === endDate) {
+        const files = await getUploadedFilesByDate(startDate);
+        allFiles = Array.isArray(files) ? files : [];
+      } else {
+        // For date ranges, we'll need to call the API for each date
+        // This could be optimized with a backend API that accepts date ranges
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          const dateStr = formatDateForAPI(d);
+          try {
+            const files = await getUploadedFilesByDate(dateStr);
+            if (Array.isArray(files)) {
+              allFiles = [...allFiles, ...files];
+            }
+          } catch (dateError) {
+            console.warn(`Failed to fetch files for ${dateStr}:`, dateError);
+          }
+        }
+      }
+      
+      setFilesList(allFiles);
     } catch (error) {
       console.error('Error loading files:', error);
-      
-      // If API is not available, set empty state instead of error
       setFilesList([]);
       
-      // Only show error if it's not a network/connection issue
       if (error?.message && !error.message.includes('fetch')) {
         setFilesError(error.message);
       }
@@ -85,11 +106,35 @@ export function WorkerDashboard({ onGoBack }) {
     }
   };
 
-  // Load files on component mount and date change
+  // Apply filters to the files list
+  const applyFilters = () => {
+    let filtered = [...filesList];
+    
+    // Filter by status
+    if (filters.status !== 'ALL') {
+      filtered = filtered.filter(file => 
+        file.status?.toUpperCase() === filters.status.toUpperCase()
+      );
+    }
+    
+    setFilteredFilesList(filtered);
+  };
+
+  // Handle filter changes
+  const handleFilterChange = (filterType, value) => {
+    const newFilters = { ...filters, [filterType]: value };
+    setFilters(newFilters);
+    
+    // If date range changed, reload files
+    if (filterType === 'startDate' || filterType === 'endDate') {
+      loadFilesByDateRange(newFilters.startDate, newFilters.endDate);
+    }
+  };
+
+  // Load files on component mount
   useEffect(() => {
-    // Add error boundary for useEffect
     try {
-      loadFilesByDate(currentDate).finally(() => {
+      loadFilesByDateRange(filters.startDate, filters.endDate).finally(() => {
         setIsInitialized(true);
       });
     } catch (error) {
@@ -98,7 +143,12 @@ export function WorkerDashboard({ onGoBack }) {
       setIsLoadingFiles(false);
       setIsInitialized(true);
     }
-  }, [currentDate]);
+  }, []);
+
+  // Apply filters when filesList or filters change
+  useEffect(() => {
+    applyFilters();
+  }, [filesList, filters.status]);
 
   // Handle upload popup
   const openUploadPopup = () => {
@@ -138,18 +188,17 @@ export function WorkerDashboard({ onGoBack }) {
     try {
       const response = await uploadWorkerPaymentFile(uploadFile);
       if (response.status === 'success') {
-        // Refresh the files list
-        await loadFilesByDate(currentDate);
+        // Refresh the files list with current filters
+        await loadFilesByDateRange(filters.startDate, filters.endDate);
         closeUploadPopup();
         
         // Auto-select the uploaded file if we have fileId in response
         if (response.fileId) {
-          // Find and select the uploaded file
-          setTimeout(async () => {
-            const files = await getUploadedFilesByDate(formatDateForAPI(currentDate));
-            const uploadedFile = files.find(f => f.id === response.fileId);
+          // Find and select the uploaded file from the filtered list
+          setTimeout(() => {
+            const uploadedFile = filteredFilesList.find(f => f.fileId === response.fileId);
             if (uploadedFile) {
-              await handleViewFileDetails(uploadedFile);
+              handleViewFileDetails(uploadedFile);
             }
           }, 500); // Small delay to ensure file list is updated
         }
@@ -173,7 +222,11 @@ export function WorkerDashboard({ onGoBack }) {
     setSelectedFile(file);
     setIsLoadingDetails(true);
     setFilesError(null);
-    setReceiptNumber(null); // Clear previous receipt number
+    
+    // Only clear receipt number if this is a different file or file doesn't have a receipt
+    if (!selectedFile || selectedFile.fileId !== file.fileId || !file.receiptNumber) {
+      setReceiptNumber(file.receiptNumber || null);
+    }
     
     try {
       const details = await getWorkerPaymentFileDetails(file.fileId, 0, pageSize);
@@ -197,25 +250,40 @@ export function WorkerDashboard({ onGoBack }) {
 
   // Validate selected file
   const handleFileValidation = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile) {
+      return;
+    }
 
     setIsValidating(true);
     setFilesError(null);
 
     try {
-      await validateWorkerPaymentFile(selectedFile.fileId);
+      const validationResponse = await validateWorkerPaymentFile(selectedFile.fileId);
       
-      // Refresh files list first to get updated status
-      await loadFilesByDate(currentDate);
-      
-      // Update selected file with new status
-      const updatedFiles = await getUploadedFilesByDate(formatDateForAPI(currentDate));
-      const updatedFile = updatedFiles.find(f => f.fileId === selectedFile.fileId);
-      
-      if (updatedFile) {
+      // Update file status based on backend response
+      if (validationResponse?.status) {
+        const updatedFile = {
+          ...selectedFile,
+          status: validationResponse.status,
+          nextAction: validationResponse.nextAction,
+          validationMessage: validationResponse.message,
+          passedCount: validationResponse.passed,
+          failedCount: validationResponse.failed
+        };
+        
         setSelectedFile(updatedFile);
-        // Refresh file details with updated file
-        await handleViewFileDetails(updatedFile);
+        
+        // Refresh file details to show updated validation results
+        try {
+          const details = await getWorkerPaymentFileDetails(updatedFile.fileId, 0, pageSize);
+          setFileDetails(details || { content: [], totalElements: 0 });
+          setCurrentPage(0);
+        } catch (detailsError) {
+          console.error('Error refreshing file details:', detailsError);
+        }
+        
+        // Also refresh the files list to update the main view
+        await loadFilesByDateRange(filters.startDate, filters.endDate);
       }
     } catch (error) {
       setFilesError(error.message);
@@ -235,31 +303,47 @@ export function WorkerDashboard({ onGoBack }) {
       const response = await processWorkerPaymentFile(selectedFile.fileId);
       
       // Store receipt number from API response
-      if (response.receiptNumber) {
+      if (response && response.receiptNumber) {
         setReceiptNumber(response.receiptNumber);
+      } else if (response && (response.success === true || response.status === 'success')) {
+        setReceiptNumber('Generated successfully');
+      } else {
+        throw new Error('Receipt generation failed - no receipt number or success indicator in response');
       }
       
-      // Refresh files list first to get updated status
-      await loadFilesByDate(currentDate);
+      // Clear nextAction as processing is complete
+      const updatedFile = {
+        ...selectedFile,
+        nextAction: null, // Clear the nextAction so no more buttons show
+        status: 'PROCESSED' // Update status to processed
+      };
+      setSelectedFile(updatedFile);
       
-      // Update selected file with new status
-      const updatedFiles = await getUploadedFilesByDate(formatDateForAPI(currentDate));
-      const updatedFile = updatedFiles.find(f => f.fileId === selectedFile.fileId);
-      
-      if (updatedFile) {
-        setSelectedFile(updatedFile);
-        // Don't call handleViewFileDetails as it clears receiptNumber
-        // Just refresh the file details directly
-        try {
-          const details = await getWorkerPaymentFileDetails(updatedFile.fileId, 0, pageSize);
-          setFileDetails(details || { content: [], totalElements: 0 });
-          setCurrentPage(0);
-        } catch (detailsError) {
-          console.error('Error refreshing file details:', detailsError);
-        }
+      // Refresh file details to show updated status
+      try {
+        const details = await getWorkerPaymentFileDetails(updatedFile.fileId, 0, pageSize);
+        setFileDetails(details || { content: [], totalElements: 0 });
+        setCurrentPage(0);
+      } catch (detailsError) {
+        console.error('Error refreshing file details:', detailsError);
       }
+      
+      // Refresh files list to update main view
+      await loadFilesByDateRange(filters.startDate, filters.endDate);
     } catch (error) {
-      setFilesError(error.message);
+      console.error('Error in receipt generation:', error);
+      
+      // Provide more specific error messages
+      let userMessage = 'Receipt generation failed: ';
+      if (error.message && error.message.includes('Data truncated for column')) {
+        userMessage += 'Database configuration issue. Please contact administrator.';
+      } else if (error.message && error.message.includes('Processing failed')) {
+        userMessage += 'Server processing error. Please try again or contact support.';
+      } else {
+        userMessage += error.message || 'Unknown error occurred.';
+      }
+      
+      setFilesError(userMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -284,6 +368,15 @@ export function WorkerDashboard({ onGoBack }) {
     }
   };
 
+  // Simple helper functions
+  const showStartValidationButton = () => {
+    return selectedFile?.status?.toUpperCase() === 'UPLOADED' && !selectedFile?.nextAction;
+  };
+
+  const showGenerateReceiptButton = () => {
+    return selectedFile?.nextAction === 'GENERATE_RECEIPT';
+  };
+
   // Show loading screen during initial component setup
   if (!isInitialized) {
     return (
@@ -299,24 +392,29 @@ export function WorkerDashboard({ onGoBack }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       {/* Header */}
-      <div className="bg-white shadow-lg">
-        <div className="max-w-6xl mx-auto px-4 py-4">
+      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-xl">
+        <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
                 onClick={onGoBack}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-white/10 rounded-lg transition-all duration-200"
               >
-                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">
-                  {selectedFile ? 'File Details' : 'Worker Payment Files'}
+                <h1 className="text-2xl font-bold text-white">
+                  {selectedFile ? 'File Details' : 'Worker Dashboard'}
                 </h1>
-                <p className="text-sm text-gray-600">
-                  {selectedFile ? `File: ${selectedFile.fileName}` : `Files for ${currentDate}`}
+                <p className="text-blue-100">
+                  {selectedFile 
+                    ? `File: ${selectedFile.fileName}` 
+                    : filters.startDate === filters.endDate 
+                      ? `Files for ${filters.startDate}`
+                      : `Files from ${filters.startDate} to ${filters.endDate}`
+                  }
                 </p>
               </div>
             </div>
@@ -324,7 +422,7 @@ export function WorkerDashboard({ onGoBack }) {
               {!selectedFile && (
                 <button
                   onClick={openUploadPopup}
-                  className="btn-primary flex items-center gap-2"
+                  className="bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -336,7 +434,7 @@ export function WorkerDashboard({ onGoBack }) {
               {selectedFile && (
                 <button
                   onClick={handleGoBackToList}
-                  className="btn-secondary flex items-center gap-2"
+                  className="bg-white/20 text-white hover:bg-white/30 px-4 py-2 rounded-lg font-medium transition-all duration-200 backdrop-blur-sm flex items-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -345,12 +443,14 @@ export function WorkerDashboard({ onGoBack }) {
                 </button>
               )}
 
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+              <div className="flex items-center gap-3 bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/30">
+                <div className="w-8 h-8 bg-gradient-to-r from-white/20 to-white/30 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <span className="font-medium text-white">Worker</span>
               </div>
-              <span className="font-medium text-gray-700">Worker</span>
             </div>
           </div>
         </div>
@@ -398,6 +498,28 @@ export function WorkerDashboard({ onGoBack }) {
                   <div className="text-lg font-semibold text-gray-800">{selectedFile.uploadedBy || 'System'}</div>
                   <div className="text-sm text-gray-600">Uploaded By</div>
                 </div>
+                
+                {/* Validation Success Message */}
+                {selectedFile.validationMessage && selectedFile.nextAction === 'GENERATE_RECEIPT' && (
+                  <div className="col-span-full">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-2">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div>
+                          <div className="text-sm font-medium text-blue-800">{selectedFile.validationMessage}</div>
+                          {selectedFile.passedCount !== undefined && (
+                            <div className="text-xs text-blue-600 mt-1">
+                              Passed: {selectedFile.passedCount}, Failed: {selectedFile.failedCount || 0}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {receiptNumber && (
                   <div className="col-span-full">
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-2">
@@ -437,9 +559,18 @@ export function WorkerDashboard({ onGoBack }) {
                         File records and validation status
                       </p>
                     </div>
+
+                    {/* Receipt Number Display in Grid Header */}
+                    {receiptNumber && receiptNumber !== 'Generated successfully' && (
+                      <div className="bg-green-100 border border-green-300 rounded-lg px-4 py-2">
+                        <div className="text-sm font-medium text-green-800">Receipt Number</div>
+                        <div className="text-lg font-bold text-green-900">{receiptNumber}</div>
+                      </div>
+                    )}
                     
                     <div className="flex items-center gap-3">
-                      {selectedFile.status === 'UPLOADED' && (
+                      {/* Show Start Validation button for UPLOADED files */}
+                      {showStartValidationButton() && (
                         <button
                           onClick={handleFileValidation}
                           disabled={isValidating}
@@ -461,7 +592,8 @@ export function WorkerDashboard({ onGoBack }) {
                         </button>
                       )}
                       
-                      {selectedFile.status === 'VALIDATED' && (
+                      {/* Show Generate Receipt button when nextAction is GENERATE_RECEIPT */}
+                      {showGenerateReceiptButton() && (
                         <button
                           onClick={handleReceiptGeneration}
                           disabled={isProcessing}
@@ -481,6 +613,16 @@ export function WorkerDashboard({ onGoBack }) {
                             </>
                           )}
                         </button>
+                      )}
+
+                      {/* Show completion message when processing is done */}
+                      {selectedFile?.status?.toUpperCase() === 'PROCESSED' && receiptNumber && (
+                        <div className="flex items-center gap-2 text-green-600 bg-green-50 px-4 py-2 rounded-lg">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span className="font-medium">Processing Complete</span>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -567,27 +709,48 @@ export function WorkerDashboard({ onGoBack }) {
         ) : (
           /* Files List View */
           <div className="space-y-6">
-            {/* Date Selection */}
+            {/* Filters Section */}
             <div className="bg-white rounded-xl p-6 shadow-lg">
-              <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Filters</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Date Range Filter */}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-800">Select Date</h3>
-                  <p className="text-gray-600">View files uploaded on a specific date</p>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                  <input
+                    type="date"
+                    value={filters.startDate}
+                    onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
                 </div>
-                <input
-                  type="date"
-                  value={currentDate}
-                  onChange={(e) => {
-                    const newDate = formatDateForAPI(e.target.value);
-                    console.log('Date changed to:', newDate); // Debug log
-                    setCurrentDate(newDate);
-                  }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                  <input
+                    type="date"
+                    value={filters.endDate}
+                    onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                {/* Status Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <select
+                    value={filters.status}
+                    onChange={(e) => handleFilterChange('status', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="ALL">All Status</option>
+                    <option value="UPLOADED">Uploaded</option>
+                    <option value="VALIDATED">Validated</option>
+                    <option value="PROCESSED">Processed</option>
+                    <option value="REJECTED">Rejected</option>
+                  </select>
+                </div>
               </div>
             </div>
 
-            {/* Files List */}
+            {/* Uploaded Files Grid */}
             {isLoadingFiles ? (
               <div className="bg-white rounded-xl p-12 shadow-lg text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-500 border-t-transparent mx-auto mb-4"></div>
@@ -607,7 +770,7 @@ export function WorkerDashboard({ onGoBack }) {
                   </div>
                 </div>
               </div>
-            ) : filesList.length === 0 ? (
+            ) : filteredFilesList.length === 0 ? (
               <div className="bg-white rounded-xl p-12 shadow-lg text-center">
                 <div className="text-gray-400 mb-4">
                   <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -615,7 +778,9 @@ export function WorkerDashboard({ onGoBack }) {
                   </svg>
                 </div>
                 <h3 className="text-lg font-semibold text-gray-800 mb-2">No files found</h3>
-                <p className="text-gray-600 mb-6">No files were uploaded on {currentDate}</p>
+                <p className="text-gray-600 mb-6">
+                  No files match the selected filters. Try adjusting the date range or status filter.
+                </p>
                 <button
                   onClick={openUploadPopup}
                   className="btn-primary flex items-center gap-2 mx-auto"
@@ -630,65 +795,93 @@ export function WorkerDashboard({ onGoBack }) {
               <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
                   <h3 className="text-lg font-semibold text-gray-800">
-                    Uploaded Files ({filesList.length} files)
+                    Uploaded Files ({filteredFilesList.length} files)
                   </h3>
-                  <p className="text-sm text-gray-600 mt-1">Files uploaded on {currentDate}</p>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {filters.startDate === filters.endDate 
+                      ? `Files uploaded on ${filters.startDate}`
+                      : `Files from ${filters.startDate} to ${filters.endDate}`}
+                    {filters.status !== 'ALL' && ` • Status: ${filters.status}`}
+                  </p>
                 </div>
-                
-                <div className="divide-y divide-gray-200">
-                  {(filesList || []).map((file, index) => {
-                    // Defensive check for file object
-                    if (!file || typeof file !== 'object') {
-                      return null;
-                    }
-                    
-                    return (
-                      <div key={file.fileId || index} className="p-6 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h4 className="font-medium text-gray-800">{file.fileName || 'Unknown File'}</h4>
+
+                {/* Compact Grid Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Filename
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Total Rec
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Success
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Failed
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Uploaded By
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Action
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredFilesList.map((file, index) => {
+                        // Defensive check for file object
+                        if (!file || typeof file !== 'object') {
+                          return null;
+                        }
+                        
+                        return (
+                          <tr key={file.fileId || index} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">
+                                  {file.fileName || 'Unknown File'}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  ID: {file.fileId} • {file.uploadDate}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {file.recordCount || 0}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">
+                              {file.successCount || 0}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium">
+                              {file.failureCount || 0}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {file.uploadedBy || 'System'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
                               <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(file.status)}`}>
                                 {file.status || 'Unknown'}
                               </span>
-                            </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm text-gray-600">
-                              <div>
-                                <span className="font-medium">Total Records:</span> {file.recordCount || 0}
-                              </div>
-                              <div>
-                                <span className="font-medium">Success Count:</span> {file.successCount || 0}
-                              </div>
-                              <div>
-                                <span className="font-medium">Failure Count:</span> {file.failureCount || 0}
-                              </div>
-                              <div>
-                                <span className="font-medium">File ID:</span> {file.fileId || '-'}
-                              </div>
-                              <div>
-                                <span className="font-medium">Upload Date:</span> {file.uploadDate || '-'}
-                              </div>
-                              <div>
-                                <span className="font-medium">Uploaded By:</span> {file.uploadedBy || 'System'}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <button
-                            onClick={() => handleViewFileDetails(file)}
-                            className="ml-4 btn-secondary flex items-center gap-2"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                            View Details
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              <button
+                                onClick={() => handleViewFileDetails(file)}
+                                className="text-blue-600 hover:text-blue-900 font-medium"
+                              >
+                                View Details
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}

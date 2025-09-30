@@ -52,7 +52,7 @@ public class WorkerPayment {
     private String requestReferenceNumber;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
+    @Column(name = "status", nullable = false, length = 40)
     private WorkerPaymentStatus status = WorkerPaymentStatus.UPLOADED;
 
     @Column(name = "receipt_number", length = 40)
@@ -70,7 +70,7 @@ public class WorkerPayment {
     }
 
     @PrePersist
-    public void ensureRequestReferenceNumber() {
+    public void prePersist() {
         if (Objects.isNull(requestReferenceNumber) || requestReferenceNumber.isBlank()) {
             requestReferenceNumber = "WRK-" + UUID.randomUUID()
                     .toString()

@@ -28,12 +28,31 @@ public class EmployerPaymentReceiptController {
     }
 
     @GetMapping("/available")
-    @Operation(summary = "Get available worker receipts for validation", 
-               description = "Returns all worker receipts in GENERATED state that are ready for employer validation")
-    public ResponseEntity<List<WorkerPaymentReceipt>> getAvailableReceipts() {
-        log.info("Fetching available worker receipts for employer validation");
-        List<WorkerPaymentReceipt> receipts = service.getAvailableReceipts();
-        return ResponseEntity.ok(receipts);
+    @Operation(summary = "Get available worker receipts with pagination and filtering", 
+               description = "Returns paginated worker receipts with optional filters for status and date range")
+    public ResponseEntity<?> getAvailableReceipts(
+            @Parameter(description = "Page number (0-based)", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size", example = "20") 
+            @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "Receipt status filter", example = "GENERATED")
+            @RequestParam(required = false) String status,
+            @Parameter(description = "Single date filter (YYYY-MM-DD)", example = "2024-01-15")
+            @RequestParam(required = false) String singleDate,
+            @Parameter(description = "Start date for range filter (YYYY-MM-DD)", example = "2024-01-01")
+            @RequestParam(required = false) String startDate,
+            @Parameter(description = "End date for range filter (YYYY-MM-DD)", example = "2024-01-31")
+            @RequestParam(required = false) String endDate
+    ) {
+        log.info("Fetching available receipts with filters - page: {}, size: {}, status: {}, singleDate: {}, startDate: {}, endDate: {}", 
+                page, size, status, singleDate, startDate, endDate);
+        
+        try {
+            return ResponseEntity.ok(service.getAvailableReceiptsWithFilters(page, size, status, singleDate, startDate, endDate));
+        } catch (Exception e) {
+            log.error("Error fetching available receipts", e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PostMapping("/validate")
@@ -86,6 +105,36 @@ public class EmployerPaymentReceiptController {
         return service.findByWorkerReceiptNumber(workerReceiptNumber)
                 .map(receipt -> ResponseEntity.ok(receipt))
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/all")
+    @Operation(summary = "Get all employer receipts with pagination and filtering", 
+               description = "Returns paginated employer receipts with optional filters for status, date range, and employer reference")
+    public ResponseEntity<?> getAllEmployerReceipts(
+            @Parameter(description = "Page number (0-based)", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size", example = "20") 
+            @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "Receipt status filter", example = "PENDING")
+            @RequestParam(required = false) String status,
+            @Parameter(description = "Employer reference number filter", example = "EMP-20250930-123456-001")
+            @RequestParam(required = false) String empRef,
+            @Parameter(description = "Single date filter (YYYY-MM-DD)", example = "2024-01-15")
+            @RequestParam(required = false) String singleDate,
+            @Parameter(description = "Start date for range filter (YYYY-MM-DD)", example = "2024-01-01")
+            @RequestParam(required = false) String startDate,
+            @Parameter(description = "End date for range filter (YYYY-MM-DD)", example = "2024-01-31")
+            @RequestParam(required = false) String endDate
+    ) {
+        log.info("Fetching all employer receipts with filters - page: {}, size: {}, status: {}, empRef: {}, singleDate: {}, startDate: {}, endDate: {}", 
+                page, size, status, empRef, singleDate, startDate, endDate);
+        
+        try {
+            return ResponseEntity.ok(service.getAllEmployerReceiptsWithFilters(page, size, status, empRef, singleDate, startDate, endDate));
+        } catch (Exception e) {
+            log.error("Error fetching all employer receipts", e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     // Request DTO class

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { WorkerDashboard } from "./components/WorkerDashboard.jsx";
+import EmployerDashboard from "./components/EmployerDashboard.jsx";
+import BoardDashboard from "./components/BoardDashboard.jsx";
 import { LandingPage } from "./components/LandingPage.jsx";
 
 function App() {
@@ -22,6 +24,10 @@ function App() {
   switch (selectedEntity) {
     case "worker":
       return <WorkerDashboard onGoBack={handleGoBack} />;
+    case "employer":
+      return <EmployerDashboard onGoBack={handleGoBack} />;
+    case "board":
+      return <BoardDashboard onGoBack={handleGoBack} />;
     default:
       return <LandingPage onEntitySelect={handleEntitySelect} />;
   }

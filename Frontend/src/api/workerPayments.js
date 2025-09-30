@@ -88,13 +88,24 @@ export function validateFileBeforeUpload(file) {
 export async function processWorkerPaymentFile(fileId) {
   const response = await fetch(`${API_BASE_URL}/api/worker-payments/file/process/${fileId}`, {
     method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+    }
   });
 
   if (!response.ok) {
-    throw new Error(`Processing failed: ${response.statusText}`);
+    const errorText = await response.text();
+    throw new Error(`Processing failed: ${response.status} ${response.statusText} - ${errorText}`);
   }
 
-  return response.json();
+  const jsonData = await response.json();
+  
+  // Check if the response contains an error even with 200 status
+  if (jsonData.error) {
+    throw new Error(`Processing failed: ${jsonData.error}`);
+  }
+  
+  return jsonData;
 }
 
 // Get uploaded files by date
@@ -160,6 +171,226 @@ export async function getUploadedFilesByStatus(status) {
 
   if (!response.ok) {
     throw new Error(`Failed to fetch files: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+// Get available receipts for employer (legacy - non-paginated)
+export async function getAvailableReceipts() {
+  const response = await fetch(`${API_BASE_URL}/api/employer/receipts/available`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch receipts: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+// Get available receipts for employer with pagination and filters
+export async function getAvailableReceiptsPaginated(filters = {}) {
+  const {
+    page = 0,
+    size = 20,
+    status,
+    startDate,
+    endDate,
+    singleDate
+  } = filters;
+
+  const params = new URLSearchParams({
+    page: page.toString(),
+    size: size.toString()
+  });
+
+  if (status && status !== 'ALL') {
+    params.append('status', status);
+  }
+
+  if (singleDate) {
+    params.append('singleDate', singleDate);
+  } else if (startDate && endDate) {
+    params.append('startDate', startDate);
+    params.append('endDate', endDate);
+  }
+
+  const url = `${API_BASE_URL}/api/employer/receipts/all?${params}`;
+  
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+    }
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch receipts: ${response.status} ${response.statusText}`);
+  }
+
+  const jsonData = await response.json();
+  return jsonData;
+}
+
+// Get paginated board receipts
+export async function getBoardReceiptsPaginated(filters = {}) {
+  const {
+    page = 0,
+    size = 20,
+    status,
+    startDate,
+    endDate,
+    singleDate
+  } = filters;
+
+  const params = new URLSearchParams({
+    page: page.toString(),
+    size: size.toString()
+  });
+
+  if (status && status !== 'ALL') {
+    params.append('status', status);
+  }
+
+  if (singleDate) {
+    params.append('singleDate', singleDate);
+  } else if (startDate && endDate) {
+    params.append('startDate', startDate);
+    params.append('endDate', endDate);
+  }
+
+  const url = `${API_BASE_URL}/api/v1/board-receipts/all?${params}`;
+  
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+    }
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch board receipts: ${response.status} ${response.statusText}`);
+  }
+
+  const jsonData = await response.json();
+  return jsonData;
+}
+
+// Process board receipt
+export async function processBoardReceipt(receiptId, utrNumber) {
+  const response = await fetch(`${API_BASE_URL}/api/v1/board-receipts/${receiptId}/process`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      utrNumber: utrNumber
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to process board receipt: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+// Get worker payments by worker receipt number (for employer view details)
+export async function getWorkerPaymentsByWorkerReceiptNumber(workerReceiptNumber, page = 0, size = 20) {
+  const params = new URLSearchParams({
+    receiptNumber: workerReceiptNumber,
+    page: page.toString(),
+    size: size.toString(),
+    sortBy: 'id',
+    sortDir: 'desc'
+  });
+
+  const response = await fetch(`${API_BASE_URL}/api/v1/worker-payments?${params}`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch worker payments: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+// Get worker payments by receipt number (with pagination)
+export async function getWorkerPaymentsByRequestNumber(receiptNumber, page = 0, size = 20) {
+  const params = new URLSearchParams({
+    receiptNumber: receiptNumber,
+    page: page.toString(),
+    size: size.toString(),
+    sortBy: 'id',
+    sortDir: 'desc'
+  });
+
+  const response = await fetch(`${API_BASE_URL}/api/v1/worker-payments?${params}`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch worker payments: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+// Validate worker receipt with transaction reference
+export async function validateWorkerReceipt(workerReceiptNumber, transactionReference, validatedBy) {
+  const requestBody = {
+    workerReceiptNumber,
+    transactionReference,
+    validatedBy
+  };
+
+  const response = await fetch(`${API_BASE_URL}/api/employer/receipts/validate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to validate receipt: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+// Get employer receipts by employer reference
+export async function getEmployerReceiptsByEmpRef(empRef, page = 0, size = 20) {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    size: size.toString(),
+    empRef: empRef
+  });
+
+  const response = await fetch(`${API_BASE_URL}/api/employer/receipts/all?${params}`, {
+    method: 'GET',
+    headers: {
+      'Accept': '*/*',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch employer receipts: ${response.status} ${response.statusText}`);
   }
 
   return response.json();

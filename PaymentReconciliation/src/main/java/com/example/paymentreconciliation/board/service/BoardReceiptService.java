@@ -1,13 +1,25 @@
 package com.example.paymentreconciliation.board.service;
 
 import com.example.paymentreconciliation.board.entity.BoardReceipt;
+import com.example.paymentreconciliation.board.entity.BoardReceiptStatus;
+import com.example.paymentreconciliation.employer.entity.EmployerPaymentReceipt;
 import com.example.paymentreconciliation.exception.ResourceNotFoundException;
 import com.example.paymentreconciliation.board.dao.BoardReceiptRepository;
-import java.util.List;
 import org.slf4j.Logger;
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -68,5 +80,156 @@ public class BoardReceiptService {
         }
         repository.deleteById(id);
         log.info("Deleted board receipt id={}", id);
+    }
+
+    public BoardReceipt createFromEmployerReceipt(EmployerPaymentReceipt employerReceipt, String maker) {
+        log.info("Creating board receipt from employer receipt: {}", employerReceipt.getEmployerReceiptNumber());
+        
+        // Generate board reference number
+        String boardRef = generateBoardReceiptNumber();
+        
+        // Create board receipt
+        BoardReceipt boardReceipt = new BoardReceipt();
+        boardReceipt.setBoardRef(boardRef);
+        boardReceipt.setEmployerRef(employerReceipt.getEmployerReceiptNumber());  
+        boardReceipt.setAmount(employerReceipt.getTotalAmount());
+        boardReceipt.setUtrNumber(""); // Will be filled when processing
+        boardReceipt.setStatus(BoardReceiptStatus.PENDING);
+        boardReceipt.setMaker(maker);
+        boardReceipt.setDate(LocalDate.now());
+        
+        BoardReceipt savedReceipt = repository.save(boardReceipt);
+        
+        log.info("Created board receipt {} from employer receipt {} with status PENDING", 
+                savedReceipt.getBoardRef(), employerReceipt.getEmployerReceiptNumber());
+        
+        return savedReceipt;
+    }
+
+    public Map<String, Object> getAllBoardReceiptsWithFilters(int page, int size, String status, 
+                                                              String singleDate, String startDate, String endDate) {
+        log.info("Fetching board receipts with filters - page: {}, size: {}, status: {}, singleDate: {}, startDate: {}, endDate: {}", 
+                page, size, status, singleDate, startDate, endDate);
+        
+        try {
+            Pageable pageable = PageRequest.of(page, size, Sort.by("date").descending());
+            Page<BoardReceipt> receiptsPage;
+            
+            // Parse dates if provided
+            LocalDate startLocalDate = null;
+            LocalDate endLocalDate = null;
+            
+            if (singleDate != null && !singleDate.trim().isEmpty()) {
+                LocalDate date = LocalDate.parse(singleDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                startLocalDate = date;
+                endLocalDate = date;
+            } else if (startDate != null && endDate != null && 
+                      !startDate.trim().isEmpty() && !endDate.trim().isEmpty()) {
+                startLocalDate = LocalDate.parse(startDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                endLocalDate = LocalDate.parse(endDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            }
+            
+            // Parse status if provided
+            BoardReceiptStatus statusEnum = null;
+            if (status != null && !status.trim().isEmpty()) {
+                try {
+                    statusEnum = BoardReceiptStatus.valueOf(status.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    throw new RuntimeException("Invalid status: " + status + ". Valid values are: PENDING, VERIFIED, REJECTED");
+                }
+            }
+            
+            // Apply filters
+            if (statusEnum != null && startLocalDate != null && endLocalDate != null) {
+                receiptsPage = repository.findByStatusAndDateBetween(statusEnum, startLocalDate, endLocalDate, pageable);
+            } else if (statusEnum != null) {
+                receiptsPage = repository.findByStatus(statusEnum, pageable);
+            } else if (startLocalDate != null && endLocalDate != null) {
+                receiptsPage = repository.findByDateBetween(startLocalDate, endLocalDate, pageable);
+            } else {
+                receiptsPage = repository.findAll(pageable);
+            }
+            
+            // Build response
+            Map<String, Object> response = new HashMap<>();
+            response.put("content", receiptsPage.getContent());
+            response.put("totalElements", receiptsPage.getTotalElements());
+            response.put("totalPages", receiptsPage.getTotalPages());
+            response.put("currentPage", receiptsPage.getNumber());
+            response.put("pageSize", receiptsPage.getSize());
+            response.put("hasNext", receiptsPage.hasNext());
+            response.put("hasPrevious", receiptsPage.hasPrevious());
+            
+            log.info("Found {} board receipts (page {}/{})", 
+                    receiptsPage.getTotalElements(), receiptsPage.getNumber(), receiptsPage.getTotalPages());
+            
+            return response;
+            
+        } catch (Exception e) {
+            log.error("Error fetching board receipts with filters", e);
+            throw new RuntimeException("Failed to fetch board receipts: " + e.getMessage());
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public List<BoardReceipt> findByStatus(String status) {
+        log.info("Finding board receipts with status: {}", status);
+        try {
+            BoardReceiptStatus statusEnum = BoardReceiptStatus.valueOf(status.toUpperCase());
+            return repository.findByStatus(statusEnum);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid status: " + status + ". Valid values are: PENDING, VERIFIED, REJECTED");
+        }
+    }
+    
+    @Transactional(readOnly = true)
+    public Optional<BoardReceipt> findByBoardRef(String boardRef) {
+        log.info("Finding board receipt for board ref: {}", boardRef);
+        return repository.findByBoardRef(boardRef);
+    }
+    
+    @Transactional(readOnly = true)
+    public Optional<BoardReceipt> findByEmployerRef(String employerRef) {
+        log.info("Finding board receipt for employer ref: {}", employerRef);
+        return repository.findByEmployerRef(employerRef);
+    }
+
+    public BoardReceipt processBoardReceipt(String boardRef, String utrNumber, String checker) {
+        log.info("Processing board receipt: {} with UTR: {} by checker: {}", boardRef, utrNumber, checker);
+        
+        // Find the board receipt
+        Optional<BoardReceipt> boardReceiptOpt = repository.findByBoardRef(boardRef);
+        if (boardReceiptOpt.isEmpty()) {
+            throw new RuntimeException("Board receipt not found: " + boardRef);
+        }
+        
+        BoardReceipt boardReceipt = boardReceiptOpt.get();
+        
+        // Check if already processed
+        if (boardReceipt.getStatus() != BoardReceiptStatus.PENDING) {
+            throw new RuntimeException("Board receipt already processed: " + boardRef + " (Status: " + boardReceipt.getStatus() + ")");
+        }
+        
+        // Update board receipt
+        boardReceipt.setUtrNumber(utrNumber);
+        boardReceipt.setChecker(checker);
+        boardReceipt.setStatus(BoardReceiptStatus.VERIFIED);
+        
+        // Save board receipt
+        BoardReceipt savedReceipt = repository.save(boardReceipt);
+        
+        log.info("Processed board receipt {} with UTR {} and updated status to VERIFIED", 
+                savedReceipt.getBoardRef(), utrNumber);
+        
+        return savedReceipt;
+    }
+
+    private String generateBoardReceiptNumber() {
+        // Generate board receipt number in format: BRD-YYYYMMDD-XXX
+        LocalDate now = LocalDate.now();
+        String dateStr = now.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String sequence = String.format("%03d", (System.currentTimeMillis() % 1000));
+        
+        return "BRD-" + dateStr + "-" + sequence;
     }
 }

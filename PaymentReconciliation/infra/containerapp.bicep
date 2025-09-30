@@ -7,16 +7,19 @@ param registryUsername string
 param registryPassword string
 param containerImage string
 
-// Database connection parameters
-@secure()
-param dbConnectionString string
+// Azure MySQL Flexible Server connection parameters
+param mysqlServerName string = 'paymentreconciliation.mysql.database.azure.com'
+param mysqlPort string = '3306'
+param databaseName string = 'paymentreconciliation_prod'
 @secure()
 param dbUsername string
 @secure()
 param dbPassword string
 
-// File storage parameters
-param fileUploadDir string = '/app/uploads'
+// Ephemeral storage parameters for Azure Container Apps
+param fileUploadDir string = '/tmp/uploads'
+param mt940StatementsPath string = '/tmp/mt940-statements'
+param logFilePath string = '/tmp/logs/payment-reconciliation.log'
 
 // Additional configuration
 param minReplicas int = 1

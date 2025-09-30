@@ -91,4 +91,21 @@ public class SystemController {
             ));
         }
     }
+
+    @PostMapping("/migrate/status-column")
+    @Operation(summary = "Update status column size", description = "Migrate worker_payments status column to VARCHAR(40)")
+    public ResponseEntity<?> updateStatusColumn() {
+        try {
+            databaseCleanupUtil.updateStatusColumnSize();
+            return ResponseEntity.ok(Map.of(
+                "message", "Status column updated to VARCHAR(40) successfully",
+                "status", "success"
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                "error", "Status column migration failed: " + e.getMessage(),
+                "status", "failed"
+            ));
+        }
+    }
 }

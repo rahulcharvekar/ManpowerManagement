@@ -32,7 +32,7 @@ public class DatabaseCleanupUtil {
             
             // Truncate all tables in the correct order
             String[] tables = {
-                "board_reconciliation_receipts",
+                "board_receipts",
                 "employer_payment_receipts", 
                 "worker_payment_receipts",
                 "worker_payments",
@@ -69,7 +69,7 @@ public class DatabaseCleanupUtil {
             "uploaded_files",
             "worker_payment_receipts",
             "employer_payment_receipts",
-            "board_reconciliation_receipts"
+            "board_receipts"
         };
         
         for (String table : tables) {
@@ -101,6 +101,17 @@ public class DatabaseCleanupUtil {
                 column.get("Null"),
                 column.get("Key"),
                 column.get("Default"));
+        }
+    }
+    
+    public void updateStatusColumnSize() {
+        try {
+            log.warn("Updating worker_payments status column size to VARCHAR(40)");
+            jdbcTemplate.execute("ALTER TABLE worker_payments MODIFY COLUMN status VARCHAR(40) NOT NULL");
+            log.info("Successfully updated status column to VARCHAR(40)");
+        } catch (Exception e) {
+            log.error("Failed to update status column size: {}", e.getMessage());
+            throw new RuntimeException("Status column update failed", e);
         }
     }
 }
