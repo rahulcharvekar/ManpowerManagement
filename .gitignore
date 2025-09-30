@@ -25,11 +25,11 @@ Backend/.ruff_cache/
 *.pyc
 
 # java related
-Backend/*.jar
-Backend/*.war
-Backend/*.ear
-Backend/*.class
-Backend/target/
+PaymentReconciliation/*.jar
+PaymentReconciliation/*.war
+PaymentReconciliation/*.ear
+PaymentReconciliation/*.class
+PaymentReconciliation/target/
 
 # Coverage and reports
 Backend/.coverage
