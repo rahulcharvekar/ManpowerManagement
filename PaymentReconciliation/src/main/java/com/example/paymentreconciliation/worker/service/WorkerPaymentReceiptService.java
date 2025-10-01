@@ -3,7 +3,6 @@ package com.example.paymentreconciliation.worker.service;
 import com.example.paymentreconciliation.worker.entity.WorkerPayment;
 import com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt;
 import com.example.paymentreconciliation.worker.dao.WorkerPaymentReceiptRepository;
-import com.example.paymentreconciliation.employer.service.EmployerPaymentReceiptService;
 import org.slf4j.Logger;
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
 import org.springframework.stereotype.Service;
@@ -21,12 +20,9 @@ public class WorkerPaymentReceiptService {
     private static final Logger log = LoggerFactoryProvider.getLogger(WorkerPaymentReceiptService.class);
     
     private final WorkerPaymentReceiptRepository repository;
-    private final EmployerPaymentReceiptService employerReceiptService;
 
-    public WorkerPaymentReceiptService(WorkerPaymentReceiptRepository repository,
-                                     EmployerPaymentReceiptService employerReceiptService) {
+    public WorkerPaymentReceiptService(WorkerPaymentReceiptRepository repository) {
         this.repository = repository;
-        this.employerReceiptService = employerReceiptService;
     }
 
     public WorkerPaymentReceipt createReceipt(List<WorkerPayment> processedPayments) {
@@ -51,14 +47,6 @@ public class WorkerPaymentReceiptService {
         // Save receipt first to get ID
         WorkerPaymentReceipt savedReceipt = repository.save(receipt);
         
-        // Automatically create corresponding employer receipt with PENDING status
-        try {
-            employerReceiptService.createPendingEmployerReceipt(savedReceipt);
-            log.info("Auto-created pending employer receipt for worker receipt {}", receiptNumber);
-        } catch (Exception e) {
-            log.error("Failed to create pending employer receipt for worker receipt {}", receiptNumber, e);
-        }
-        
         log.info("Created receipt {} with {} payments totaling {}", receiptNumber, processedPayments.size(), totalAmount);
         
         return savedReceipt;
@@ -71,5 +59,52 @@ public class WorkerPaymentReceiptService {
         String sequence = String.format("%03d", (System.currentTimeMillis() % 1000));
         
         return "RCP-" + dateTime + "-" + sequence;
+    }
+
+    public List<WorkerPaymentReceipt> findByStatus(String status) {
+        log.info("Finding worker payment receipts with status: {}", status);
+        return repository.findByStatus(status);
+    }
+
+    public List<WorkerPaymentReceipt> findAll() {
+        log.info("Finding all worker payment receipts");
+        return repository.findAll();
+    }
+
+    public java.util.Optional<WorkerPaymentReceipt> findByReceiptNumber(String receiptNumber) {
+        log.info("Finding worker payment receipt by receipt number: {}", receiptNumber);
+        return repository.findByReceiptNumber(receiptNumber);
+    }
+
+    public org.springframework.data.domain.Page<WorkerPaymentReceipt> findByStatusPaginated(String status, org.springframework.data.domain.Pageable pageable) {
+        log.info("Finding worker payment receipts with status: {} (paginated)", status);
+        return repository.findByStatus(status, pageable);
+    }
+
+    public org.springframework.data.domain.Page<WorkerPaymentReceipt> findAllPaginated(org.springframework.data.domain.Pageable pageable) {
+        log.info("Finding all worker payment receipts (paginated)");
+        return repository.findAll(pageable);
+    }
+
+    public org.springframework.data.domain.Page<WorkerPaymentReceipt> findByStatusAndDateRangePaginated(
+            String status, LocalDateTime startDate, LocalDateTime endDate, org.springframework.data.domain.Pageable pageable) {
+        log.info("Finding worker payment receipts with status: {} between {} and {} (paginated)", status, startDate, endDate);
+        return repository.findByStatusAndCreatedAtBetween(status, startDate, endDate, pageable);
+    }
+
+    public org.springframework.data.domain.Page<WorkerPaymentReceipt> findByDateRangePaginated(
+            LocalDateTime startDate, LocalDateTime endDate, org.springframework.data.domain.Pageable pageable) {
+        log.info("Finding worker payment receipts between {} and {} (paginated)", startDate, endDate);
+        return repository.findByCreatedAtBetween(startDate, endDate, pageable);
+    }
+
+    public WorkerPaymentReceipt updateStatus(String receiptNumber, String newStatus) {
+        log.info("Updating status of worker payment receipt {} to {}", receiptNumber, newStatus);
+        
+        WorkerPaymentReceipt receipt = repository.findByReceiptNumber(receiptNumber)
+                .orElseThrow(() -> new RuntimeException("Worker payment receipt not found with number: " + receiptNumber));
+        
+        receipt.setStatus(newStatus);
+        return repository.save(receipt);
     }
 }

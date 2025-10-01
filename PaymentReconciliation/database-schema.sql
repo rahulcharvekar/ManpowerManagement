@@ -5,12 +5,12 @@
 -- =============================================================================
 
 -- Create database (uncomment if you need to create the database)
--- CREATE DATABASE IF NOT EXISTS paymentreconciliation_prod 
+-- CREATE DATABASE IF NOT EXISTS paymentreconciliation_dev 
 -- CHARACTER SET utf8mb4 
 -- COLLATE utf8mb4_unicode_ci;
 
 -- Use the database
-USE paymentreconciliation_prod;
+USE paymentreconciliation_dev;
 
 -- =============================================================================
 -- 1. UPLOADED FILES TABLE
@@ -51,16 +51,56 @@ CREATE TABLE IF NOT EXISTS worker_payments (
     request_reference_number VARCHAR(40) NOT NULL,
     status VARCHAR(40) NOT NULL DEFAULT 'UPLOADED',
     receipt_number VARCHAR(40),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    uploaded_file_ref VARCHAR(100),
     INDEX idx_worker_reference (worker_reference),
     INDEX idx_registration_id (registration_id),
     INDEX idx_status (status),
     INDEX idx_receipt_number (receipt_number),
     INDEX idx_request_reference (request_reference_number),
-    INDEX idx_file_id (file_id)
+    INDEX idx_file_id (file_id),
+    INDEX idx_uploaded_file_ref (uploaded_file_ref),
+    INDEX idx_created_at (created_at),
+    INDEX idx_status_created_at (status, created_at),
+    INDEX idx_receipt_created_at (receipt_number, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
--- 3. WORKER PAYMENT RECEIPTS TABLE
+-- 3. WORKER UPLOADED DATA TABLE (Temporary validation table)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS worker_uploaded_data (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    file_id VARCHAR(100) NOT NULL,
+    row_num INTEGER NOT NULL,
+    worker_id VARCHAR(50),
+    worker_name VARCHAR(100),
+    company_name VARCHAR(100),
+    department VARCHAR(50),
+    position VARCHAR(50),
+    work_date DATE,
+    hours_worked DECIMAL(5,2),
+    hourly_rate DECIMAL(10,2),
+    payment_amount DECIMAL(15,2),
+    bank_account VARCHAR(20),
+    phone_number VARCHAR(15),
+    email VARCHAR(100),
+    address TEXT,
+    status VARCHAR(32) NOT NULL DEFAULT 'UPLOADED',
+    rejection_reason TEXT,
+    uploaded_at DATETIME NOT NULL,
+    validated_at DATETIME,
+    processed_at DATETIME,
+    receipt_number VARCHAR(40),
+    INDEX idx_file_id (file_id),
+    INDEX idx_file_id_status (file_id, status),
+    INDEX idx_status (status),
+    INDEX idx_row_number (file_id, row_number),
+    INDEX idx_receipt_number (receipt_number),
+    INDEX idx_uploaded_at (uploaded_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================================================
+-- 4. WORKER PAYMENT RECEIPTS TABLE
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS worker_payment_receipts (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -75,7 +115,7 @@ CREATE TABLE IF NOT EXISTS worker_payment_receipts (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
--- 4. EMPLOYER PAYMENT RECEIPTS TABLE
+-- 5. EMPLOYER PAYMENT RECEIPTS TABLE
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS employer_payment_receipts (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -96,7 +136,7 @@ CREATE TABLE IF NOT EXISTS employer_payment_receipts (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
--- 5. BOARD RECEIPTS TABLE
+-- 6. BOARD RECEIPTS TABLE
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS board_receipts (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,

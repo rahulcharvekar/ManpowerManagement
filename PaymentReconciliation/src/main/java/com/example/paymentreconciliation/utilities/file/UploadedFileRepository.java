@@ -3,6 +3,8 @@ package com.example.paymentreconciliation.utilities.file;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 import java.util.List;
 import java.time.LocalDateTime;
@@ -28,4 +30,18 @@ public interface UploadedFileRepository extends JpaRepository<UploadedFile, Long
     
     @Query("SELECT uf FROM UploadedFile uf WHERE uf.uploadDate >= :startOfDay AND uf.uploadDate < :startOfNextDay ORDER BY uf.uploadDate DESC")
     List<UploadedFile> findByUploadDateOnly(@Param("startOfDay") LocalDateTime startOfDay, @Param("startOfNextDay") LocalDateTime startOfNextDay);
+    
+    // Paginated methods for file summaries
+    Page<UploadedFile> findByStatus(String status, Pageable pageable);
+    
+    @Query("SELECT uf FROM UploadedFile uf WHERE uf.uploadDate BETWEEN :startDate AND :endDate")
+    Page<UploadedFile> findByUploadDateBetween(@Param("startDate") LocalDateTime startDate, 
+                                               @Param("endDate") LocalDateTime endDate, 
+                                               Pageable pageable);
+    
+    @Query("SELECT uf FROM UploadedFile uf WHERE uf.status = :status AND uf.uploadDate BETWEEN :startDate AND :endDate")
+    Page<UploadedFile> findByStatusAndUploadDateBetween(@Param("status") String status,
+                                                        @Param("startDate") LocalDateTime startDate, 
+                                                        @Param("endDate") LocalDateTime endDate, 
+                                                        Pageable pageable);
 }

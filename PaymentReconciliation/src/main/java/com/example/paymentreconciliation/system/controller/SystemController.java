@@ -108,4 +108,23 @@ public class SystemController {
             ));
         }
     }
+
+    @PostMapping("/migrate/add-created-at")
+    @Operation(summary = "Add created_at column", description = "Add created_at timestamp column to worker_payments table with indexes")
+    public ResponseEntity<?> addCreatedAtColumn() {
+        try {
+            databaseCleanupUtil.addCreatedAtColumn();
+            return ResponseEntity.ok(Map.of(
+                "message", "Successfully added created_at column to worker_payments table",
+                "details", "Column added with TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
+                "indexes", "Created indexes for date-based queries (created_at, status+created_at, receipt+created_at)",
+                "status", "success"
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                "error", "Created_at column migration failed: " + e.getMessage(),
+                "status", "failed"
+            ));
+        }
+    }
 }

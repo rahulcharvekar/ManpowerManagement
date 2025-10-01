@@ -32,9 +32,10 @@ public class DatabaseCleanupUtil {
             
             // Truncate all tables in the correct order
             String[] tables = {
-                "board_receipts",
+                "board_reconciliation_receipts",
                 "employer_payment_receipts", 
                 "worker_payment_receipts",
+                "worker_uploaded_data",
                 "worker_payments",
                 "uploaded_files"
             };
@@ -66,10 +67,11 @@ public class DatabaseCleanupUtil {
         
         String[] tables = {
             "worker_payments",
+            "worker_uploaded_data",
             "uploaded_files",
             "worker_payment_receipts",
             "employer_payment_receipts",
-            "board_receipts"
+            "board_reconciliation_receipts"
         };
         
         for (String table : tables) {
@@ -112,6 +114,70 @@ public class DatabaseCleanupUtil {
         } catch (Exception e) {
             log.error("Failed to update status column size: {}", e.getMessage());
             throw new RuntimeException("Status column update failed", e);
+        }
+    }
+    
+    public void addCreatedAtColumn() {
+        try {
+            log.warn("Adding created_at column to worker_payments table");
+            
+            // Check if column already exists
+            List<Map<String, Object>> columns = jdbcTemplate.queryForList(
+                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS " +
+                "WHERE TABLE_NAME = 'worker_payments' AND COLUMN_NAME = 'created_at'"
+            );
+            
+            if (!columns.isEmpty()) {
+                log.info("created_at column already exists in worker_payments table");
+                return;
+            }
+            
+            // Add the created_at column
+            jdbcTemplate.execute(
+                "ALTER TABLE worker_payments " +
+                "ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
+            );
+            log.info("Successfully added created_at column");
+            
+            // Update existing records to have a created_at timestamp (handle invalid dates)
+            try {
+                int updatedRows = jdbcTemplate.update(
+                    "UPDATE worker_payments " +
+                    "SET created_at = CURRENT_TIMESTAMP " +
+                    "WHERE created_at IS NULL"
+                );
+                log.info("Updated {} existing records with current timestamp", updatedRows);
+            } catch (Exception e) {
+                log.warn("Could not update existing records, they might already have valid timestamps: {}", e.getMessage());
+            }
+            
+            // Add indexes for better query performance
+            try {
+                jdbcTemplate.execute("CREATE INDEX idx_worker_payments_created_at ON worker_payments(created_at)");
+                log.info("Created index: idx_worker_payments_created_at");
+            } catch (Exception e) {
+                log.warn("Index idx_worker_payments_created_at might already exist: {}", e.getMessage());
+            }
+            
+            try {
+                jdbcTemplate.execute("CREATE INDEX idx_worker_payments_status_created_at ON worker_payments(status, created_at)");
+                log.info("Created index: idx_worker_payments_status_created_at");
+            } catch (Exception e) {
+                log.warn("Index idx_worker_payments_status_created_at might already exist: {}", e.getMessage());
+            }
+            
+            try {
+                jdbcTemplate.execute("CREATE INDEX idx_worker_payments_receipt_created_at ON worker_payments(receipt_number, created_at)");
+                log.info("Created index: idx_worker_payments_receipt_created_at");
+            } catch (Exception e) {
+                log.warn("Index idx_worker_payments_receipt_created_at might already exist: {}", e.getMessage());
+            }
+            
+            log.info("Successfully completed created_at column migration");
+            
+        } catch (Exception e) {
+            log.error("Failed to add created_at column: {}", e.getMessage());
+            throw new RuntimeException("Created_at column migration failed", e);
         }
     }
 }

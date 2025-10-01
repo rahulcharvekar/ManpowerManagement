@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { WorkerDashboard } from "./components/WorkerDashboard.jsx";
+import NewWorkerDashboard from "./components/NewWorkerDashboard.jsx";
 import EmployerDashboard from "./components/EmployerDashboard.jsx";
 import BoardDashboard from "./components/BoardDashboard.jsx";
 import { LandingPage } from "./components/LandingPage.jsx";
@@ -23,6 +24,8 @@ function App() {
   // Render appropriate dashboard based on selected entity
   switch (selectedEntity) {
     case "worker":
+      return <NewWorkerDashboard onGoBack={handleGoBack} />;
+    case "worker-old":
       return <WorkerDashboard onGoBack={handleGoBack} />;
     case "employer":
       return <EmployerDashboard onGoBack={handleGoBack} />;

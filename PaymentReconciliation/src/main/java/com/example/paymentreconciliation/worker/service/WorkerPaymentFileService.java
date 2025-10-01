@@ -3,7 +3,6 @@ package com.example.paymentreconciliation.worker.service;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.example.paymentreconciliation.utilities.file.FileStorageUtil;
-import com.example.paymentreconciliation.utilities.file.FileParsingUtil;
 import com.example.paymentreconciliation.worker.entity.WorkerPayment;
 import com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt;
 import com.example.paymentreconciliation.utilities.file.UploadedFileRepository;
@@ -11,9 +10,7 @@ import com.example.paymentreconciliation.utilities.file.UploadedFile;
 import org.slf4j.Logger;
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+
 
 import java.io.File;
 import java.util.*;
@@ -24,9 +21,7 @@ public class WorkerPaymentFileService {
 
     @Autowired
     private FileStorageUtil fileStorageUtil;
-    
-    @Autowired
-    private FileParsingUtil fileParsingUtil;
+
     
     @Autowired
     private UploadedFileRepository uploadedFileRepository;
@@ -36,6 +31,9 @@ public class WorkerPaymentFileService {
     
     @Autowired
     private WorkerPaymentReceiptService receiptService;
+    
+    @Autowired
+    private WorkerUploadedDataService workerUploadedDataService;
 
     public Map<String, Object> handleFileUpload(MultipartFile file) {
         log.info("Received file upload: name={}, size={} bytes", file.getOriginalFilename(), file.getSize());
@@ -50,37 +48,31 @@ public class WorkerPaymentFileService {
             
             log.info("File saved to {} with fileId: {}", storedPath, fileId);
             
-            // Parse the file and extract worker payments
+            // Parse the file and extract worker uploaded data
             File fileToRead = new File(storedPath);
-            List<WorkerPayment> payments = fileParsingUtil.parseFile(fileToRead, file.getOriginalFilename());
+            List<com.example.paymentreconciliation.worker.entity.WorkerUploadedData> uploadedDataList = 
+                parseFileToUploadedData(fileToRead, file.getOriginalFilename(), fileId);
             
             // Update the uploaded file record with parsing results
-            uploadedFile.setTotalRecords(payments.size());
+            uploadedFile.setTotalRecords(uploadedDataList.size());
             uploadedFile.setSuccessCount(0); // Will be updated after validation
             uploadedFile.setFailureCount(0);
             uploadedFile.setStatus("UPLOADED");
             uploadedFileRepository.save(uploadedFile);
             
-            // Save worker payments to database using WorkerPaymentService
-            String uploadedFileRequestRefNumber = uploadedFile.getRequestReferenceNumber();
-            for (WorkerPayment payment : payments) {
-                // Set the file ID for direct linkage
-                payment.setFileId(fileId);
-                // Use uploaded file's request reference number for all worker payments
-                payment.setRequestReferenceNumber(uploadedFileRequestRefNumber);
-            }
+            // Save uploaded data to WorkerUploadedData table
+            List<com.example.paymentreconciliation.worker.entity.WorkerUploadedData> savedData = 
+                workerUploadedDataService.saveAll(uploadedDataList);
             
-            List<WorkerPayment> savedPayments = workerPaymentService.createBulk(payments);
-            
-            log.info("File {} parsed and {} records saved via WorkerPaymentService (fileId={})", 
-                file.getOriginalFilename(), savedPayments.size(), fileId);
+            log.info("File {} parsed and {} records saved to WorkerUploadedData (fileId={})", 
+                file.getOriginalFilename(), savedData.size(), fileId);
             
             // Create response map step by step to identify any null values
             Map<String, Object> response = new HashMap<>();
             response.put("fileId", fileId);
-            response.put("message", "File uploaded successfully. " + payments.size() + " records loaded. Proceed to validation.");
+            response.put("message", "File uploaded successfully. " + savedData.size() + " records loaded. Proceed to validation.");
             response.put("path", storedPath);
-            response.put("recordCount", payments.size());
+            response.put("recordCount", savedData.size());
             
             log.info("Returning response: {}", response);
             return response;
@@ -106,28 +98,13 @@ public class WorkerPaymentFileService {
                 return Map.of("error", "File not found");
             }
             
-            // Get all worker payments for this file (using direct fileId lookup for better performance)
-            List<WorkerPayment> payments = workerPaymentService.findByFileId(fileId);
+            // Validate uploaded data using the new service
+            workerUploadedDataService.validateUploadedData(fileId);
             
-            // Simple validation: check required fields and update individual statuses
-            int passedCount = 0;
-            int failedCount = 0;
-            List<WorkerPayment> updatedPayments = new ArrayList<>();
-            
-            for (WorkerPayment payment : payments) {
-                boolean isValid = validateWorkerPayment(payment);
-                if (isValid) {
-                    payment.setStatus("VALIDATED");
-                    passedCount++;
-                } else {
-                    payment.setStatus("FAILED");
-                    failedCount++;
-                }
-                updatedPayments.add(payment);
-            }
-            
-            // Save updated payment statuses
-            workerPaymentService.updateBulk(updatedPayments);
+            // Get validation summary
+            Map<String, Integer> summary = workerUploadedDataService.getFileStatusSummary(fileId);
+            int passedCount = summary.getOrDefault("VALIDATED", 0);
+            int failedCount = summary.getOrDefault("REJECTED", 0);
             
             // Update the uploaded file record with validation results
             UploadedFile uploadedFile = uploadedFileOpt.get();
@@ -142,8 +119,8 @@ public class WorkerPaymentFileService {
             response.put("passed", passedCount);
             response.put("failed", failedCount);
             response.put("status", "VALIDATED");
-            response.put("nextAction", "GENERATE_RECEIPT");
-            response.put("message", "Validation completed. " + passedCount + " records passed validation. Ready to generate receipt.");
+            response.put("nextAction", "GENERATE_REQUEST");
+            response.put("message", "Validation completed. " + passedCount + " records passed validation. Ready to generate request.");
             
             return response;
             
@@ -152,38 +129,24 @@ public class WorkerPaymentFileService {
             return Map.of("error", "Validation failed: " + e.getMessage());
         }
     }
-    
-    private boolean validateWorkerPayment(WorkerPayment payment) {
-        // Basic validation rules
-        if (payment.getWorkerRef() == null || payment.getWorkerRef().trim().isEmpty()) {
-            return false;
-        }
-        if (payment.getName() == null || payment.getName().trim().isEmpty()) {
-            return false;
-        }
-        if (payment.getPaymentAmount() == null || payment.getPaymentAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-            return false;
-        }
-        // Add more validation rules as needed
-        return true;
-    }
 
     public Map<String, Object> getValidationResults(String fileId) {
         log.info("Fetching validation results for fileId={}", fileId);
         
         try {
-            // Get all worker payments for this file
-            List<WorkerPayment> payments = workerPaymentService.findByFileId(fileId);
+            // Get all uploaded data for this file
+            List<com.example.paymentreconciliation.worker.entity.WorkerUploadedData> uploadedDataList = 
+                workerUploadedDataService.findByFileId(fileId);
             
             List<Map<String, Object>> passedRecords = new ArrayList<>();
             List<Map<String, Object>> failedRecords = new ArrayList<>();
             
-            for (WorkerPayment payment : payments) {
-                Map<String, Object> record = createPaymentSummary(payment);
+            for (com.example.paymentreconciliation.worker.entity.WorkerUploadedData data : uploadedDataList) {
+                Map<String, Object> record = createUploadedDataSummary(data);
                 
-                if ("VALIDATED".equals(payment.getStatus())) {
+                if ("VALIDATED".equals(data.getStatus())) {
                     passedRecords.add(record);
-                } else if ("FAILED".equals(payment.getStatus())) {
+                } else if ("REJECTED".equals(data.getStatus())) {
                     failedRecords.add(record);
                 }
             }
@@ -199,27 +162,148 @@ public class WorkerPaymentFileService {
         }
     }
     
-    private Map<String, Object> createPaymentSummary(WorkerPayment payment) {
+
+
+    private Map<String, Object> createUploadedDataSummary(com.example.paymentreconciliation.worker.entity.WorkerUploadedData data) {
         Map<String, Object> summary = new HashMap<>();
-        summary.put("id", payment.getId());
-        summary.put("fileId", payment.getFileId());
-        summary.put("workerRef", payment.getWorkerRef());
-        summary.put("regId", payment.getRegId());
-        summary.put("name", payment.getName());
-        summary.put("toli", payment.getToli());
-        summary.put("aadhar", payment.getAadhar());
-        summary.put("pan", payment.getPan());
-        summary.put("paymentAmount", payment.getPaymentAmount());
-        summary.put("bankAccount", payment.getBankAccount());
-        summary.put("requestRefNumber", payment.getRequestReferenceNumber());
-        summary.put("status", payment.getStatus());
-        
-        // Include receipt number if available
-        if (payment.getReceiptNumber() != null) {
-            summary.put("receiptNumber", payment.getReceiptNumber());
-        }
+        summary.put("id", data.getId());
+        summary.put("fileId", data.getFileId());
+        summary.put("rowNumber", data.getRowNumber());
+        summary.put("workerId", data.getWorkerId());
+        summary.put("workerName", data.getWorkerName());
+        summary.put("companyName", data.getCompanyName());
+        summary.put("department", data.getDepartment());
+        summary.put("position", data.getPosition());
+        summary.put("workDate", data.getWorkDate());
+        summary.put("hoursWorked", data.getHoursWorked());
+        summary.put("hourlyRate", data.getHourlyRate());
+        summary.put("paymentAmount", data.getPaymentAmount());
+        summary.put("bankAccount", data.getBankAccount());
+        summary.put("phoneNumber", data.getPhoneNumber());
+        summary.put("email", data.getEmail());
+        summary.put("address", data.getAddress());
+        summary.put("status", data.getStatus());
+        summary.put("rejectionReason", data.getRejectionReason());
+        summary.put("uploadedAt", data.getUploadedAt());
+        summary.put("validatedAt", data.getValidatedAt());
+        summary.put("processedAt", data.getProcessedAt());
+        summary.put("receiptNumber", data.getReceiptNumber());
         
         return summary;
+    }
+
+    public Map<String, Object> getValidationResultsPaginated(String fileId, int page, int size, 
+            String status, String startDate, String endDate, String sortBy, String sortDir) {
+        log.info("Fetching paginated validation results for fileId={} with filters - page: {}, size: {}, status: {}, startDate: {}, endDate: {}", 
+                fileId, page, size, status, startDate, endDate);
+        
+        try {
+            // Create pageable with sorting
+            org.springframework.data.domain.Sort sort = sortDir.equalsIgnoreCase("desc") ? 
+                org.springframework.data.domain.Sort.by(sortBy).descending() : 
+                org.springframework.data.domain.Sort.by(sortBy).ascending();
+            org.springframework.data.domain.Pageable pageable = 
+                org.springframework.data.domain.PageRequest.of(page, size, sort);
+            
+            org.springframework.data.domain.Page<com.example.paymentreconciliation.worker.entity.WorkerUploadedData> dataPage;
+            
+            // Handle date filtering
+            if (startDate != null && endDate != null && 
+                !startDate.trim().isEmpty() && !endDate.trim().isEmpty()) {
+                
+                java.time.LocalDateTime startDateTime = java.time.LocalDate.parse(startDate).atStartOfDay();
+                java.time.LocalDateTime endDateTime = java.time.LocalDate.parse(endDate).plusDays(1).atStartOfDay().minusNanos(1);
+                
+                if (status != null && !status.trim().isEmpty()) {
+                    // Filter by status and date range - need to add this method to service
+                    dataPage = workerUploadedDataService.findByFileIdStatusAndDateRangePaginated(
+                        fileId, status.trim().toUpperCase(), startDateTime, endDateTime, pageable);
+                } else {
+                    // Filter by date range only - need to add this method to service
+                    dataPage = workerUploadedDataService.findByFileIdAndDateRangePaginated(
+                        fileId, startDateTime, endDateTime, pageable);
+                }
+            } else if (status != null && !status.trim().isEmpty()) {
+                dataPage = workerUploadedDataService.findByFileIdAndStatusPaginated(fileId, status.trim().toUpperCase(), pageable);
+            } else {
+                dataPage = workerUploadedDataService.findByFileIdPaginated(fileId, pageable);
+            }
+            
+            // Convert to summary format
+            List<Map<String, Object>> records = new ArrayList<>();
+            for (com.example.paymentreconciliation.worker.entity.WorkerUploadedData data : dataPage.getContent()) {
+                records.add(createUploadedDataSummary(data));
+            }
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("records", records);
+            response.put("totalElements", dataPage.getTotalElements());
+            response.put("totalPages", dataPage.getTotalPages());
+            response.put("currentPage", dataPage.getNumber());
+            response.put("pageSize", dataPage.getSize());
+            response.put("hasNext", dataPage.hasNext());
+            response.put("hasPrevious", dataPage.hasPrevious());
+            response.put("fileId", fileId);
+            
+            // Add filtering info
+            response.put("appliedFilters", Map.of(
+                "status", status != null ? status : "all",
+                "startDate", startDate != null ? startDate : "",
+                "endDate", endDate != null ? endDate : ""
+            ));
+            
+            return response;
+            
+        } catch (java.time.format.DateTimeParseException e) {
+            log.error("Invalid date format provided", e);
+            return Map.of("error", "Invalid date format. Use YYYY-MM-DD");
+        } catch (Exception e) {
+            log.error("Error fetching paginated validation results for fileId={}", fileId, e);
+            return Map.of("error", "Failed to fetch results: " + e.getMessage());
+        }
+    }
+
+    public Map<String, Object> generateRequest(String fileId) {
+        log.info("Generating request for validated records in fileId={}", fileId);
+        
+        try {
+            Long uploadedFileId = Long.parseLong(fileId);
+            Optional<UploadedFile> uploadedFileOpt = uploadedFileRepository.findById(uploadedFileId);
+            
+            if (uploadedFileOpt.isEmpty()) {
+                return Map.of("error", "File not found");
+            }
+            
+            UploadedFile uploadedFile = uploadedFileOpt.get();
+            String uploadedFileRef = uploadedFile.getRequestReferenceNumber();
+            
+            // Generate request for validated data (keep data in WorkerUploadedData with receipt number)
+            int processedCount = workerUploadedDataService.generateRequestForValidatedData(fileId, uploadedFileRef);
+            
+            if (processedCount == 0) {
+                return Map.of("error", "No validated records found to generate request");
+            }
+            
+            // Update the uploaded file status
+            uploadedFile.setStatus("REQUEST_GENERATED");
+            uploadedFileRepository.save(uploadedFile);
+            
+            log.info("Request generated successfully for fileId={}: {} records processed with receipt numbers", fileId, processedCount);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Request generated successfully");
+            response.put("fileId", fileId);
+            response.put("requestReference", uploadedFileRef);
+            response.put("processedRecords", processedCount);
+            response.put("status", "REQUEST_GENERATED");
+            response.put("nextAction", "VIEW_REQUESTS");
+            
+            return response;
+            
+        } catch (Exception e) {
+            log.error("Error generating request for fileId={}", fileId, e);
+            return Map.of("error", "Request generation failed: " + e.getMessage());
+        }
     }
 
     public Map<String, Object> processValidRecords(String fileId) {
@@ -319,7 +403,7 @@ public class WorkerPaymentFileService {
             
             // Initialize counts
             String[] statuses = {"UPLOADED", "VALIDATED", "FAILED", "PROCESSED", "PAYMENT_REQUESTED", 
-                               "PAYMENT_INITIATED", "PAYMENT_PROCESSED", "GENERATED", "ERROR"};
+                               "PAYMENT_INITIATED", "PAYMENT_PROCESSED", "PAYMENT_RECONCILED", "GENERATED", "ERROR"};
             for (String status : statuses) {
                 statusCounts.put(status, 0);
             }
@@ -397,108 +481,109 @@ public class WorkerPaymentFileService {
         }
     }
 
-    public Map<String, Object> getValidationDetailsPaginated(String fileId, int page, int size, String statusFilter) {
-        log.info("Getting paginated validation details for fileId={}, page={}, size={}, status={}", fileId, page, size, statusFilter);
-        
-        try {
-            // First, let's check if there are any records for this fileId at all
-            List<WorkerPayment> allPaymentsForFile = workerPaymentService.findByFileId(fileId);
-            log.info("Found {} total payments for fileId={}", allPaymentsForFile.size(), fileId);
-            
-            if (allPaymentsForFile.isEmpty()) {
-                log.warn("No payments found for fileId={}. This could mean the file hasn't been uploaded or processed yet.", fileId);
-                return Map.of(
-                    "content", new ArrayList<>(),
-                    "totalElements", 0,
-                    "totalPages", 0,
-                    "currentPage", page,
-                    "pageSize", size,
-                    "hasNext", false,
-                    "hasPrevious", false,
-                    "fileId", fileId,
-                    "message", "No worker payments found for this file ID. Please ensure the file has been uploaded and processed."
-                );
-            }
-            
-            Pageable pageable = PageRequest.of(page, size);
-            Page<WorkerPayment> paymentsPage;
-            
-            if (statusFilter != null && !statusFilter.trim().isEmpty()) {
-                // Validate status filter
-                String[] validStatuses = {"UPLOADED", "VALIDATED", "FAILED", "PROCESSED", "PAYMENT_REQUESTED", 
-                                        "PAYMENT_INITIATED", "PAYMENT_PROCESSED", "GENERATED", "ERROR"};
-                String upperStatusFilter = statusFilter.toUpperCase();
-                boolean isValidStatus = false;
-                for (String validStatus : validStatuses) {
-                    if (validStatus.equals(upperStatusFilter)) {
-                        isValidStatus = true;
-                        break;
-                    }
-                }
-                
-                if (isValidStatus) {
-                    paymentsPage = workerPaymentService.findByFileIdAndStatusPaginated(fileId, upperStatusFilter, pageable);
-                } else {
-                    return Map.of("error", "Invalid status filter: " + statusFilter);
-                }
-            } else {
-                paymentsPage = workerPaymentService.findByFileIdPaginated(fileId, pageable);
-            }
-            
-            log.info("Paginated query returned {} elements (page {} of {})", 
-                paymentsPage.getNumberOfElements(), paymentsPage.getNumber() + 1, paymentsPage.getTotalPages());
-            
-            List<Map<String, Object>> paymentDetails = new ArrayList<>();
-            for (WorkerPayment payment : paymentsPage.getContent()) {
-                Map<String, Object> detail = createPaymentSummary(payment);
-                // Add additional validation details
-                detail.put("validationStatus", getValidationStatusDetail(payment));
-                paymentDetails.add(detail);
-            }
-            
-            Map<String, Object> result = new HashMap<>();
-            result.put("content", paymentDetails);
-            result.put("totalElements", paymentsPage.getTotalElements());
-            result.put("totalPages", paymentsPage.getTotalPages());
-            result.put("currentPage", paymentsPage.getNumber());
-            result.put("pageSize", paymentsPage.getSize());
-            result.put("hasNext", paymentsPage.hasNext());
-            result.put("hasPrevious", paymentsPage.hasPrevious());
-            result.put("fileId", fileId);
-            
-            return result;
-            
-        } catch (Exception e) {
-            log.error("Error getting paginated validation details for fileId={}", fileId, e);
-            return Map.of("error", "Failed to get validation details: " + e.getMessage());
-        }
-    }
-    
-    private String getValidationStatusDetail(WorkerPayment payment) {
-        switch (payment.getStatus()) {
-            case "UPLOADED":
-                return "Pending validation";
-            case "VALIDATED":
-                return "Validation passed";
-            case "FAILED":
-                return "Validation failed - check required fields";
-            case "PROCESSED":
-                return "Successfully processed";
-            case "PAYMENT_REQUESTED":
-                return "Payment requested - receipt generated";
-            case "PAYMENT_INITIATED":
-                return "Payment initiated by employer";
-            case "GENERATED":
-                return "Receipt generated";
-            case "ERROR":
-                return "Error during processing";
-            default:
-                return "Unknown status";
-        }
-    }
+
     
     // Debug method to get worker payments by fileId
     public List<WorkerPayment> getWorkerPaymentsByFileId(String fileId) {
         return workerPaymentService.findByFileId(fileId);
+    }
+
+    private List<com.example.paymentreconciliation.worker.entity.WorkerUploadedData> parseFileToUploadedData(
+            File file, String originalFilename, String fileId) throws java.io.IOException {
+        log.info("Parsing file {} to WorkerUploadedData format", originalFilename);
+        
+        List<com.example.paymentreconciliation.worker.entity.WorkerUploadedData> uploadedDataList = new ArrayList<>();
+        
+        try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(file))) {
+            String line = br.readLine(); // Skip header
+            if (line == null) {
+                throw new java.io.IOException("File is empty or invalid");
+            }
+            
+            int rowNumber = 1;
+            while ((line = br.readLine()) != null) {
+                if (line.trim().isEmpty()) continue;
+                
+                try {
+                    com.example.paymentreconciliation.worker.entity.WorkerUploadedData uploadedData = 
+                        parseCSVLineToUploadedData(line, fileId, rowNumber++);
+                    uploadedDataList.add(uploadedData);
+                } catch (Exception e) {
+                    log.error("Error parsing line {}: {}", rowNumber, e.getMessage());
+                    // Continue parsing other lines
+                }
+            }
+        }
+        
+        log.info("Parsed {} records from CSV file", uploadedDataList.size());
+        return uploadedDataList;
+    }
+    
+    private com.example.paymentreconciliation.worker.entity.WorkerUploadedData parseCSVLineToUploadedData(
+            String csvLine, String fileId, int rowNumber) {
+        // Split CSV line, handling quoted fields
+        String[] fields = csvLine.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
+        
+        com.example.paymentreconciliation.worker.entity.WorkerUploadedData uploadedData = 
+            new com.example.paymentreconciliation.worker.entity.WorkerUploadedData();
+        
+        uploadedData.setFileId(fileId);
+        uploadedData.setRowNumber(rowNumber);
+        uploadedData.setStatus("UPLOADED");
+        uploadedData.setUploadedAt(java.time.LocalDateTime.now());
+        
+        // Parse fields based on expected CSV format:
+        // worker_id,worker_name,company_name,department,position,work_date,hours_worked,hourly_rate,payment_amount,bank_account,phone_number,email,address
+        try {
+            if (fields.length >= 13) {
+                uploadedData.setWorkerId(cleanField(fields[0]));
+                uploadedData.setWorkerName(cleanField(fields[1]));
+                uploadedData.setCompanyName(cleanField(fields[2]));
+                uploadedData.setDepartment(cleanField(fields[3]));
+                uploadedData.setPosition(cleanField(fields[4]));
+                
+                // Parse work_date
+                String workDateStr = cleanField(fields[5]);
+                if (workDateStr != null && !workDateStr.isEmpty()) {
+                    uploadedData.setWorkDate(java.time.LocalDate.parse(workDateStr));
+                }
+                
+                // Parse numeric fields
+                String hoursStr = cleanField(fields[6]);
+                if (hoursStr != null && !hoursStr.isEmpty()) {
+                    uploadedData.setHoursWorked(new java.math.BigDecimal(hoursStr));
+                }
+                
+                String rateStr = cleanField(fields[7]);
+                if (rateStr != null && !rateStr.isEmpty()) {
+                    uploadedData.setHourlyRate(new java.math.BigDecimal(rateStr));
+                }
+                
+                String amountStr = cleanField(fields[8]);
+                if (amountStr != null && !amountStr.isEmpty()) {
+                    uploadedData.setPaymentAmount(new java.math.BigDecimal(amountStr));
+                }
+                
+                uploadedData.setBankAccount(cleanField(fields[9]));
+                uploadedData.setPhoneNumber(cleanField(fields[10]));
+                uploadedData.setEmail(cleanField(fields[11]));
+                uploadedData.setAddress(cleanField(fields[12]));
+            }
+        } catch (Exception e) {
+            log.error("Error parsing CSV fields for row {}: {}", rowNumber, e.getMessage());
+            throw new RuntimeException("Failed to parse CSV line: " + e.getMessage(), e);
+        }
+        
+        return uploadedData;
+    }
+    
+    private String cleanField(String field) {
+        if (field == null) return null;
+        // Remove quotes and trim whitespace
+        field = field.trim();
+        if (field.startsWith("\"") && field.endsWith("\"")) {
+            field = field.substring(1, field.length() - 1);
+        }
+        return field.isEmpty() ? null : field;
     }
 }

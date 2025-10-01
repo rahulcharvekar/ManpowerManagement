@@ -14,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.paymentreconciliation.worker.dao.WorkerPaymentReceiptRepository;
 import com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt;
+import com.example.paymentreconciliation.worker.entity.WorkerPayment;
+import com.example.paymentreconciliation.worker.service.WorkerPaymentService;
 
 import com.example.paymentreconciliation.employer.dao.EmployerPaymentReceiptRepository;
 import com.example.paymentreconciliation.employer.entity.EmployerPaymentReceipt;
@@ -42,6 +44,9 @@ public class MT940ReconciliationService {
     
     @Autowired
     private EmployerPaymentReceiptRepository employerPaymentReceiptRepository;
+    
+    @Autowired
+    private WorkerPaymentService workerPaymentService;
 
     /**
      * Reconcile transaction reference and amount against MT940 statements
@@ -192,20 +197,30 @@ public class MT940ReconciliationService {
             
             if (!employerReceipts.isEmpty()) {
                 for (EmployerPaymentReceipt employerReceipt : employerReceipts) {
-                    // Update employer receipt status to ACCEPTED
-                    employerReceipt.setStatus("ACCEPTED");
+                    // Update employer receipt status to RECONCILED
+                    employerReceipt.setStatus("RECONCILED");
                     employerPaymentReceiptRepository.save(employerReceipt);
-                    log.info("Updated employer receipt {} status to ACCEPTED", employerReceipt.getEmployerReceiptNumber());
+                    log.info("Updated employer receipt {} status to RECONCILED", employerReceipt.getEmployerReceiptNumber());
                     
                     // Find related worker receipt by worker receipt number
                     Optional<WorkerPaymentReceipt> workerReceiptOpt = workerPaymentReceiptRepository.findByReceiptNumber(employerReceipt.getWorkerReceiptNumber());
                     
                     if (workerReceiptOpt.isPresent()) {
                         WorkerPaymentReceipt workerReceipt = workerReceiptOpt.get();
-                        // Update worker payment status to PAYMENT_PROCESSED
-                        workerReceipt.setStatus("PAYMENT_PROCESSED");
+                        // Update worker payment receipt status to PAYMENT_RECONCILED
+                        workerReceipt.setStatus("PAYMENT_RECONCILED");
                         workerPaymentReceiptRepository.save(workerReceipt);
-                        log.info("Updated worker payment receipt {} status to PAYMENT_PROCESSED", workerReceipt.getReceiptNumber());
+                        log.info("Updated worker payment receipt {} status to PAYMENT_RECONCILED", workerReceipt.getReceiptNumber());
+                        
+                        // Also update all worker payments with this receipt number to PAYMENT_RECONCILED
+                        List<WorkerPayment> workerPayments = workerPaymentService.findByReceiptNumber(workerReceipt.getReceiptNumber());
+                        for (WorkerPayment payment : workerPayments) {
+                            payment.setStatus("PAYMENT_RECONCILED");
+                            workerPaymentService.save(payment);
+                            log.debug("Updated worker payment {} to PAYMENT_RECONCILED", payment.getWorkerRef());
+                        }
+                        log.info("Updated {} worker payments to PAYMENT_RECONCILED for receipt {}", 
+                            workerPayments.size(), workerReceipt.getReceiptNumber());
                     } else {
                         log.warn("No worker receipt found for receipt number: {}", employerReceipt.getWorkerReceiptNumber());
                     }

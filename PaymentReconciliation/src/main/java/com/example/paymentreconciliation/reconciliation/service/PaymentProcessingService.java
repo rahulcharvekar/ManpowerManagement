@@ -7,6 +7,8 @@ import com.example.paymentreconciliation.employer.dao.EmployerPaymentReceiptRepo
 import com.example.paymentreconciliation.employer.entity.EmployerPaymentReceipt;
 import com.example.paymentreconciliation.worker.dao.WorkerPaymentReceiptRepository;
 import com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt;
+import com.example.paymentreconciliation.worker.entity.WorkerPayment;
+import com.example.paymentreconciliation.worker.service.WorkerPaymentService;
 
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
 
@@ -43,6 +45,9 @@ public class PaymentProcessingService {
     
     @Autowired
     private BoardReceiptRepository boardReceiptRepository;
+    
+    @Autowired
+    private WorkerPaymentService workerPaymentService;
     
     /**
      * Process payment after successful reconciliation
@@ -83,6 +88,16 @@ public class PaymentProcessingService {
                     workerReceipt.setStatus("PAYMENT_PROCESSED");
                     workerPaymentReceiptRepository.save(workerReceipt);
                     log.info("Updated worker payment receipt {} to PAYMENT_PROCESSED", workerReceipt.getReceiptNumber());
+                    
+                    // Also update all worker payments with this receipt number to PAYMENT_PROCESSED
+                    List<WorkerPayment> workerPayments = workerPaymentService.findByReceiptNumber(workerReceipt.getReceiptNumber());
+                    for (WorkerPayment payment : workerPayments) {
+                        payment.setStatus("PAYMENT_PROCESSED");
+                        workerPaymentService.save(payment);
+                        log.debug("Updated worker payment {} to PAYMENT_PROCESSED", payment.getWorkerRef());
+                    }
+                    log.info("Updated {} worker payments to PAYMENT_PROCESSED for receipt {}", 
+                        workerPayments.size(), workerReceipt.getReceiptNumber());
                 }
                 
                 // Find and update board receipt

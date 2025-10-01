@@ -17,5 +17,7 @@ public interface WorkerPaymentReceiptRepository extends JpaRepository<WorkerPaym
     
     Page<WorkerPaymentReceipt> findByStatusAndCreatedAtBetween(String status, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable);
     
+    Page<WorkerPaymentReceipt> findByCreatedAtBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable);
+    
     Optional<WorkerPaymentReceipt> findByReceiptNumber(String receiptNumber);
 }

@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -46,6 +47,9 @@ public class WorkerPayment {
     @Column(name = "file_id", nullable = true, length = 20)
     private String fileId;
 
+    @Column(name = "uploaded_file_ref", nullable = true, length = 100)
+    private String uploadedFileRef;
+
     @Column(name = "request_reference_number", nullable = false, length = 40)
     private String requestReferenceNumber;
 
@@ -54,6 +58,9 @@ public class WorkerPayment {
 
     @Column(name = "receipt_number", length = 40)
     private String receiptNumber;
+    
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
     
     public String getReceiptNumber() {
         return receiptNumber;
@@ -74,6 +81,9 @@ public class WorkerPayment {
                     .replace("-", "")
                     .substring(0, 12)
                     .toUpperCase();
+        }
+        if (Objects.isNull(createdAt)) {
+            createdAt = LocalDateTime.now();
         }
     }
 
@@ -153,6 +163,14 @@ public class WorkerPayment {
         this.fileId = fileId;
     }
 
+    public String getUploadedFileRef() {
+        return uploadedFileRef;
+    }
+
+    public void setUploadedFileRef(String uploadedFileRef) {
+        this.uploadedFileRef = uploadedFileRef;
+    }
+
     public String getRequestReferenceNumber() {
         return requestReferenceNumber;
     }
@@ -167,5 +185,13 @@ public class WorkerPayment {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }

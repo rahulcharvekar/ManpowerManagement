@@ -170,4 +170,26 @@ public class WorkerPaymentService {
         log.info("Finding worker payments by receipt number: {}", receiptNumber);
         return repository.findByReceiptNumber(receiptNumber);
     }
+
+    @Transactional(readOnly = true)
+    public Page<WorkerPayment> findByUploadedFileRefPaginated(String uploadedFileRef, Pageable pageable) {
+        log.info("Finding worker payments by uploaded file ref: {} (paginated)", uploadedFileRef);
+        return repository.findByUploadedFileRef(uploadedFileRef, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public List<WorkerPayment> findByUploadedFileRef(String uploadedFileRef) {
+        log.info("Finding worker payments by uploaded file ref: {}", uploadedFileRef);
+        return repository.findByUploadedFileRef(uploadedFileRef);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<WorkerPayment> findByStatusAndReceiptNumberAndDateRange(
+            String status, String receiptNumber, 
+            java.time.LocalDateTime startDate, java.time.LocalDateTime endDate, 
+            Pageable pageable) {
+        log.info("Finding worker payments with comprehensive filters - status: {}, receiptNumber: {}, dateRange: {} to {}", 
+                status, receiptNumber, startDate, endDate);
+        return repository.findByStatusAndReceiptNumberAndDateRange(status, receiptNumber, startDate, endDate, pageable);
+    }
 }
