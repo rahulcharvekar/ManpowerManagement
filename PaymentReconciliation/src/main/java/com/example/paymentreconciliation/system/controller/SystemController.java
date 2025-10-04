@@ -2,6 +2,7 @@ package com.example.paymentreconciliation.system.controller;
 
 import com.example.paymentreconciliation.utilities.database.DatabaseCleanupUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,6 +12,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/system")
+@Profile("!prod")
 @Tag(name = "System Management", description = "System administration and testing utilities")
 public class SystemController {
 

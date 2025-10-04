@@ -13,7 +13,17 @@ import org.springframework.web.multipart.MultipartFile;
 
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.util.*;
+
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.ss.usermodel.DateUtil;
+import org.apache.poi.ss.usermodel.CellType;
 
 @Service
 public class WorkerPaymentFileService {
@@ -275,7 +285,7 @@ public class WorkerPaymentFileService {
             }
             
             UploadedFile uploadedFile = uploadedFileOpt.get();
-            String uploadedFileRef = uploadedFile.getRequestReferenceNumber();
+            String uploadedFileRef = uploadedFile.getFileReferenceNumber();
             
             // Generate request for validated data (keep data in WorkerUploadedData with receipt number)
             int processedCount = workerUploadedDataService.generateRequestForValidatedData(fileId, uploadedFileRef);
@@ -491,90 +501,96 @@ public class WorkerPaymentFileService {
     private List<com.example.paymentreconciliation.worker.entity.WorkerUploadedData> parseFileToUploadedData(
             File file, String originalFilename, String fileId) throws java.io.IOException {
         log.info("Parsing file {} to WorkerUploadedData format", originalFilename);
-        
+
+        String extension = getFileExtension(originalFilename);
+        if ("csv".equalsIgnoreCase(extension)) {
+            return parseCsvToUploadedData(file, fileId);
+        }
+        if ("xls".equalsIgnoreCase(extension) || "xlsx".equalsIgnoreCase(extension)) {
+            return parseExcelToUploadedData(file, fileId);
+        }
+
+        throw new java.io.IOException("Unsupported file type: " + extension);
+    }
+
+    private List<com.example.paymentreconciliation.worker.entity.WorkerUploadedData> parseCsvToUploadedData(
+            File file, String fileId) throws java.io.IOException {
         List<com.example.paymentreconciliation.worker.entity.WorkerUploadedData> uploadedDataList = new ArrayList<>();
-        
+
         try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(file))) {
-            String line = br.readLine(); // Skip header
-            if (line == null) {
+            String header = br.readLine();
+            if (header == null) {
                 throw new java.io.IOException("File is empty or invalid");
             }
-            
+
             int rowNumber = 1;
+            String line;
             while ((line = br.readLine()) != null) {
-                if (line.trim().isEmpty()) continue;
-                
+                if (line.trim().isEmpty()) {
+                    continue;
+                }
+
                 try {
-                    com.example.paymentreconciliation.worker.entity.WorkerUploadedData uploadedData = 
+                    com.example.paymentreconciliation.worker.entity.WorkerUploadedData uploadedData =
                         parseCSVLineToUploadedData(line, fileId, rowNumber++);
                     uploadedDataList.add(uploadedData);
                 } catch (Exception e) {
-                    log.error("Error parsing line {}: {}", rowNumber, e.getMessage());
-                    // Continue parsing other lines
+                    log.error("Error parsing CSV line {}: {}", rowNumber, e.getMessage());
                 }
             }
         }
-        
+
         log.info("Parsed {} records from CSV file", uploadedDataList.size());
         return uploadedDataList;
     }
-    
-    private com.example.paymentreconciliation.worker.entity.WorkerUploadedData parseCSVLineToUploadedData(
-            String csvLine, String fileId, int rowNumber) {
-        // Split CSV line, handling quoted fields
-        String[] fields = csvLine.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
-        
-        com.example.paymentreconciliation.worker.entity.WorkerUploadedData uploadedData = 
-            new com.example.paymentreconciliation.worker.entity.WorkerUploadedData();
-        
-        uploadedData.setFileId(fileId);
-        uploadedData.setRowNumber(rowNumber);
-        uploadedData.setStatus("UPLOADED");
-        uploadedData.setUploadedAt(java.time.LocalDateTime.now());
-        
-        // Parse fields based on expected CSV format:
-        // worker_id,worker_name,company_name,department,position,work_date,hours_worked,hourly_rate,payment_amount,bank_account,phone_number,email,address
-        try {
-            if (fields.length >= 13) {
-                uploadedData.setWorkerId(cleanField(fields[0]));
-                uploadedData.setWorkerName(cleanField(fields[1]));
-                uploadedData.setCompanyName(cleanField(fields[2]));
-                uploadedData.setDepartment(cleanField(fields[3]));
-                uploadedData.setPosition(cleanField(fields[4]));
-                
-                // Parse work_date
-                String workDateStr = cleanField(fields[5]);
-                if (workDateStr != null && !workDateStr.isEmpty()) {
-                    uploadedData.setWorkDate(java.time.LocalDate.parse(workDateStr));
+
+    private List<com.example.paymentreconciliation.worker.entity.WorkerUploadedData> parseExcelToUploadedData(
+            File file, String fileId) throws java.io.IOException {
+        List<com.example.paymentreconciliation.worker.entity.WorkerUploadedData> uploadedDataList = new ArrayList<>();
+        DataFormatter formatter = new DataFormatter();
+
+        try (FileInputStream fis = new FileInputStream(file); Workbook workbook = WorkbookFactory.create(fis)) {
+            Sheet sheet = workbook.getSheetAt(0);
+            if (sheet == null) {
+                throw new java.io.IOException("No sheet found in uploaded workbook");
+            }
+
+            boolean isHeader = true;
+            int rowNumber = 1;
+            for (Row row : sheet) {
+                if (row == null) {
+                    continue;
                 }
-                
-                // Parse numeric fields
-                String hoursStr = cleanField(fields[6]);
-                if (hoursStr != null && !hoursStr.isEmpty()) {
-                    uploadedData.setHoursWorked(new java.math.BigDecimal(hoursStr));
+                if (isHeader) {
+                    isHeader = false;
+                    continue;
                 }
-                
-                String rateStr = cleanField(fields[7]);
-                if (rateStr != null && !rateStr.isEmpty()) {
-                    uploadedData.setHourlyRate(new java.math.BigDecimal(rateStr));
+
+                String[] fields = extractExcelRow(row, formatter);
+                if (isRowEmpty(fields)) {
+                    continue;
                 }
-                
-                String amountStr = cleanField(fields[8]);
-                if (amountStr != null && !amountStr.isEmpty()) {
-                    uploadedData.setPaymentAmount(new java.math.BigDecimal(amountStr));
+
+                try {
+                    com.example.paymentreconciliation.worker.entity.WorkerUploadedData uploadedData =
+                        populateUploadedDataFromFields(fields, fileId, rowNumber++);
+                    uploadedDataList.add(uploadedData);
+                } catch (Exception e) {
+                    log.error("Error parsing Excel row {}: {}", rowNumber, e.getMessage());
                 }
-                
-                uploadedData.setBankAccount(cleanField(fields[9]));
-                uploadedData.setPhoneNumber(cleanField(fields[10]));
-                uploadedData.setEmail(cleanField(fields[11]));
-                uploadedData.setAddress(cleanField(fields[12]));
             }
         } catch (Exception e) {
-            log.error("Error parsing CSV fields for row {}: {}", rowNumber, e.getMessage());
-            throw new RuntimeException("Failed to parse CSV line: " + e.getMessage(), e);
+            throw new java.io.IOException("Failed to read Excel file: " + e.getMessage(), e);
         }
-        
-        return uploadedData;
+
+        log.info("Parsed {} records from Excel file", uploadedDataList.size());
+        return uploadedDataList;
+    }
+
+    private com.example.paymentreconciliation.worker.entity.WorkerUploadedData parseCSVLineToUploadedData(
+            String csvLine, String fileId, int rowNumber) {
+        String[] fields = csvLine.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
+        return populateUploadedDataFromFields(fields, fileId, rowNumber);
     }
     
     private String cleanField(String field) {
@@ -585,5 +601,114 @@ public class WorkerPaymentFileService {
             field = field.substring(1, field.length() - 1);
         }
         return field.isEmpty() ? null : field;
+    }
+
+    private com.example.paymentreconciliation.worker.entity.WorkerUploadedData populateUploadedDataFromFields(
+            String[] rawFields, String fileId, int rowNumber) {
+        com.example.paymentreconciliation.worker.entity.WorkerUploadedData uploadedData =
+            new com.example.paymentreconciliation.worker.entity.WorkerUploadedData();
+
+        uploadedData.setFileId(fileId);
+        uploadedData.setRowNumber(rowNumber);
+        uploadedData.setStatus("UPLOADED");
+        uploadedData.setUploadedAt(java.time.LocalDateTime.now());
+
+        if (rawFields == null || rawFields.length < 13) {
+            return uploadedData;
+        }
+
+        try {
+            uploadedData.setWorkerId(cleanField(rawFields[0]));
+            uploadedData.setWorkerName(cleanField(rawFields[1]));
+            uploadedData.setCompanyName(cleanField(rawFields[2]));
+            uploadedData.setDepartment(cleanField(rawFields[3]));
+            uploadedData.setPosition(cleanField(rawFields[4]));
+
+            String workDateStr = cleanField(rawFields[5]);
+            if (workDateStr != null && !workDateStr.isEmpty()) {
+                uploadedData.setWorkDate(parseToLocalDate(workDateStr));
+            }
+
+            String hoursStr = cleanField(rawFields[6]);
+            if (hoursStr != null && !hoursStr.isEmpty()) {
+                uploadedData.setHoursWorked(new java.math.BigDecimal(hoursStr));
+            }
+
+            String rateStr = cleanField(rawFields[7]);
+            if (rateStr != null && !rateStr.isEmpty()) {
+                uploadedData.setHourlyRate(new java.math.BigDecimal(rateStr));
+            }
+
+            String amountStr = cleanField(rawFields[8]);
+            if (amountStr != null && !amountStr.isEmpty()) {
+                uploadedData.setPaymentAmount(new java.math.BigDecimal(amountStr));
+            }
+
+            uploadedData.setBankAccount(cleanField(rawFields[9]));
+            uploadedData.setPhoneNumber(cleanField(rawFields[10]));
+            uploadedData.setEmail(cleanField(rawFields[11]));
+            uploadedData.setAddress(cleanField(rawFields[12]));
+
+        } catch (Exception e) {
+            log.error("Error mapping uploaded data fields for row {}: {}", rowNumber, e.getMessage());
+            throw new RuntimeException("Failed to map row fields: " + e.getMessage(), e);
+        }
+
+        return uploadedData;
+    }
+
+    private String[] extractExcelRow(Row row, DataFormatter formatter) {
+        String[] fields = new String[13];
+        for (int i = 0; i < fields.length; i++) {
+            Cell cell = row.getCell(i);
+            if (cell == null) {
+                fields[i] = null;
+                continue;
+            }
+
+            if (i == 5 && cell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) {
+                java.time.LocalDate date = cell.getLocalDateTimeCellValue().toLocalDate();
+                fields[i] = date.toString();
+            } else {
+                fields[i] = formatter.formatCellValue(cell);
+            }
+        }
+        return fields;
+    }
+
+    private boolean isRowEmpty(String[] fields) {
+        if (fields == null) {
+            return true;
+        }
+        for (String field : fields) {
+            if (field != null && !field.trim().isEmpty()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private String getFileExtension(String filename) {
+        if (filename == null) {
+            return "";
+        }
+        int lastDot = filename.lastIndexOf('.');
+        return lastDot >= 0 ? filename.substring(lastDot + 1) : "";
+    }
+
+    private java.time.LocalDate parseToLocalDate(String value) {
+        try {
+            return java.time.LocalDate.parse(value);
+        } catch (java.time.format.DateTimeParseException isoEx) {
+            for (String pattern : List.of("d/M/uuuu", "M/d/uuuu")) {
+                try {
+                    java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern(pattern);
+                    return java.time.LocalDate.parse(value, formatter);
+                } catch (java.time.format.DateTimeParseException ignored) {
+                    // try next pattern
+                }
+            }
+            throw isoEx;
+        }
     }
 }

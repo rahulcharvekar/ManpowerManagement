@@ -24,6 +24,12 @@ public class WorkerUploadedData {
     @Column(name = "worker_name", length = 100)
     private String workerName;
 
+    @Column(name = "employer_id", nullable = false, length = 64)
+    private String employerId;
+
+    @Column(name = "toli_id", nullable = false, length = 64)
+    private String toliId;
+
     @Column(name = "company_name", length = 100)
     private String companyName;
 
@@ -118,6 +124,22 @@ public class WorkerUploadedData {
 
     public void setWorkerName(String workerName) {
         this.workerName = workerName;
+    }
+
+    public String getEmployerId() {
+        return employerId;
+    }
+
+    public void setEmployerId(String employerId) {
+        this.employerId = employerId;
+    }
+
+    public String getToliId() {
+        return toliId;
+    }
+
+    public void setToliId(String toliId) {
+        this.toliId = toliId;
     }
 
     public String getCompanyName() {

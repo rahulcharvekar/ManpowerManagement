@@ -1,4 +1,0 @@
-workerId,fullName,emailAddress,phoneNumber,paymentAmount,workDescription,paymentDate
-W001,John Doe,john@example.com,+1234567890,1500.00,Software Development,2025-09-29
-W002,Jane Smith,jane@example.com,+1234567891,1200.00,Quality Assurance,2025-09-29
-W003,Bob Johnson,bob@example.com,+1234567892,1800.00,Project Management,2025-09-29

@@ -1,13 +1,7 @@
 -- =============================================================================
--- Payment Reconciliation Application - Database Schema Creation Script
--- Version: 1.0
--- Target: Azure MySQL Flexible Server (MySQL 8.0+)
+-- Flyway Migration V1: Create Base Tables
+-- Payment Reconciliation Application
 -- =============================================================================
-
--- Create database (uncomment if you need to create the database)
--- CREATE DATABASE IF NOT EXISTS paymentreconciliation_dev 
--- CHARACTER SET utf8mb4 
--- COLLATE utf8mb4_unicode_ci;
 
 -- Use the database
 USE paymentreconciliation_dev;
@@ -27,7 +21,7 @@ CREATE TABLE IF NOT EXISTS uploaded_files (
     success_count INT NOT NULL DEFAULT 0,
     failure_count INT NOT NULL DEFAULT 0,
     status VARCHAR(50) NOT NULL,
-    request_reference_number VARCHAR(100) UNIQUE,
+    file_ref_nmbr VARCHAR(100) UNIQUE,
     INDEX idx_file_type (file_type),
     INDEX idx_upload_date (upload_date),
     INDEX idx_status (status),
@@ -42,6 +36,8 @@ CREATE TABLE IF NOT EXISTS worker_payments (
     worker_reference VARCHAR(64) NOT NULL,
     registration_id VARCHAR(64) NOT NULL,
     worker_name VARCHAR(120) NOT NULL,
+    employer_id VARCHAR(64) NOT NULL,
+    toli_id VARCHAR(64) NOT NULL,
     toli VARCHAR(64) NOT NULL,
     aadhar VARCHAR(16) NOT NULL,
     pan VARCHAR(16) NOT NULL,
@@ -55,6 +51,8 @@ CREATE TABLE IF NOT EXISTS worker_payments (
     uploaded_file_ref VARCHAR(100),
     INDEX idx_worker_reference (worker_reference),
     INDEX idx_registration_id (registration_id),
+    INDEX idx_employer_id (employer_id),
+    INDEX idx_toli_id (toli_id),
     INDEX idx_status (status),
     INDEX idx_receipt_number (receipt_number),
     INDEX idx_request_reference (request_reference_number),
@@ -74,6 +72,8 @@ CREATE TABLE IF NOT EXISTS worker_uploaded_data (
     row_num INTEGER NOT NULL,
     worker_id VARCHAR(50),
     worker_name VARCHAR(100),
+    employer_id VARCHAR(64) NOT NULL,
+    toli_id VARCHAR(64) NOT NULL,
     company_name VARCHAR(100),
     department VARCHAR(50),
     position VARCHAR(50),
@@ -93,8 +93,10 @@ CREATE TABLE IF NOT EXISTS worker_uploaded_data (
     receipt_number VARCHAR(40),
     INDEX idx_file_id (file_id),
     INDEX idx_file_id_status (file_id, status),
+    INDEX idx_employer_id (employer_id),
+    INDEX idx_toli_id (toli_id),
     INDEX idx_status (status),
-    INDEX idx_row_number (file_id, row_number),
+    INDEX idx_row_number (file_id, row_num),
     INDEX idx_receipt_number (receipt_number),
     INDEX idx_uploaded_at (uploaded_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -105,11 +107,15 @@ CREATE TABLE IF NOT EXISTS worker_uploaded_data (
 CREATE TABLE IF NOT EXISTS worker_payment_receipts (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     receipt_number VARCHAR(40) NOT NULL UNIQUE,
+    employer_id VARCHAR(64) NOT NULL,
+    toli_id VARCHAR(64) NOT NULL,
     created_at DATETIME NOT NULL,
     total_records INT NOT NULL,
     total_amount DECIMAL(15,2) NOT NULL,
     status VARCHAR(32) NOT NULL,
     INDEX idx_receipt_number (receipt_number),
+    INDEX idx_employer_id (employer_id),
+    INDEX idx_toli_id (toli_id),
     INDEX idx_created_at (created_at),
     INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -121,6 +127,8 @@ CREATE TABLE IF NOT EXISTS employer_payment_receipts (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     employer_receipt_number VARCHAR(40) NOT NULL UNIQUE,
     worker_receipt_number VARCHAR(40) NOT NULL,
+    employer_id VARCHAR(64) NOT NULL,
+    toli_id VARCHAR(64) NOT NULL,
     transaction_reference VARCHAR(50) NOT NULL,
     validated_by VARCHAR(64) NOT NULL,
     validated_at DATETIME NOT NULL,
@@ -129,6 +137,8 @@ CREATE TABLE IF NOT EXISTS employer_payment_receipts (
     status VARCHAR(32) NOT NULL,
     INDEX idx_employer_receipt_number (employer_receipt_number),
     INDEX idx_worker_receipt_number (worker_receipt_number),
+    INDEX idx_employer_id (employer_id),
+    INDEX idx_toli_id (toli_id),
     INDEX idx_transaction_reference (transaction_reference),
     INDEX idx_validated_by (validated_by),
     INDEX idx_validated_at (validated_at),
@@ -140,91 +150,25 @@ CREATE TABLE IF NOT EXISTS employer_payment_receipts (
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS board_receipts (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    board_id VARCHAR(64) NOT NULL,
     board_reference VARCHAR(64) NOT NULL,
     employer_reference VARCHAR(64) NOT NULL,
+    employer_id VARCHAR(64) NOT NULL,
+    toli_id VARCHAR(64) NOT NULL,
     amount DECIMAL(15,2) NOT NULL,
     utr_number VARCHAR(48) NOT NULL,
-    status ENUM('PENDING','VERIFIED','REJECTED','PROCESSED') NOT NULL DEFAULT 'PENDING',
+    status VARCHAR(64) NOT NULL,
     maker VARCHAR(64) NOT NULL,
     checker VARCHAR(64),
     receipt_date DATE NOT NULL,
+    INDEX idx_board_id (board_id),
     INDEX idx_board_reference (board_reference),
     INDEX idx_employer_reference (employer_reference),
+    INDEX idx_employer_id (employer_id),
+    INDEX idx_toli_id (toli_id),
     INDEX idx_utr_number (utr_number),
     INDEX idx_status (status),
     INDEX idx_receipt_date (receipt_date),
     INDEX idx_maker (maker),
     INDEX idx_checker (checker)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- =============================================================================
--- FOREIGN KEY CONSTRAINTS (Optional - uncomment if you want referential integrity)
--- =============================================================================
-
--- Add foreign key from worker_payments to worker_payment_receipts
--- ALTER TABLE worker_payments 
--- ADD CONSTRAINT fk_worker_payments_receipt 
--- FOREIGN KEY (receipt_number) REFERENCES worker_payment_receipts(receipt_number);
-
--- Add foreign key from employer_payment_receipts to worker_payment_receipts
--- ALTER TABLE employer_payment_receipts 
--- ADD CONSTRAINT fk_employer_worker_receipt 
--- FOREIGN KEY (worker_receipt_number) REFERENCES worker_payment_receipts(receipt_number);
-
--- Add foreign key from board_receipts to employer_payment_receipts
--- ALTER TABLE board_receipts 
--- ADD CONSTRAINT fk_board_employer_receipt 
--- FOREIGN KEY (employer_reference) REFERENCES employer_payment_receipts(employer_receipt_number);
-
--- =============================================================================
--- INITIAL DATA / SAMPLE DATA (Optional)
--- =============================================================================
-
--- You can add any initial configuration data here if needed
--- INSERT INTO uploaded_files (filename, stored_path, file_hash, file_type, upload_date, status) 
--- VALUES ('sample.csv', '/tmp/uploads/sample.csv', 'hash123', 'CSV', NOW(), 'PROCESSED');
-
--- =============================================================================
--- VERIFICATION QUERIES
--- =============================================================================
-
--- Verify all tables are created
-SHOW TABLES;
-
--- Check table structures
--- DESCRIBE uploaded_files;
--- DESCRIBE worker_payments;
--- DESCRIBE worker_payment_receipts;
--- DESCRIBE employer_payment_receipts;
--- DESCRIBE board_receipts;
-
--- =============================================================================
--- CLEANUP SCRIPT (DO NOT RUN IN PRODUCTION)
--- =============================================================================
-
-/*
--- WARNING: This will drop all tables and data!
--- Only use this for development/testing environments
-
-DROP TABLE IF EXISTS board_receipts;
-DROP TABLE IF EXISTS employer_payment_receipts;
-DROP TABLE IF EXISTS worker_payment_receipts;
-DROP TABLE IF EXISTS worker_payments;
-DROP TABLE IF EXISTS uploaded_files;
-*/
-
--- =============================================================================
--- GRANT PERMISSIONS (Update with your actual username)
--- =============================================================================
-
--- Replace 'your_app_user' with your actual application database user
--- GRANT SELECT, INSERT, UPDATE, DELETE ON paymentreconciliation_prod.* TO 'your_app_user'@'%';
--- FLUSH PRIVILEGES;
-
--- =============================================================================
--- SCRIPT COMPLETION
--- =============================================================================
-
-SELECT 'Database schema creation completed successfully!' as status;
-SELECT COUNT(*) as total_tables FROM information_schema.tables 
-WHERE table_schema = 'paymentreconciliation_prod';

@@ -7,7 +7,7 @@ USE paymentreconciliation_dev;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- Clean all tables in the correct order (child tables first)
-TRUNCATE TABLE board_reconciliation_receipts;
+TRUNCATE TABLE board_receipts;
 TRUNCATE TABLE employer_payment_receipts;
 TRUNCATE TABLE worker_payment_receipts;
 TRUNCATE TABLE worker_uploaded_data;
@@ -15,7 +15,7 @@ TRUNCATE TABLE worker_payments;
 TRUNCATE TABLE uploaded_files;
 
 -- Reset auto-increment counters
-ALTER TABLE board_reconciliation_receipts AUTO_INCREMENT = 1;
+ALTER TABLE board_receipts AUTO_INCREMENT = 1;
 ALTER TABLE employer_payment_receipts AUTO_INCREMENT = 1;
 ALTER TABLE worker_payment_receipts AUTO_INCREMENT = 1;
 ALTER TABLE worker_uploaded_data AUTO_INCREMENT = 1;
@@ -36,7 +36,7 @@ SELECT 'worker_payment_receipts', COUNT(*) FROM worker_payment_receipts
 UNION ALL
 SELECT 'employer_payment_receipts', COUNT(*) FROM employer_payment_receipts
 UNION ALL
-SELECT 'board_reconciliation_receipts', COUNT(*) FROM board_reconciliation_receipts;
+SELECT 'board_receipts', COUNT(*) FROM board_receipts;
 
 -- Show the updated schema to verify new columns and tables exist
 DESCRIBE worker_payments;

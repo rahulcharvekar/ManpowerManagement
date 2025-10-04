@@ -35,10 +35,15 @@ if ! command -v mysql &> /dev/null; then
     exit 1
 fi
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCHEMA_FILE="${SCRIPT_DIR}/database-schema-comprehensive.sql"
+
 # Check if schema file exists
-if [ ! -f "database-schema.sql" ]; then
-    echo -e "${RED}❌ database-schema.sql file not found!${NC}"
-    echo "Please ensure the database-schema.sql file is in the current directory."
+if [ ! -f "${SCHEMA_FILE}" ]; then
+    echo -e "${RED}❌ database-schema-comprehensive.sql file not found!${NC}"
+    echo "Expected location: ${SCHEMA_FILE}"
+    echo "Please ensure the database-schema-comprehensive.sql file is in the same directory as this script."
     exit 1
 fi
 
@@ -95,7 +100,7 @@ mysql \
     --password="${MYSQL_PASSWORD}" \
     --ssl-mode=REQUIRED \
     --database="${MYSQL_DATABASE}" \
-    --execute="source database-schema.sql"
+    --execute="source ${SCHEMA_FILE}"
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ Database schema created successfully!${NC}"

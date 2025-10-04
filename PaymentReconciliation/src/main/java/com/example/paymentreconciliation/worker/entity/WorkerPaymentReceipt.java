@@ -14,6 +14,12 @@ public class WorkerPaymentReceipt {
     @Column(name = "receipt_number", nullable = false, unique = true, length = 40)
     private String receiptNumber;
 
+    @Column(name = "employer_id", nullable = false, length = 64)
+    private String employerId;
+
+    @Column(name = "toli_id", nullable = false, length = 64)
+    private String toliId;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -39,6 +45,22 @@ public class WorkerPaymentReceipt {
 
     public void setReceiptNumber(String receiptNumber) {
         this.receiptNumber = receiptNumber;
+    }
+
+    public String getEmployerId() {
+        return employerId;
+    }
+
+    public void setEmployerId(String employerId) {
+        this.employerId = employerId;
+    }
+
+    public String getToliId() {
+        return toliId;
+    }
+
+    public void setToliId(String toliId) {
+        this.toliId = toliId;
     }
 
     public LocalDateTime getCreatedAt() {

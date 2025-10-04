@@ -40,8 +40,8 @@ public class UploadedFile {
     @Column(nullable = false)
     private String status;
 
-    @Column(nullable = true, unique = true)
-    private String requestReferenceNumber;
+    @Column(name = "file_reference_number", nullable = true, unique = true)
+    private String fileReferenceNumber;
 
     public Long getId() {
         return id;
@@ -109,10 +109,10 @@ public class UploadedFile {
     public void setStatus(String status) {
         this.status = status;
     }
-    public String getRequestReferenceNumber() {
-        return requestReferenceNumber;
+    public String getFileReferenceNumber() {
+        return fileReferenceNumber;
     }
-    public void setRequestReferenceNumber(String requestReferenceNumber) {
-        this.requestReferenceNumber = requestReferenceNumber;
+    public void setFileReferenceNumber(String fileReferenceNumber) {
+        this.fileReferenceNumber = fileReferenceNumber;
     }
 }

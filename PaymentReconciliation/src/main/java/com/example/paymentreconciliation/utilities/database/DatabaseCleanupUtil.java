@@ -32,7 +32,7 @@ public class DatabaseCleanupUtil {
             
             // Truncate all tables in the correct order
             String[] tables = {
-                "board_reconciliation_receipts",
+                "board_receipts",
                 "employer_payment_receipts", 
                 "worker_payment_receipts",
                 "worker_uploaded_data",
@@ -71,7 +71,7 @@ public class DatabaseCleanupUtil {
             "uploaded_files",
             "worker_payment_receipts",
             "employer_payment_receipts",
-            "board_reconciliation_receipts"
+            "board_receipts"
         };
         
         for (String table : tables) {

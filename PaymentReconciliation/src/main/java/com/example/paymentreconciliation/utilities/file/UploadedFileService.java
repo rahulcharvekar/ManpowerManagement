@@ -246,7 +246,7 @@ public class UploadedFileService {
         summary.put("failureCount", file.getFailureCount());
         summary.put("uploadedBy", file.getUploadedBy());
         summary.put("fileHash", file.getFileHash());
-        summary.put("requestReferenceNumber", file.getRequestReferenceNumber());
+        summary.put("requestReferenceNumber", file.getFileReferenceNumber());
         return summary;
     }
 }

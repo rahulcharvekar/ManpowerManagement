@@ -17,11 +17,20 @@ public class BoardReceipt {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "board_id", nullable = false, length = 64)
+    private String boardId;
+
     @Column(name = "board_reference", nullable = false, length = 64)
     private String boardRef;
 
     @Column(name = "employer_reference", nullable = false, length = 64)
     private String employerRef;
+
+    @Column(name = "employer_id", nullable = false, length = 64)
+    private String employerId;
+
+    @Column(name = "toli_id", nullable = false, length = 64)
+    private String toliId;
 
     @Column(name = "amount", precision = 15, scale = 2, nullable = false)
     private BigDecimal amount;
@@ -29,7 +38,7 @@ public class BoardReceipt {
     @Column(name = "utr_number", nullable = false, length = 48)
     private String utrNumber;
 
-    @Column(name = "status", nullable = false, length = 32)
+    @Column(name = "status", nullable = false, length = 64)
     private String status = "PENDING";
 
     @Column(name = "maker", nullable = false, length = 64)
@@ -48,6 +57,14 @@ public class BoardReceipt {
         return id;
     }
 
+    public String getBoardId() {
+        return boardId;
+    }
+
+    public void setBoardId(String boardId) {
+        this.boardId = boardId;
+    }
+
     public String getBoardRef() {
         return boardRef;
     }
@@ -62,6 +79,22 @@ public class BoardReceipt {
 
     public void setEmployerRef(String employerRef) {
         this.employerRef = employerRef;
+    }
+
+    public String getEmployerId() {
+        return employerId;
+    }
+
+    public void setEmployerId(String employerId) {
+        this.employerId = employerId;
+    }
+
+    public String getToliId() {
+        return toliId;
+    }
+
+    public void setToliId(String toliId) {
+        this.toliId = toliId;
     }
 
     public BigDecimal getAmount() {

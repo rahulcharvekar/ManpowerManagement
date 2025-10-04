@@ -18,6 +18,12 @@ public class EmployerPaymentReceipt {
     @Column(name = "worker_receipt_number", nullable = false, length = 40)
     private String workerReceiptNumber;
 
+    @Column(name = "employer_id", nullable = false, length = 64)
+    private String employerId;
+
+    @Column(name = "toli_id", nullable = false, length = 64)
+    private String toliId;
+
     @Column(name = "transaction_reference", nullable = false, length = 50)
     private String transactionReference;
 
@@ -58,6 +64,22 @@ public class EmployerPaymentReceipt {
 
     public void setWorkerReceiptNumber(String workerReceiptNumber) {
         this.workerReceiptNumber = workerReceiptNumber;
+    }
+
+    public String getEmployerId() {
+        return employerId;
+    }
+
+    public void setEmployerId(String employerId) {
+        this.employerId = employerId;
+    }
+
+    public String getToliId() {
+        return toliId;
+    }
+
+    public void setToliId(String toliId) {
+        this.toliId = toliId;
     }
 
     public String getTransactionReference() {

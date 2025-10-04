@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -29,6 +30,12 @@ public class WorkerPayment {
     @Column(name = "worker_name", nullable = false, length = 120)
     private String name;
 
+    @Column(name = "employer_id", nullable = false, length = 64)
+    private String employerId;
+
+    @Column(name = "toli_id", nullable = false, length = 64)
+    private String toliId;
+
     @Column(name = "toli", nullable = false, length = 64)
     private String toli;
 
@@ -42,6 +49,8 @@ public class WorkerPayment {
     private String bankAccount;
 
     @Column(name = "payment_amount", precision = 15, scale = 2, nullable = false)
+    @NotNull(message = "Payment amount is required")
+    @DecimalMin(value = "0.01", message = "Payment amount must be greater than 0")
     private BigDecimal paymentAmount;
 
     @Column(name = "file_id", nullable = true, length = 20)
@@ -113,6 +122,22 @@ public class WorkerPayment {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getEmployerId() {
+        return employerId;
+    }
+
+    public void setEmployerId(String employerId) {
+        this.employerId = employerId;
+    }
+
+    public String getToliId() {
+        return toliId;
+    }
+
+    public void setToliId(String toliId) {
+        this.toliId = toliId;
     }
 
     public String getToli() {

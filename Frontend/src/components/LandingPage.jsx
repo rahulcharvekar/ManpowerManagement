@@ -1,14 +1,48 @@
-export function LandingPage({ onEntitySelect }) {
+export function LandingPage({ onEntitySelect, isAuthenticated = false, onLogout, user }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4">
-      <div className="max-w-6xl mx-auto">
+      {/* Authentication Status Bar */}
+      {isAuthenticated && (
+        <div className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm shadow-sm border-b border-gray-200 z-40">
+          <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-semibold">
+                  {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                </span>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-800">
+                  Welcome, {user?.firstName || user?.email || 'User'}
+                </p>
+                <p className="text-xs text-gray-500 capitalize">
+                  {user?.role || 'User'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onLogout}
+              className="text-sm text-gray-600 hover:text-red-600 font-medium transition-colors duration-200"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-6xl mx-auto" style={{ marginTop: isAuthenticated ? '80px' : '0' }}>
         <header className="text-center mb-12 animate-fade-in">
           <h1 className="text-5xl font-bold text-white mb-4 drop-shadow-lg">
             Manpower Management System
           </h1>
           <p className="text-xl text-white/90 max-w-2xl mx-auto">
-            Choose your role to access the appropriate dashboard
+            {isAuthenticated ? 'Welcome back! Choose your dashboard' : 'Choose your role to access the appropriate dashboard'}
           </p>
+          {!isAuthenticated && (
+            <p className="text-sm text-white/70 mt-4">
+              You'll be asked to login after selecting your role
+            </p>
+          )}
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

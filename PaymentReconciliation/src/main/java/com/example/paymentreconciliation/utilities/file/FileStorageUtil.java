@@ -4,10 +4,18 @@ package com.example.paymentreconciliation.utilities.file;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.security.DigestInputStream;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import org.slf4j.Logger;
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
 
@@ -30,68 +38,8 @@ public class FileStorageUtil {
      * @return the absolute path to the stored file
      */
     public String storeFile(MultipartFile file, String category, String fileName) throws IOException {
-        String uploadDir = baseUploadDir + File.separator + category;
-        log.info("Resolved baseUploadDir property: {}", baseUploadDir);
-        log.info("Resolved uploadDir for category '{}': {}", category, uploadDir);
-        File dest = new File(uploadDir, fileName);
-        log.info("Resolved destination file path: {}", dest.getAbsolutePath());
-        File parentDir = dest.getParentFile();
-        if (!parentDir.exists()) {
-            boolean created = parentDir.mkdirs();
-            log.info("Parent directory {} created: {}", parentDir.getAbsolutePath(), created);
-            if (!created && !parentDir.exists()) {
-                log.error("Failed to create parent directory: {}", parentDir.getAbsolutePath());
-                throw new IOException("Failed to create parent directory: " + parentDir.getAbsolutePath());
-            }
-        }
-
-        // Check for duplicate filename
-        if (uploadedFileRepository.findByFilename(file.getOriginalFilename()).isPresent()) {
-            throw new IOException("Duplicate file: a file with the same name already exists.");
-        }
-
-        // Save file temporarily to calculate hash
-        file.transferTo(dest);
-        log.info("File successfully saved to {} (for hash calculation)", dest.getAbsolutePath());
-
-        // Calculate file hash (SHA-256)
-        String fileHash;
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] fileBytes = Files.readAllBytes(dest.toPath());
-            byte[] hashBytes = digest.digest(fileBytes);
-            StringBuilder sb = new StringBuilder();
-            for (byte b : hashBytes) sb.append(String.format("%02x", b));
-            fileHash = sb.toString();
-        } catch (Exception e) {
-            log.error("Failed to calculate file hash", e);
-            fileHash = "";
-        }
-
-        // Check for duplicate file hash
-        if (!fileHash.isEmpty() && uploadedFileRepository.findByFileHash(fileHash).isPresent()) {
-            // Clean up the just-uploaded duplicate file
-            dest.delete();
-            throw new IOException("Duplicate file: a file with the same content already exists.");
-        }
-
-        // Save file metadata to DB
-        UploadedFile uploadedFile = new UploadedFile();
-        uploadedFile.setFilename(file.getOriginalFilename());
-        uploadedFile.setStoredPath(dest.getAbsolutePath());
-        uploadedFile.setFileHash(fileHash);
-        uploadedFile.setFileType(category);
-        uploadedFile.setUploadDate(java.time.LocalDateTime.now());
-        uploadedFile.setUploadedBy(null); // Set user if available
-        uploadedFile.setTotalRecords(0); // Set after validation if needed
-        uploadedFile.setSuccessCount(0);
-        uploadedFile.setFailureCount(0);
-        uploadedFile.setStatus("UPLOADED");
-        uploadedFile.setRequestReferenceNumber(generateRequestReferenceNumber());
-        UploadedFile savedFile = uploadedFileRepository.save(uploadedFile);
-        log.info("Saved UploadedFile with ID: {}", savedFile.getId());
-
-        return dest.getAbsolutePath();
+        UploadedFile savedFile = storeFileInternal(file, category, fileName);
+        return savedFile.getStoredPath();
     }
 
     /**
@@ -99,75 +47,79 @@ public class FileStorageUtil {
      * This avoids the need to look up the file record after storing
      */
     public UploadedFile storeFileAndReturnEntity(MultipartFile file, String category, String fileName) throws IOException {
-        String uploadDir = baseUploadDir + File.separator + category;
-        log.info("Resolved baseUploadDir property: {}", baseUploadDir);
-        log.info("Resolved uploadDir for category '{}': {}", category, uploadDir);
-        File dest = new File(uploadDir, fileName);
-        log.info("Resolved destination file path: {}", dest.getAbsolutePath());
-        File parentDir = dest.getParentFile();
-        if (!parentDir.exists()) {
-            boolean created = parentDir.mkdirs();
-            log.info("Parent directory {} created: {}", parentDir.getAbsolutePath(), created);
-            if (!created && !parentDir.exists()) {
-                log.error("Failed to create parent directory: {}", parentDir.getAbsolutePath());
-                throw new IOException("Failed to create parent directory: " + parentDir.getAbsolutePath());
-            }
-        }
-
-        // Check for duplicate filename
-        if (uploadedFileRepository.findByFilename(file.getOriginalFilename()).isPresent()) {
-            throw new IOException("Duplicate file: a file with the same name already exists.");
-        }
-
-        // Save file temporarily to calculate hash
-        file.transferTo(dest);
-        log.info("File successfully saved to {} (for hash calculation)", dest.getAbsolutePath());
-
-        // Calculate file hash (SHA-256)
-        String fileHash;
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] fileBytes = Files.readAllBytes(dest.toPath());
-            byte[] hashBytes = digest.digest(fileBytes);
-            StringBuilder sb = new StringBuilder();
-            for (byte b : hashBytes) sb.append(String.format("%02x", b));
-            fileHash = sb.toString();
-        } catch (Exception e) {
-            log.error("Failed to calculate file hash", e);
-            fileHash = "";
-        }
-
-        // Check for duplicate file hash
-        if (!fileHash.isEmpty() && uploadedFileRepository.findByFileHash(fileHash).isPresent()) {
-            // Clean up the just-uploaded duplicate file
-            dest.delete();
-            throw new IOException("Duplicate file: a file with the same content already exists.");
-        }
-
-        // Save file metadata to DB
-        UploadedFile uploadedFile = new UploadedFile();
-        uploadedFile.setFilename(file.getOriginalFilename());
-        uploadedFile.setStoredPath(dest.getAbsolutePath());
-        uploadedFile.setFileHash(fileHash);
-        uploadedFile.setFileType(category);
-        uploadedFile.setUploadDate(java.time.LocalDateTime.now());
-        uploadedFile.setUploadedBy(null); // Set user if available
-        uploadedFile.setTotalRecords(0); // Set after validation if needed
-        uploadedFile.setSuccessCount(0);
-        uploadedFile.setFailureCount(0);
-        uploadedFile.setStatus("UPLOADED");
-        uploadedFile.setRequestReferenceNumber(generateRequestReferenceNumber());
-        UploadedFile savedFile = uploadedFileRepository.save(uploadedFile);
-        log.info("Saved UploadedFile with ID: {}", savedFile.getId());
-
-        return savedFile;
+        return storeFileInternal(file, category, fileName);
     }
-    
+
     private String generateRequestReferenceNumber() {
         // Generate request reference number in format: REQ-YYYYMMDD-HHMMSS-XXX
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         String dateTime = now.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
         String sequence = String.format("%03d", (System.currentTimeMillis() % 1000));
         return "REQ-" + dateTime + "-" + sequence;
+    }
+
+    private UploadedFile storeFileInternal(MultipartFile file, String category, String fileName) throws IOException {
+        String uploadDir = baseUploadDir + File.separator + category;
+        log.info("Resolved baseUploadDir property: {}", baseUploadDir);
+        log.info("Resolved uploadDir for category '{}': {}", category, uploadDir);
+
+        Path destinationPath = Path.of(uploadDir, fileName).toAbsolutePath();
+        Files.createDirectories(destinationPath.getParent());
+        log.info("Resolved destination file path: {}", destinationPath);
+
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename != null && uploadedFileRepository.findByFilename(originalFilename).isPresent()) {
+            throw new IOException("Duplicate file: a file with the same name already exists.");
+        }
+
+        MessageDigest digest = createMessageDigest();
+
+        try (InputStream inputStream = file.getInputStream();
+             DigestInputStream digestInputStream = new DigestInputStream(inputStream, digest);
+             OutputStream outputStream = new BufferedOutputStream(
+                 Files.newOutputStream(destinationPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING))) {
+
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = digestInputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+        } catch (IOException ioException) {
+            Files.deleteIfExists(destinationPath);
+            throw ioException;
+        }
+
+        String fileHash = HexFormat.of().formatHex(digest.digest());
+        log.debug("Calculated SHA-256 hash {} for uploaded file", fileHash);
+
+        if (!fileHash.isEmpty() && uploadedFileRepository.findByFileHash(fileHash).isPresent()) {
+            Files.deleteIfExists(destinationPath);
+            throw new IOException("Duplicate file: a file with the same content already exists.");
+        }
+
+        UploadedFile uploadedFile = new UploadedFile();
+        uploadedFile.setFilename(originalFilename != null ? originalFilename : fileName);
+        uploadedFile.setStoredPath(destinationPath.toString());
+        uploadedFile.setFileHash(fileHash);
+        uploadedFile.setFileType(category);
+        uploadedFile.setUploadDate(java.time.LocalDateTime.now());
+        uploadedFile.setUploadedBy(null);
+        uploadedFile.setTotalRecords(0);
+        uploadedFile.setSuccessCount(0);
+        uploadedFile.setFailureCount(0);
+        uploadedFile.setStatus("UPLOADED");
+        uploadedFile.setFileReferenceNumber(generateRequestReferenceNumber());
+
+        UploadedFile savedFile = uploadedFileRepository.save(uploadedFile);
+        log.info("Saved UploadedFile with ID: {}", savedFile.getId());
+        return savedFile;
+    }
+
+    private MessageDigest createMessageDigest() {
+        try {
+            return MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 algorithm not available", e);
+        }
     }
 }
