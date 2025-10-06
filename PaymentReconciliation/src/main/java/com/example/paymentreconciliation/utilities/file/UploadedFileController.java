@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.HashMap;
@@ -22,6 +23,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/uploaded-files")
 @Tag(name = "Uploaded Files", description = "API for managing and retrieving uploaded files")
+@SecurityRequirement(name = "Bearer Authentication")
 public class UploadedFileController {
     
     private static final Logger log = LoggerFactoryProvider.getLogger(UploadedFileController.class);
@@ -32,11 +34,51 @@ public class UploadedFileController {
         this.uploadedFileService = uploadedFileService;
     }
 
-    @Operation(summary = "Get all uploaded files", description = "Retrieve a list of all uploaded files with metadata")
+    @Operation(summary = "Get paginated uploaded files with secure date filtering", 
+               description = "Retrieve paginated list of uploaded files with MANDATORY date range filtering for security. " +
+                           "Prevents unrestricted data access and implements tamper-proof pagination tokens.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved uploaded files"),
+        @ApiResponse(responseCode = "400", description = "Invalid date format or missing mandatory dates"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized access")
+    })
+    @PostMapping("/secure-paginated")
+    public ResponseEntity<?> getSecurePaginatedUploadedFiles(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                description = "Secure pagination request with mandatory date range",
+                required = true
+            )
+            @jakarta.validation.Valid @RequestBody 
+            com.example.paymentreconciliation.common.dto.SecurePaginationRequest request) {
+        
+        log.info("Secure paginated request for uploaded files: startDate={}, endDate={}, page={}, size={}", 
+                request.getStartDate(), request.getEndDate(), request.getPage(), request.getSize());
+        
+        try {
+            // Call service method with secure pagination (to be implemented)
+            Map<String, Object> result = uploadedFileService.getSecurePaginatedFiles(
+                request.getStartDate(), request.getEndDate(), request.getPage(), 
+                request.getSize(), request.getSortBy(), request.getSortDir(), 
+                request.getSessionToken());
+                
+            return ResponseEntity.ok(result);
+            
+        } catch (Exception e) {
+            log.error("Error in secure paginated files retrieval", e);
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "Failed to retrieve files: " + e.getMessage(),
+                "timestamp", java.time.LocalDateTime.now()
+            ));
+        }
+    }
+
+    @Operation(summary = "Get all uploaded files (DEPRECATED)", 
+               description = "DEPRECATED: Use /secure-paginated endpoint instead. This endpoint will be removed in future versions.")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved uploaded files")
     @GetMapping
+    @Deprecated
     public ResponseEntity<List<UploadedFile>> getAllUploadedFiles() {
-        log.info("Request to get all uploaded files");
+        log.warn("DEPRECATED endpoint called: /api/uploaded-files - Use /secure-paginated instead");
         List<UploadedFile> files = uploadedFileService.getAllUploadedFiles();
         return ResponseEntity.ok(files);
     }
@@ -227,8 +269,8 @@ public class UploadedFileController {
             @Parameter(description = "Single date in YYYY-MM-DD format (optional)")
             @RequestParam(required = false) String singleDate,
             
-            @Parameter(description = "Start date in YYYY-MM-DD format (optional)")
-            @RequestParam(required = false) String startDate,
+            @Parameter(description = "Start date in YYYY-MM-DD format - MANDATORY")
+            @RequestParam(required = true) String startDate,
             
             @Parameter(description = "End date in YYYY-MM-DD format (optional)")
             @RequestParam(required = false) String endDate) {

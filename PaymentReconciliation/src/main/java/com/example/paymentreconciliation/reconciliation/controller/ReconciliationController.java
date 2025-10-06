@@ -9,6 +9,7 @@ import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.math.BigDecimal;
@@ -17,6 +18,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/reconciliations")
 @Tag(name = "Reconciliation Management", description = "APIs for payment reconciliation and MT940 matching")
+@SecurityRequirement(name = "Bearer Authentication")
 public class ReconciliationController {
 
     private static final Logger log = LoggerFactoryProvider.getLogger(ReconciliationController.class);

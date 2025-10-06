@@ -114,7 +114,13 @@ public class AuthService {
     }
     
     public List<User> getUsersByRole(UserRole role) {
-        return userRepository.findByRole(role);
+        // For backward compatibility, use legacy role method
+        return userRepository.findByLegacyRole(role);
+    }
+    
+    public List<User> getUsersByRoleName(String roleName) {
+        // New RBAC method
+        return userRepository.findByRoleName(roleName);
     }
     
     public void updateUserStatus(Long userId, boolean enabled) {

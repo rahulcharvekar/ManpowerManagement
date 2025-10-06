@@ -23,16 +23,21 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/v1/worker-payments")
 @Tag(name = "Worker Payment Management", description = "APIs for worker payment CRUD operations and filtering")
+@SecurityRequirement(name = "Bearer Authentication")
 public class WorkerPaymentController {
 
     private static final Logger log = LoggerFactoryProvider.getLogger(WorkerPaymentController.class);
 
     private final WorkerPaymentService service;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.example.paymentreconciliation.common.service.PaginationSessionService paginationSessionService;
 
     public WorkerPaymentController(WorkerPaymentService service) {
         this.service = service;
@@ -53,7 +58,7 @@ public class WorkerPaymentController {
     public ResponseEntity<Page<WorkerPayment>> findAll(
             @Parameter(description = "Payment status filter") @RequestParam(required = false) String status,
             @Parameter(description = "Receipt number filter") @RequestParam(required = false) String receiptNumber,
-            @Parameter(description = "Start date for filtering (YYYY-MM-DD)") @RequestParam(required = false) String startDate,
+            @Parameter(description = "Start date for filtering (YYYY-MM-DD) - MANDATORY") @RequestParam(required = true) String startDate,
             @Parameter(description = "End date for filtering (YYYY-MM-DD)") @RequestParam(required = false) String endDate,
             @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size,
@@ -64,16 +69,15 @@ public class WorkerPaymentController {
                 status, receiptNumber, startDate, endDate, page, size);
         
         try {
-            // Parse date parameters
-            java.time.LocalDateTime startDateTime = null;
+            // Parse date parameters - startDate is now mandatory
+            java.time.LocalDateTime startDateTime = java.time.LocalDate.parse(startDate.trim()).atStartOfDay();
             java.time.LocalDateTime endDateTime = null;
-            
-            if (startDate != null && !startDate.trim().isEmpty()) {
-                startDateTime = java.time.LocalDate.parse(startDate.trim()).atStartOfDay();
-            }
             
             if (endDate != null && !endDate.trim().isEmpty()) {
                 endDateTime = java.time.LocalDate.parse(endDate.trim()).atTime(23, 59, 59);
+            } else {
+                // If no endDate provided, use current date as end
+                endDateTime = java.time.LocalDate.now().atTime(23, 59, 59);
             }
             
             // Create sort object
@@ -95,6 +99,77 @@ public class WorkerPaymentController {
             log.error("Error fetching worker payments", e);
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    // Create session for worker payments listing
+    @PostMapping("/pagination-session")
+    public ResponseEntity<?> createPaginationSessionForPayments(@RequestBody(required = false) java.util.Map<String, Object> body) {
+        try {
+            // Accept filters as a simple map in body: status, receiptNumber, startDate, endDate, sortBy, sortDir
+            java.util.Map<String, String> filters = new java.util.HashMap<>();
+            if (body != null) {
+                body.forEach((k, v) -> { if (v != null) filters.put(k, v.toString()); });
+            }
+            Long ttl = body != null && body.get("ttlMs") instanceof Number ? ((Number) body.get("ttlMs")).longValue() : null;
+            Integer maxPageSize = body != null && body.get("maxPageSize") instanceof Number ? ((Number) body.get("maxPageSize")).intValue() : null;
+
+            String token = paginationSessionService.createSession("workerPayments", null, filters, ttl, maxPageSize);
+            com.example.paymentreconciliation.common.service.PaginationSessionService.PaginationSession s = paginationSessionService.getSession(token);
+            long expiresInMs = s != null ? s.expiresAt.toEpochMilli() - java.time.Instant.now().toEpochMilli() : 0L;
+            return ResponseEntity.ok(java.util.Map.of("paginationToken", token, "expiresInMs", expiresInMs));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/by-session")
+    public ResponseEntity<?> getPaymentsBySession(@RequestBody SessionedPageRequest pageRequest) {
+        try {
+            if (pageRequest == null || pageRequest.getPaginationToken() == null) {
+                return ResponseEntity.badRequest().body(java.util.Map.of("error", "paginationToken required"));
+            }
+
+            com.example.paymentreconciliation.common.service.PaginationSessionService.PaginationSession session = paginationSessionService.getSession(pageRequest.getPaginationToken());
+            if (session == null) return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).body(java.util.Map.of("error", "Invalid or expired token"));
+
+            int page = pageRequest.getPage() >= 0 ? pageRequest.getPage() : 0;
+            int size = Math.min(pageRequest.getSize() <= 0 ? 20 : pageRequest.getSize(), session.maxPageSize);
+
+            String status = session.filters.get("status");
+            String receiptNumber = session.filters.get("receiptNumber");
+            String startDate = session.filters.get("startDate");
+            String endDate = session.filters.get("endDate");
+            String sortBy = session.filters.getOrDefault("sortBy", "createdAt");
+            String sortDir = session.filters.getOrDefault("sortDir", "desc");
+
+            // Convert dates
+            java.time.LocalDateTime startDateTime = java.time.LocalDate.parse(startDate.trim()).atStartOfDay();
+            java.time.LocalDateTime endDateTime = null;
+            if (endDate != null && !endDate.trim().isEmpty()) {
+                endDateTime = java.time.LocalDate.parse(endDate.trim()).atTime(23, 59, 59);
+            } else {
+                endDateTime = java.time.LocalDate.now().atTime(23, 59, 59);
+            }
+
+            Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+            Pageable pageable = PageRequest.of(page, size, sort);
+
+            return ResponseEntity.ok(service.findByStatusAndReceiptNumberAndDateRange(status, receiptNumber, startDateTime, endDateTime, pageable));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    public static class SessionedPageRequest {
+        private String paginationToken;
+        private int page;
+        private int size;
+        public String getPaginationToken() { return paginationToken; }
+        public void setPaginationToken(String paginationToken) { this.paginationToken = paginationToken; }
+        public int getPage() { return page; }
+        public void setPage(int page) { this.page = page; }
+        public int getSize() { return size; }
+        public void setSize(int size) { this.size = size; }
     }
 
     @GetMapping("/{id}")

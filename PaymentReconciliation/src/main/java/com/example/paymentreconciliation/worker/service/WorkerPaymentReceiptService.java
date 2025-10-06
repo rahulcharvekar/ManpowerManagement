@@ -2,7 +2,7 @@ package com.example.paymentreconciliation.worker.service;
 
 import com.example.paymentreconciliation.worker.entity.WorkerPayment;
 import com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt;
-import com.example.paymentreconciliation.worker.dao.WorkerPaymentReceiptRepository;
+import com.example.paymentreconciliation.worker.repository.WorkerPaymentReceiptRepository;
 import org.slf4j.Logger;
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
 import org.springframework.stereotype.Service;
@@ -26,7 +26,11 @@ public class WorkerPaymentReceiptService {
     }
 
     public WorkerPaymentReceipt createReceipt(List<WorkerPayment> processedPayments) {
-        log.info("Creating receipt for {} processed payments", processedPayments.size());
+        log.info("Creating receipt for {} payments", processedPayments.size());
+        
+        if (processedPayments.isEmpty()) {
+            throw new IllegalArgumentException("Cannot create receipt for empty payment list");
+        }
         
         // Calculate total amount
         BigDecimal totalAmount = processedPayments.stream()
@@ -36,9 +40,16 @@ public class WorkerPaymentReceiptService {
         // Generate receipt number
         String receiptNumber = generateReceiptNumber();
         
+        // Get employer_id and toli_id from the first payment (all payments in a batch should have the same employer/toli)
+        WorkerPayment firstPayment = processedPayments.get(0);
+        String employerId = firstPayment.getEmployerId();
+        String toliId = firstPayment.getToliId();
+        
         // Create receipt
         WorkerPaymentReceipt receipt = new WorkerPaymentReceipt();
         receipt.setReceiptNumber(receiptNumber);
+        receipt.setEmployerId(employerId);
+        receipt.setToliId(toliId);
         receipt.setCreatedAt(LocalDateTime.now());
         receipt.setTotalRecords(processedPayments.size());
         receipt.setTotalAmount(totalAmount);

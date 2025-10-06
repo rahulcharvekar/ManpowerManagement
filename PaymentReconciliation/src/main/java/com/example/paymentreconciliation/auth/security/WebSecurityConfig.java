@@ -15,6 +15,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
+import org.springframework.security.web.access.expression.DefaultWebSecurityExpressionHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -62,22 +65,29 @@ public class WebSecurityConfig {
             .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
-                // Public endpoints
-                .requestMatchers("/api/auth/**").permitAll()
+                // Public endpoints - specific routes first
+                .requestMatchers("/api/auth/login").permitAll()
+                .requestMatchers("/api/auth/register").permitAll()
+                .requestMatchers("/api/auth/roles").permitAll() // Public roles for registration
                 .requestMatchers("/api/v1/health").permitAll()
-                .requestMatchers("/api/system/**").hasRole("ADMIN")
+                .requestMatchers("/test/**").permitAll() // Test endpoints
                 
                 // Swagger/OpenAPI endpoints
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                 
-                // Admin only endpoints
+                // Admin only endpoints - more specific auth endpoints
                 .requestMatchers("/api/auth/users/**").hasRole("ADMIN")
+                .requestMatchers("/api/system/**").hasRole("ADMIN")
                 
                 // Role-based access for specific modules
                 .requestMatchers("/api/worker/**").hasAnyRole("WORKER", "ADMIN", "RECONCILIATION_OFFICER")
+                .requestMatchers("/api/v1/worker-payments/**").hasAnyRole("WORKER", "ADMIN", "RECONCILIATION_OFFICER")
                 .requestMatchers("/api/employer/**").hasAnyRole("EMPLOYER", "ADMIN", "RECONCILIATION_OFFICER")
                 .requestMatchers("/api/v1/board-receipts/**").hasAnyRole("BOARD", "ADMIN", "RECONCILIATION_OFFICER")
                 .requestMatchers("/api/v1/reconciliations/**").hasAnyRole("RECONCILIATION_OFFICER", "ADMIN")
+                .requestMatchers("/api/payment-processing/**").hasAnyRole("RECONCILIATION_OFFICER", "ADMIN")
+                .requestMatchers("/api/uploaded-files/**").hasAnyRole("ADMIN", "RECONCILIATION_OFFICER", "WORKER", "EMPLOYER", "BOARD")
+                .requestMatchers("/api/debug/**").hasRole("ADMIN")
                 
                 // All other requests need authentication
                 .anyRequest().authenticated()
@@ -87,6 +97,25 @@ public class WebSecurityConfig {
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
         
         return http.build();
+    }
+    
+    @Bean
+    public RoleHierarchy roleHierarchy() {
+        RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
+        String hierarchy = "ROLE_ADMIN > ROLE_RECONCILIATION_OFFICER \n" +
+                          "ROLE_RECONCILIATION_OFFICER > ROLE_WORKER \n" +
+                          "ROLE_ADMIN > ROLE_BOARD \n" +
+                          "ROLE_ADMIN > ROLE_EMPLOYER";
+        roleHierarchy.setHierarchy(hierarchy);
+        return roleHierarchy;
+    }
+    
+    @Bean
+    public DefaultWebSecurityExpressionHandler expressionHandler() {
+        DefaultWebSecurityExpressionHandler expressionHandler = new DefaultWebSecurityExpressionHandler();
+        expressionHandler.setRoleHierarchy(roleHierarchy());
+        expressionHandler.setPermissionEvaluator(new CustomPermissionEvaluator());
+        return expressionHandler;
     }
     
     @Bean

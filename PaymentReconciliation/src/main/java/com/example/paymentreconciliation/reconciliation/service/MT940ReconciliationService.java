@@ -12,7 +12,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.paymentreconciliation.worker.dao.WorkerPaymentReceiptRepository;
+import com.example.paymentreconciliation.worker.repository.WorkerPaymentReceiptRepository;
 import com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt;
 import com.example.paymentreconciliation.worker.entity.WorkerPayment;
 import com.example.paymentreconciliation.worker.service.WorkerPaymentService;

@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.slf4j.Logger;
@@ -28,6 +29,7 @@ import java.time.format.DateTimeFormatter;
 @RequestMapping("/api/payment-processing")
 @CrossOrigin
 @Tag(name = "Payment Processing", description = "APIs for processing payments after successful reconciliation")
+@SecurityRequirement(name = "Bearer Authentication")
 public class PaymentProcessingController {
     
     private static final Logger log = LoggerFactoryProvider.getLogger(PaymentProcessingController.class);

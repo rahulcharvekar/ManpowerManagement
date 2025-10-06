@@ -2,10 +2,12 @@ package com.example.paymentreconciliation.auth.controller;
 
 import com.example.paymentreconciliation.auth.dto.AuthResponse;
 import com.example.paymentreconciliation.auth.dto.LoginRequest;
+import com.example.paymentreconciliation.auth.dto.PermissionResponse;
 import com.example.paymentreconciliation.auth.dto.RegisterRequest;
 import com.example.paymentreconciliation.auth.entity.User;
 import com.example.paymentreconciliation.auth.entity.UserRole;
 import com.example.paymentreconciliation.auth.service.AuthService;
+import com.example.paymentreconciliation.auth.service.UIConfigService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -17,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,6 +35,9 @@ public class AuthController {
     
     @Autowired
     private AuthService authService;
+    
+    @Autowired
+    private UIConfigService uiConfigService;
     
     @PostMapping("/login")
     @Operation(summary = "User login", description = "Authenticate user and return JWT token")
@@ -71,18 +77,43 @@ public class AuthController {
     }
     
     @GetMapping("/me")
-    @Operation(summary = "Get current user", description = "Get current authenticated user information")
+    @Operation(summary = "Get current user", description = "Get current authenticated user information with roles and permissions")
     @ApiResponse(responseCode = "200", description = "User information retrieved successfully")
-    public ResponseEntity<?> getCurrentUser() {
+    @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "Bearer Authentication")
+    @SuppressWarnings("deprecation")
+    public ResponseEntity<?> getCurrentUser(Authentication authentication) {
         Optional<User> currentUser = authService.getCurrentUser();
         if (currentUser.isPresent()) {
             User user = currentUser.get();
+            
+            // Extract roles and permissions from authentication
+            java.util.Set<String> roles = new java.util.HashSet<>();
+            java.util.Set<String> permissions = new java.util.HashSet<>();
+            
+            if (authentication != null) {
+                for (org.springframework.security.core.GrantedAuthority authority : authentication.getAuthorities()) {
+                    String auth = authority.getAuthority();
+                    if (auth.startsWith("ROLE_")) {
+                        roles.add(auth.substring(5)); // Remove "ROLE_" prefix
+                    } else if (auth.startsWith("PERM_")) {
+                        permissions.add(auth.substring(5)); // Remove "PERM_" prefix
+                    }
+                }
+            }
+            
+            // If no new roles, include legacy role for backward compatibility
+            if (roles.isEmpty() && user.getLegacyRole() != null) {
+                roles.add(user.getLegacyRole().name());
+            }
+            
             return ResponseEntity.ok(Map.of(
                 "id", user.getId(),
                 "username", user.getUsername(),
                 "email", user.getEmail(),
                 "fullName", user.getFullName(),
-                "role", user.getRole(),
+                "roles", roles,
+                "permissions", permissions,
+                "legacyRole", user.getLegacyRole() != null ? user.getLegacyRole().name() : null,
                 "enabled", user.isEnabled()
             ));
         }
@@ -90,10 +121,31 @@ public class AuthController {
             .body(Map.of("error", "User not authenticated"));
     }
     
+    @GetMapping("/ui-config")
+    @Operation(summary = "Get UI configuration", description = "Get complete UI configuration including navigation and permissions for current user")
+    @ApiResponse(responseCode = "200", description = "UI configuration retrieved successfully")
+    @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<?> getUserUIConfig() {
+        try {
+            PermissionResponse uiConfig = uiConfigService.getUserUIConfig();
+            if (uiConfig != null) {
+                return ResponseEntity.ok(uiConfig);
+            } else {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "User not authenticated"));
+            }
+        } catch (Exception e) {
+            logger.error("Failed to get UI configuration", e);
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", "Failed to retrieve UI configuration"));
+        }
+    }
+    
     @GetMapping("/users")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get all users", description = "Get list of all users (Admin only)")
     @ApiResponse(responseCode = "200", description = "Users retrieved successfully")
+    @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<List<User>> getAllUsers() {
         List<User> users = authService.getAllUsers();
         return ResponseEntity.ok(users);
@@ -102,6 +154,7 @@ public class AuthController {
     @GetMapping("/users/role/{role}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get users by role", description = "Get users filtered by role (Admin only)")
+    @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<List<User>> getUsersByRole(
         @Parameter(description = "User role") @PathVariable UserRole role) {
         List<User> users = authService.getUsersByRole(role);
@@ -111,6 +164,7 @@ public class AuthController {
     @PutMapping("/users/{userId}/status")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update user status", description = "Enable or disable user account (Admin only)")
+    @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<?> updateUserStatus(
         @Parameter(description = "User ID") @PathVariable Long userId,
         @Parameter(description = "Enable/disable user") @RequestParam boolean enabled) {

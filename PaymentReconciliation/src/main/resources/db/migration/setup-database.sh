@@ -6,10 +6,11 @@
 set -e
 
 # Configuration - UPDATE THESE VALUES
-MYSQL_HOST="paymentreconciliation.mysql.database.azure.com"
+#MYSQL_HOST="paymentreconciliation.mysql.database.azure.com"
+MYSQL_HOST="localhost"
 MYSQL_PORT="3306"
-MYSQL_DATABASE="paymentreconciliation_prod"
-MYSQL_USER="your_mysql_username"  # Replace with your actual username
+MYSQL_DATABASE="paymentreconciliation_dev"
+MYSQL_USER="admin"  # Replace with your actual username
 MYSQL_PASSWORD=""  # Will be prompted for security
 
 # Color codes

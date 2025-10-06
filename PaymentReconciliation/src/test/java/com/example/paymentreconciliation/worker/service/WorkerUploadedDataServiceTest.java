@@ -1,7 +1,7 @@
 package com.example.paymentreconciliation.worker.service;
 
 import com.example.paymentreconciliation.worker.entity.WorkerUploadedData;
-import com.example.paymentreconciliation.worker.dao.WorkerUploadedDataRepository;
+import com.example.paymentreconciliation.worker.repository.WorkerUploadedDataRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

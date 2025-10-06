@@ -3,7 +3,7 @@ package com.example.paymentreconciliation.worker.service;
 import com.example.paymentreconciliation.worker.entity.WorkerUploadedData;
 import com.example.paymentreconciliation.worker.entity.WorkerPayment;
 import com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt;
-import com.example.paymentreconciliation.worker.dao.WorkerUploadedDataRepository;
+import com.example.paymentreconciliation.worker.repository.WorkerUploadedDataRepository;
 import com.example.paymentreconciliation.utilities.file.UploadedFileRepository;
 import com.example.paymentreconciliation.utilities.file.UploadedFile;
 import org.slf4j.Logger;
@@ -573,6 +573,10 @@ public class WorkerUploadedDataService {
         payment.setBankAccount(uploadedData.getBankAccount());
         payment.setFileId(uploadedData.getFileId());
         
+        // Set the required employer_id and toli_id fields
+        payment.setEmployerId(uploadedData.getEmployerId());
+        payment.setToliId(uploadedData.getToliId());
+        
         // Set fields that might not have direct mappings but are required
         payment.setRegId(uploadedData.getWorkerId()); // Use worker_id as reg_id for now
         payment.setToli(uploadedData.getDepartment() != null ? uploadedData.getDepartment() : "DEFAULT");
@@ -627,13 +631,19 @@ public class WorkerUploadedDataService {
             LocalDateTime startDate, LocalDateTime endDate, org.springframework.data.domain.Pageable pageable) {
         log.info("Finding records by fileId: {}, status: {}, date range: {} to {} (paginated)", 
                 fileId, status, startDate, endDate);
-        return repository.findByFileIdAndStatusAndUploadedAtBetween(fileId, status, startDate, endDate, pageable);
+        return repository.findByFileIdAndStatusAndCreatedAtBetween(fileId, status, startDate, endDate, pageable);
     }
 
     public Page<WorkerUploadedData> findByFileIdAndDateRangePaginated(String fileId, 
             LocalDateTime startDate, LocalDateTime endDate, org.springframework.data.domain.Pageable pageable) {
         log.info("Finding records by fileId: {}, date range: {} to {} (paginated)", 
                 fileId, startDate, endDate);
-        return repository.findByFileIdAndUploadedAtBetween(fileId, startDate, endDate, pageable);
+        return repository.findByFileIdAndCreatedAtBetween(fileId, startDate, endDate, pageable);
+    }
+    
+    public Page<WorkerUploadedData> findByDateRangePaginated(LocalDateTime startDate, LocalDateTime endDate, 
+            org.springframework.data.domain.Pageable pageable) {
+        log.info("Finding all records by date range: {} to {} (paginated)", startDate, endDate);
+        return repository.findByCreatedAtBetween(startDate, endDate, pageable);
     }
 }

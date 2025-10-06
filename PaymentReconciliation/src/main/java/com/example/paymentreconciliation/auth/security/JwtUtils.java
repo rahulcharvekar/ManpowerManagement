@@ -28,7 +28,27 @@ public class JwtUtils {
     
     public String generateJwtToken(Authentication authentication) {
         UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
-        return generateTokenFromUsername(userPrincipal.getUsername());
+        
+        // Extract roles and permissions
+        java.util.Set<String> roles = userPrincipal.getAuthorities().stream()
+            .filter(auth -> auth.getAuthority().startsWith("ROLE_"))
+            .map(auth -> auth.getAuthority().substring(5)) // Remove "ROLE_" prefix
+            .collect(java.util.stream.Collectors.toSet());
+            
+        java.util.Set<String> permissions = userPrincipal.getAuthorities().stream()
+            .filter(auth -> auth.getAuthority().startsWith("PERM_"))
+            .map(auth -> auth.getAuthority().substring(5)) // Remove "PERM_" prefix
+            .collect(java.util.stream.Collectors.toSet());
+        
+        Instant now = Instant.now();
+        return Jwts.builder()
+                .subject(userPrincipal.getUsername())
+                .claim("roles", roles)
+                .claim("permissions", permissions)
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plus(jwtExpirationMs, ChronoUnit.SECONDS)))
+                .signWith(getSigningKey(), Jwts.SIG.HS256)
+                .compact();
     }
     
     public String generateTokenFromUsername(String username) {
@@ -42,8 +62,30 @@ public class JwtUtils {
     }
     
     private SecretKey getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
-        return Keys.hmacShaKeyFor(keyBytes);
+        try {
+            // Try hex decoding first (for hex strings like in config)
+            byte[] keyBytes = hexStringToByteArray(jwtSecret);
+            return Keys.hmacShaKeyFor(keyBytes);
+        } catch (Exception e) {
+            // Fallback to base64 decoding
+            try {
+                byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
+                return Keys.hmacShaKeyFor(keyBytes);
+            } catch (Exception ex) {
+                // Use string directly if both fail
+                return Keys.hmacShaKeyFor(jwtSecret.getBytes());
+            }
+        }
+    }
+    
+    private byte[] hexStringToByteArray(String hex) {
+        int len = hex.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(hex.charAt(i), 16) << 4)
+                                 + Character.digit(hex.charAt(i+1), 16));
+        }
+        return data;
     }
     
     public String getUserNameFromJwtToken(String token) {
@@ -53,6 +95,40 @@ public class JwtUtils {
                 .parseSignedClaims(token)
                 .getPayload()
                 .getSubject();
+    }
+    
+    @SuppressWarnings("unchecked")
+    public java.util.Set<String> getRolesFromToken(String token) {
+        try {
+            io.jsonwebtoken.Claims claims = Jwts.parser()
+                    .verifyWith(getSigningKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+                    
+            java.util.List<String> rolesList = (java.util.List<String>) claims.get("roles");
+            return rolesList != null ? new java.util.HashSet<>(rolesList) : new java.util.HashSet<>();
+        } catch (Exception e) {
+            logger.error("Cannot get roles from JWT token: {}", e.getMessage());
+            return new java.util.HashSet<>();
+        }
+    }
+    
+    @SuppressWarnings("unchecked")
+    public java.util.Set<String> getPermissionsFromToken(String token) {
+        try {
+            io.jsonwebtoken.Claims claims = Jwts.parser()
+                    .verifyWith(getSigningKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+                    
+            java.util.List<String> permissionsList = (java.util.List<String>) claims.get("permissions");
+            return permissionsList != null ? new java.util.HashSet<>(permissionsList) : new java.util.HashSet<>();
+        } catch (Exception e) {
+            logger.error("Cannot get permissions from JWT token: {}", e.getMessage());
+            return new java.util.HashSet<>();
+        }
     }
     
     public boolean validateJwtToken(String authToken) {

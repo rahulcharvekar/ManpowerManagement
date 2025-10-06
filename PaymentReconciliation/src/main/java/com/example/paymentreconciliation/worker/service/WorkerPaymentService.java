@@ -2,7 +2,7 @@ package com.example.paymentreconciliation.worker.service;
 
 import com.example.paymentreconciliation.worker.entity.WorkerPayment;
 import com.example.paymentreconciliation.exception.ResourceNotFoundException;
-import com.example.paymentreconciliation.worker.dao.WorkerPaymentRepository;
+import com.example.paymentreconciliation.worker.repository.WorkerPaymentRepository;
 import java.util.List;
 import org.slf4j.Logger;
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;

@@ -3,7 +3,7 @@ package com.example.paymentreconciliation.employer.service;
 import com.example.paymentreconciliation.employer.entity.EmployerPaymentReceipt;
 import com.example.paymentreconciliation.employer.dao.EmployerPaymentReceiptRepository;
 import com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt;
-import com.example.paymentreconciliation.worker.dao.WorkerPaymentReceiptRepository;
+import com.example.paymentreconciliation.worker.repository.WorkerPaymentReceiptRepository;
 import com.example.paymentreconciliation.worker.entity.WorkerPayment;
 
 import com.example.paymentreconciliation.worker.service.WorkerPaymentService;
@@ -139,6 +139,8 @@ public class EmployerPaymentReceiptService {
             employerReceipt = new EmployerPaymentReceipt();
             employerReceipt.setEmployerReceiptNumber(generateEmployerReceiptNumber());
             employerReceipt.setWorkerReceiptNumber(workerReceiptNumber);
+            employerReceipt.setEmployerId(workerReceipt.getEmployerId());
+            employerReceipt.setToliId(workerReceipt.getToliId());
             employerReceipt.setTransactionReference(transactionReference);
             employerReceipt.setValidatedBy(validatedBy);
             employerReceipt.setValidatedAt(LocalDateTime.now());
@@ -275,6 +277,8 @@ public class EmployerPaymentReceiptService {
         EmployerPaymentReceipt employerReceipt = new EmployerPaymentReceipt();
         employerReceipt.setEmployerReceiptNumber(generateEmployerReceiptNumber());
         employerReceipt.setWorkerReceiptNumber(workerReceipt.getReceiptNumber());
+        employerReceipt.setEmployerId(workerReceipt.getEmployerId());
+        employerReceipt.setToliId(workerReceipt.getToliId());
         employerReceipt.setTransactionReference(""); // Will be filled during validation
         employerReceipt.setValidatedBy(""); // Will be filled during validation
         employerReceipt.setValidatedAt(LocalDateTime.now()); // Creation time for now

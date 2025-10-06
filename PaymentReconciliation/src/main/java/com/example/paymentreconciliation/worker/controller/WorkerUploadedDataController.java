@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
@@ -25,6 +26,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/worker/uploaded-data")
 @Tag(name = "Worker Uploaded Data Management", description = "APIs for managing worker uploaded data validation and processing")
+@SecurityRequirement(name = "Bearer Authentication")
 public class WorkerUploadedDataController {
     
     private static final Logger log = LoggerFactoryProvider.getLogger(WorkerUploadedDataController.class);
@@ -34,8 +36,92 @@ public class WorkerUploadedDataController {
     @Autowired
     private WorkerPaymentFileService fileService;
 
+    @Autowired
+    private com.example.paymentreconciliation.common.service.PaginationSessionService paginationSessionService;
+
     public WorkerUploadedDataController(WorkerUploadedDataService service) {
         this.service = service;
+    }
+
+    // NEW: Secure paginated endpoint with mandatory date range filtering
+    @PostMapping("/secure-paginated")
+    @Operation(summary = "Get secure paginated uploaded data", 
+               description = "Retrieve paginated uploaded data with MANDATORY date range filtering for security. " +
+                           "Prevents unrestricted data access and implements tamper-proof pagination tokens.")
+    @com.example.paymentreconciliation.common.annotation.SecurePagination
+    public ResponseEntity<?> getSecurePaginatedUploadedData(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                description = "Secure pagination request with mandatory date range",
+                required = true
+            )
+            @jakarta.validation.Valid @RequestBody 
+            com.example.paymentreconciliation.common.dto.SecurePaginationRequest request) {
+        
+        log.info("Secure paginated request for uploaded data: {}", request);
+        
+        // Validate request using utility
+        com.example.paymentreconciliation.common.util.SecurePaginationUtil.ValidationResult validation = 
+            com.example.paymentreconciliation.common.util.SecurePaginationUtil.validatePaginationRequest(request);
+        
+        if (!validation.isValid()) {
+            return ResponseEntity.badRequest().body(
+                com.example.paymentreconciliation.common.util.SecurePaginationUtil.createErrorResponse(validation));
+        }
+        
+        try {
+            // Create secure pageable
+            org.springframework.data.domain.Pageable pageable = 
+                com.example.paymentreconciliation.common.util.SecurePaginationUtil.createSecurePageable(request);
+            
+            // Get paginated data with date filtering
+            org.springframework.data.domain.Page<WorkerUploadedData> dataPage = 
+                service.findByDateRangePaginated(validation.getStartDateTime(), validation.getEndDateTime(), pageable);
+            
+            // Create secure response with opaque tokens
+            com.example.paymentreconciliation.common.dto.SecurePaginationResponse<WorkerUploadedData> response = 
+                com.example.paymentreconciliation.common.util.SecurePaginationUtil.createSecureResponse(dataPage, request);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("Error in secure paginated data retrieval", e);
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "Failed to retrieve data: " + e.getMessage(),
+                "timestamp", java.time.LocalDateTime.now()
+            ));
+        }
+    }
+
+    // Create an opaque pagination session to avoid exposing query params in URLs
+    @PostMapping("/file/{fileId}/pagination-session")
+    @Operation(summary = "Create pagination session", description = "Create an opaque pagination session token for subsequent paginated requests. Prevents tampering with query parameters in the URL.")
+    public ResponseEntity<?> createPaginationSession(
+            @Parameter(description = "File ID") @PathVariable String fileId,
+            @RequestBody(required = false) PaginationSessionRequest request) {
+        try {
+            // Build a generic filters map to store server-side
+            java.util.Map<String, String> filters = new java.util.HashMap<>();
+            if (request != null) {
+                if (request.getStatus() != null) filters.put("status", request.getStatus());
+                if (request.getStartDate() != null) filters.put("startDate", request.getStartDate());
+                if (request.getEndDate() != null) filters.put("endDate", request.getEndDate());
+                if (request.getSortBy() != null) filters.put("sortBy", request.getSortBy());
+                if (request.getSortDir() != null) filters.put("sortDir", request.getSortDir());
+            }
+
+            Long ttlMs = request != null ? request.getTtlMs() : null;
+            Integer maxPageSize = request != null ? request.getMaxPageSize() : null;
+
+            String token = paginationSessionService.createSession("workerUploadedData", fileId, filters, ttlMs, maxPageSize);
+
+            com.example.paymentreconciliation.common.service.PaginationSessionService.PaginationSession s = paginationSessionService.getSession(token);
+            long expiresInMs = s != null ? s.expiresAt.toEpochMilli() - java.time.Instant.now().toEpochMilli() : 0L;
+
+            return ResponseEntity.ok(Map.of("paginationToken", token, "expiresInMs", expiresInMs));
+        } catch (Exception e) {
+            log.error("Error creating pagination session for fileId={}", fileId, e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -104,8 +190,8 @@ public class WorkerUploadedDataController {
             @RequestParam(required = false) String fileId,
             @Parameter(description = "Filter by file status", example = "VALIDATED")
             @RequestParam(required = false) String status,
-            @Parameter(description = "Start date for range filter (YYYY-MM-DD)", example = "2024-01-01")
-            @RequestParam(required = false) String startDate,
+            @Parameter(description = "Start date for range filter (YYYY-MM-DD) - MANDATORY", example = "2024-01-01")
+            @RequestParam(required = true) String startDate,
             @Parameter(description = "End date for range filter (YYYY-MM-DD)", example = "2024-01-31")
             @RequestParam(required = false) String endDate,
             @Parameter(description = "Sort field", example = "uploadDate")
@@ -193,8 +279,8 @@ public class WorkerUploadedDataController {
             @RequestParam(defaultValue = "20") int size,
             @Parameter(description = "Status filter", example = "VALIDATED")
             @RequestParam(required = false) String status,
-            @Parameter(description = "Start date for range filter (YYYY-MM-DD)", example = "2024-01-01")
-            @RequestParam(required = false) String startDate,
+            @Parameter(description = "Start date for range filter (YYYY-MM-DD) - MANDATORY", example = "2024-01-01")
+            @RequestParam(required = true) String startDate,
             @Parameter(description = "End date for range filter (YYYY-MM-DD)", example = "2024-01-31")
             @RequestParam(required = false) String endDate,
             @Parameter(description = "Sort field", example = "rowNumber")
@@ -219,6 +305,91 @@ public class WorkerUploadedDataController {
                 "fileId", fileId
             ));
         }
+    }
+
+    // New endpoint: fetch paginated results using server-side session token (sent in POST body)
+    @PostMapping("/results/{fileId}/by-session")
+    @Operation(summary = "Get uploaded data results by session token", description = "Submit pagination token and page request in body to avoid exposing params in URL. Token enforces server-side filters and limits.")
+    public ResponseEntity<?> getValidationResultsBySession(
+            @Parameter(description = "File ID") @PathVariable String fileId,
+            @RequestBody SessionedPageRequest pageRequest) {
+        try {
+            if (pageRequest == null || pageRequest.getPaginationToken() == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "paginationToken is required in body"));
+            }
+
+            com.example.paymentreconciliation.common.service.PaginationSessionService.PaginationSession session = paginationSessionService.getSession(pageRequest.getPaginationToken());
+            if (session == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid or expired pagination token"));
+            }
+
+            // Ensure token fileId matches requested path
+        if (!fileId.equals(session.resourceId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Token does not belong to requested fileId"));
+            }
+
+            int page = pageRequest.getPage() >= 0 ? pageRequest.getPage() : 0;
+        int size = Math.min(pageRequest.getSize() <= 0 ? 20 : pageRequest.getSize(), session.maxPageSize);
+
+        // Delegate to existing service but use session's filters
+        String status = session.filters != null ? session.filters.get("status") : null;
+        String startDate = session.filters != null ? session.filters.get("startDate") : null;
+        String endDate = session.filters != null ? session.filters.get("endDate") : null;
+        String sortBy = session.filters != null ? session.filters.getOrDefault("sortBy", "rowNumber") : "rowNumber";
+        String sortDir = session.filters != null ? session.filters.getOrDefault("sortDir", "asc") : "asc";
+
+        Map<String, Object> result = fileService.getValidationResultsPaginated(
+            fileId, page, size, status, startDate, endDate, sortBy, sortDir);
+
+            if (result.containsKey("error")) {
+                return ResponseEntity.badRequest().body(result);
+            }
+
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("Error fetching sessioned validation results for fileId={}", fileId, e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // DTOs for session endpoints
+    public static class PaginationSessionRequest {
+        private String status;
+        private String startDate;
+        private String endDate;
+        private String sortBy;
+        private String sortDir;
+        private Long ttlMs; // dev-only override
+        private Integer maxPageSize; // dev-only override
+
+        // getters/setters
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+        public String getStartDate() { return startDate; }
+        public void setStartDate(String startDate) { this.startDate = startDate; }
+        public String getEndDate() { return endDate; }
+        public void setEndDate(String endDate) { this.endDate = endDate; }
+        public String getSortBy() { return sortBy; }
+        public void setSortBy(String sortBy) { this.sortBy = sortBy; }
+        public String getSortDir() { return sortDir; }
+        public void setSortDir(String sortDir) { this.sortDir = sortDir; }
+        public Long getTtlMs() { return ttlMs; }
+        public void setTtlMs(Long ttlMs) { this.ttlMs = ttlMs; }
+        public Integer getMaxPageSize() { return maxPageSize; }
+        public void setMaxPageSize(Integer maxPageSize) { this.maxPageSize = maxPageSize; }
+    }
+
+    public static class SessionedPageRequest {
+        private String paginationToken;
+        private int page;
+        private int size;
+
+        public String getPaginationToken() { return paginationToken; }
+        public void setPaginationToken(String paginationToken) { this.paginationToken = paginationToken; }
+        public int getPage() { return page; }
+        public void setPage(int page) { this.page = page; }
+        public int getSize() { return size; }
+        public void setSize(int size) { this.size = size; }
     }
 
     @PostMapping("/file/{fileId}/generate-request")

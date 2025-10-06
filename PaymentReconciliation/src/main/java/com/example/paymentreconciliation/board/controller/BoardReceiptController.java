@@ -4,6 +4,7 @@ import com.example.paymentreconciliation.board.entity.BoardReceipt;
 import com.example.paymentreconciliation.board.service.BoardReceiptService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
@@ -17,11 +18,15 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/board-receipts")
 @Tag(name = "Board Receipt Management", description = "APIs for board receipt processing and management")
+@SecurityRequirement(name = "Bearer Authentication")
 public class BoardReceiptController {
 
     private static final Logger log = LoggerFactoryProvider.getLogger(BoardReceiptController.class);
 
     private final BoardReceiptService service;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.example.paymentreconciliation.common.service.PaginationSessionService paginationSessionService;
 
     public BoardReceiptController(BoardReceiptService service) {
         this.service = service;
@@ -48,8 +53,8 @@ public class BoardReceiptController {
             @RequestParam(required = false) String status,
             @Parameter(description = "Single date filter (YYYY-MM-DD)", example = "2024-01-15")
             @RequestParam(required = false) String singleDate,
-            @Parameter(description = "Start date for range filter (YYYY-MM-DD)", example = "2024-01-01")
-            @RequestParam(required = false) String startDate,
+            @Parameter(description = "Start date for range filter (YYYY-MM-DD) - MANDATORY", example = "2024-01-01")
+            @RequestParam(required = true) String startDate,
             @Parameter(description = "End date for range filter (YYYY-MM-DD)", example = "2024-01-31")
             @RequestParam(required = false) String endDate
     ) {
@@ -63,6 +68,41 @@ public class BoardReceiptController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    @PostMapping("/pagination-session")
+    public ResponseEntity<?> createPaginationSessionForBoardReceipts(@RequestBody(required = false) java.util.Map<String, Object> body) {
+        try {
+            java.util.Map<String, String> filters = new java.util.HashMap<>();
+            if (body != null) { body.forEach((k, v) -> { if (v != null) filters.put(k, v.toString()); }); }
+            Long ttl = body != null && body.get("ttlMs") instanceof Number ? ((Number) body.get("ttlMs")).longValue() : null;
+            Integer maxPageSize = body != null && body.get("maxPageSize") instanceof Number ? ((Number) body.get("maxPageSize")).intValue() : null;
+
+            String token = paginationSessionService.createSession("boardReceipts", null, filters, ttl, maxPageSize);
+            com.example.paymentreconciliation.common.service.PaginationSessionService.PaginationSession s = paginationSessionService.getSession(token);
+            long expiresInMs = s != null ? s.expiresAt.toEpochMilli() - java.time.Instant.now().toEpochMilli() : 0L;
+            return ResponseEntity.ok(java.util.Map.of("paginationToken", token, "expiresInMs", expiresInMs));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/by-session")
+    public ResponseEntity<?> getBoardReceiptsBySession(@RequestBody SessionedPageRequest pageRequest) {
+        try {
+            if (pageRequest == null || pageRequest.getPaginationToken() == null) return ResponseEntity.badRequest().body(java.util.Map.of("error","paginationToken required"));
+            com.example.paymentreconciliation.common.service.PaginationSessionService.PaginationSession session = paginationSessionService.getSession(pageRequest.getPaginationToken());
+            if (session == null) return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).body(java.util.Map.of("error","Invalid or expired token"));
+
+            int page = pageRequest.getPage() >= 0 ? pageRequest.getPage() : 0;
+            int size = Math.min(pageRequest.getSize() <= 0 ? 20 : pageRequest.getSize(), session.maxPageSize);
+
+            return ResponseEntity.ok(service.getAllBoardReceiptsWithFilters(page, size, session.filters.get("status"), session.filters.get("singleDate"), session.filters.get("startDate"), session.filters.get("endDate")));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    public static class SessionedPageRequest { private String paginationToken; private int page; private int size; public String getPaginationToken() { return paginationToken; } public void setPaginationToken(String paginationToken) { this.paginationToken = paginationToken; } public int getPage() { return page; } public void setPage(int page) { this.page = page; } public int getSize() { return size; } public void setSize(int size) { this.size = size; } }
 
     @GetMapping
     public ResponseEntity<List<BoardReceipt>> findAll() {

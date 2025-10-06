@@ -194,7 +194,7 @@ public class WorkerPaymentFileService {
         summary.put("address", data.getAddress());
         summary.put("status", data.getStatus());
         summary.put("rejectionReason", data.getRejectionReason());
-        summary.put("uploadedAt", data.getUploadedAt());
+        summary.put("createdAt", data.getCreatedAt());
         summary.put("validatedAt", data.getValidatedAt());
         summary.put("processedAt", data.getProcessedAt());
         summary.put("receiptNumber", data.getReceiptNumber());
@@ -611,43 +611,113 @@ public class WorkerPaymentFileService {
         uploadedData.setFileId(fileId);
         uploadedData.setRowNumber(rowNumber);
         uploadedData.setStatus("UPLOADED");
-        uploadedData.setUploadedAt(java.time.LocalDateTime.now());
+        uploadedData.setCreatedAt(java.time.LocalDateTime.now());
 
+        // Check if we have the new CSV format with employer_id and toli_id (15 fields)
+        // or the old format without them (13 fields)
+        boolean isNewFormat = rawFields != null && rawFields.length >= 15;
+        
         if (rawFields == null || rawFields.length < 13) {
+            // Set default values for required fields to prevent null constraint violations
+            uploadedData.setEmployerId("DEFAULT_EMPLOYER");
+            uploadedData.setToliId("DEFAULT_TOLI");
             return uploadedData;
         }
 
         try {
-            uploadedData.setWorkerId(cleanField(rawFields[0]));
-            uploadedData.setWorkerName(cleanField(rawFields[1]));
-            uploadedData.setCompanyName(cleanField(rawFields[2]));
-            uploadedData.setDepartment(cleanField(rawFields[3]));
-            uploadedData.setPosition(cleanField(rawFields[4]));
+            if (isNewFormat) {
+                // New CSV format: worker_id,worker_name,employer_id,toli_id,company_name,department,position,work_date,hours_worked,hourly_rate,payment_amount,bank_account,phone_number,email,address
+                uploadedData.setWorkerId(cleanField(rawFields[0]));
+                uploadedData.setWorkerName(cleanField(rawFields[1]));
+                uploadedData.setEmployerId(cleanField(rawFields[2])); // Now explicitly provided
+                uploadedData.setToliId(cleanField(rawFields[3])); // Now explicitly provided
+                uploadedData.setCompanyName(cleanField(rawFields[4]));
+                uploadedData.setDepartment(cleanField(rawFields[5]));
+                uploadedData.setPosition(cleanField(rawFields[6]));
 
-            String workDateStr = cleanField(rawFields[5]);
-            if (workDateStr != null && !workDateStr.isEmpty()) {
-                uploadedData.setWorkDate(parseToLocalDate(workDateStr));
+                String workDateStr = cleanField(rawFields[7]);
+                if (workDateStr != null && !workDateStr.isEmpty()) {
+                    uploadedData.setWorkDate(parseToLocalDate(workDateStr));
+                }
+
+                String hoursStr = cleanField(rawFields[8]);
+                if (hoursStr != null && !hoursStr.isEmpty()) {
+                    uploadedData.setHoursWorked(new java.math.BigDecimal(hoursStr));
+                }
+
+                String rateStr = cleanField(rawFields[9]);
+                if (rateStr != null && !rateStr.isEmpty()) {
+                    uploadedData.setHourlyRate(new java.math.BigDecimal(rateStr));
+                }
+
+                String amountStr = cleanField(rawFields[10]);
+                if (amountStr != null && !amountStr.isEmpty()) {
+                    uploadedData.setPaymentAmount(new java.math.BigDecimal(amountStr));
+                }
+
+                uploadedData.setBankAccount(cleanField(rawFields[11]));
+                uploadedData.setPhoneNumber(cleanField(rawFields[12]));
+                uploadedData.setEmail(cleanField(rawFields[13]));
+                uploadedData.setAddress(cleanField(rawFields[14]));
+                
+            } else {
+                // Legacy CSV format: worker_id,worker_name,company_name,department,position,work_date,hours_worked,hourly_rate,payment_amount,bank_account,phone_number,email,address
+                // Generate employer_id and toli_id from company_name and department
+                uploadedData.setWorkerId(cleanField(rawFields[0]));
+                uploadedData.setWorkerName(cleanField(rawFields[1]));
+                uploadedData.setCompanyName(cleanField(rawFields[2]));
+                uploadedData.setDepartment(cleanField(rawFields[3]));
+                uploadedData.setPosition(cleanField(rawFields[4]));
+                
+                // Generate employer_id from company_name
+                String companyName = cleanField(rawFields[2]);
+                if (companyName != null && !companyName.trim().isEmpty()) {
+                    String derivedEmployerId = "EMP_" + companyName.trim().toUpperCase().replaceAll("[^A-Z0-9]", "_");
+                    if (derivedEmployerId.length() > 64) {
+                        derivedEmployerId = derivedEmployerId.substring(0, 64);
+                    }
+                    uploadedData.setEmployerId(derivedEmployerId);
+                } else {
+                    uploadedData.setEmployerId("DEFAULT_EMPLOYER");
+                }
+                
+                // Generate toli_id from department
+                String department = cleanField(rawFields[3]);
+                if (department != null && !department.trim().isEmpty()) {
+                    String derivedToliId = "TOLI_" + department.trim().toUpperCase().replaceAll("[^A-Z0-9]", "_");
+                    if (derivedToliId.length() > 64) {
+                        derivedToliId = derivedToliId.substring(0, 64);
+                    }
+                    uploadedData.setToliId(derivedToliId);
+                } else {
+                    uploadedData.setToliId("DEFAULT_TOLI");
+                }
+
+                String workDateStr = cleanField(rawFields[5]);
+                if (workDateStr != null && !workDateStr.isEmpty()) {
+                    uploadedData.setWorkDate(parseToLocalDate(workDateStr));
+                }
+
+                String hoursStr = cleanField(rawFields[6]);
+                if (hoursStr != null && !hoursStr.isEmpty()) {
+                    uploadedData.setHoursWorked(new java.math.BigDecimal(hoursStr));
+                }
+
+                String rateStr = cleanField(rawFields[7]);
+                if (rateStr != null && !rateStr.isEmpty()) {
+                    uploadedData.setHourlyRate(new java.math.BigDecimal(rateStr));
+                }
+
+                String amountStr = cleanField(rawFields[8]);
+                if (amountStr != null && !amountStr.isEmpty()) {
+                    uploadedData.setPaymentAmount(new java.math.BigDecimal(amountStr));
+                }
+
+                uploadedData.setBankAccount(cleanField(rawFields[9]));
+                uploadedData.setPhoneNumber(cleanField(rawFields[10]));
+                uploadedData.setEmail(cleanField(rawFields[11]));
+                uploadedData.setAddress(cleanField(rawFields[12]));
             }
-
-            String hoursStr = cleanField(rawFields[6]);
-            if (hoursStr != null && !hoursStr.isEmpty()) {
-                uploadedData.setHoursWorked(new java.math.BigDecimal(hoursStr));
-            }
-
-            String rateStr = cleanField(rawFields[7]);
-            if (rateStr != null && !rateStr.isEmpty()) {
-                uploadedData.setHourlyRate(new java.math.BigDecimal(rateStr));
-            }
-
-            String amountStr = cleanField(rawFields[8]);
-            if (amountStr != null && !amountStr.isEmpty()) {
-                uploadedData.setPaymentAmount(new java.math.BigDecimal(amountStr));
-            }
-
-            uploadedData.setBankAccount(cleanField(rawFields[9]));
-            uploadedData.setPhoneNumber(cleanField(rawFields[10]));
-            uploadedData.setEmail(cleanField(rawFields[11]));
-            uploadedData.setAddress(cleanField(rawFields[12]));
 
         } catch (Exception e) {
             log.error("Error mapping uploaded data fields for row {}: {}", rowNumber, e.getMessage());
@@ -658,15 +728,21 @@ public class WorkerPaymentFileService {
     }
 
     private String[] extractExcelRow(Row row, DataFormatter formatter) {
-        String[] fields = new String[13];
-        for (int i = 0; i < fields.length; i++) {
+        // Support both old format (13 fields) and new format (15 fields)
+        int maxColumns = Math.max(15, row.getLastCellNum());
+        String[] fields = new String[maxColumns];
+        
+        for (int i = 0; i < maxColumns; i++) {
             Cell cell = row.getCell(i);
             if (cell == null) {
                 fields[i] = null;
                 continue;
             }
 
-            if (i == 5 && cell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) {
+            // Handle date formatting for work_date column
+            // In new format: work_date is at index 7
+            // In old format: work_date is at index 5
+            if ((i == 7 || i == 5) && cell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) {
                 java.time.LocalDate date = cell.getLocalDateTimeCellValue().toLocalDate();
                 fields[i] = date.toString();
             } else {

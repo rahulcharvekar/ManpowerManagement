@@ -5,7 +5,7 @@ import com.example.paymentreconciliation.board.entity.BoardReceipt;
 
 import com.example.paymentreconciliation.employer.dao.EmployerPaymentReceiptRepository;
 import com.example.paymentreconciliation.employer.entity.EmployerPaymentReceipt;
-import com.example.paymentreconciliation.worker.dao.WorkerPaymentReceiptRepository;
+import com.example.paymentreconciliation.worker.repository.WorkerPaymentReceiptRepository;
 import com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt;
 import com.example.paymentreconciliation.worker.entity.WorkerPayment;
 import com.example.paymentreconciliation.worker.service.WorkerPaymentService;

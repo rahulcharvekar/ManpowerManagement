@@ -10,7 +10,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -39,9 +40,24 @@ public class User implements UserDetails {
     @Column(name = "full_name", nullable = false)
     private String fullName;
     
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "user_roles",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles = new HashSet<>();
+    
+    // Main role field for backward compatibility
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private UserRole role;
+    @Column(name = "role", nullable = false)
+    private UserRole role = UserRole.WORKER; // Default value
+    
+    // Keep the old role field for backward compatibility (deprecated)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "legacy_role")
+    @Deprecated
+    private UserRole legacyRole;
     
     @Column(name = "is_enabled", nullable = false)
     private boolean enabled = true;
@@ -69,19 +85,36 @@ public class User implements UserDetails {
         this.createdAt = LocalDateTime.now();
     }
     
-    public User(String username, String email, String password, String fullName, UserRole role) {
+    public User(String username, String email, String password, String fullName, UserRole legacyRole) {
         this();
         this.username = username;
         this.email = email;
         this.password = password;
         this.fullName = fullName;
-        this.role = role;
+        this.legacyRole = legacyRole;
     }
     
     // UserDetails implementation
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        Set<GrantedAuthority> authorities = new HashSet<>();
+        
+        // Add role authorities
+        for (Role role : roles) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getName()));
+            
+            // Add permission authorities
+            for (Permission permission : role.getPermissions()) {
+                authorities.add(new SimpleGrantedAuthority("PERM_" + permission.getName()));
+            }
+        }
+        
+        // Backward compatibility: if no new roles, use legacy role
+        if (authorities.isEmpty() && legacyRole != null) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + legacyRole.name()));
+        }
+        
+        return authorities;
     }
     
     @Override
@@ -143,6 +176,37 @@ public class User implements UserDetails {
         this.fullName = fullName;
     }
     
+    // New role management methods
+    public Set<Role> getRoles() {
+        return roles;
+    }
+    
+    public void setRoles(Set<Role> roles) {
+        this.roles = roles;
+    }
+    
+    public void addRole(Role role) {
+        this.roles.add(role);
+        role.getUsers().add(this);
+    }
+    
+    public void removeRole(Role role) {
+        this.roles.remove(role);
+        role.getUsers().remove(this);
+    }
+    
+    // Legacy role methods (deprecated)
+    @Deprecated
+    public UserRole getLegacyRole() {
+        return legacyRole;
+    }
+    
+    @Deprecated
+    public void setLegacyRole(UserRole legacyRole) {
+        this.legacyRole = legacyRole;
+    }
+    
+    // Main role methods
     public UserRole getRole() {
         return role;
     }

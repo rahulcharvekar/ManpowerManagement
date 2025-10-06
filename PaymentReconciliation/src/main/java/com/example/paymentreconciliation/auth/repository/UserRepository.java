@@ -21,7 +21,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     boolean existsByEmail(String email);
     
-    List<User> findByRole(UserRole role);
+    // Legacy role support for backward compatibility
+    @Query("SELECT u FROM User u WHERE u.role = :role")
+    List<User> findByLegacyRole(@Param("role") UserRole role);
+    
+    // New RBAC system - find users by role name
+    @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name = :roleName")
+    List<User> findByRoleName(@Param("roleName") String roleName);
     
     List<User> findByEnabledTrue();
     

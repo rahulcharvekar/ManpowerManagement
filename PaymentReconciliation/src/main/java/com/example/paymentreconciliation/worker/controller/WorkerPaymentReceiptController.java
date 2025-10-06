@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
@@ -27,6 +28,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/worker/receipts")
 @Tag(name = "Worker Receipt Management", description = "APIs for worker receipt management and tracking")
+@SecurityRequirement(name = "Bearer Authentication")
 public class WorkerPaymentReceiptController {
     
     private static final Logger log = LoggerFactoryProvider.getLogger(WorkerPaymentReceiptController.class);
@@ -43,6 +45,94 @@ public class WorkerPaymentReceiptController {
         this.service = service;
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.example.paymentreconciliation.common.service.PaginationSessionService paginationSessionService;
+
+    @PostMapping("/pagination-session")
+    public ResponseEntity<?> createPaginationSessionForReceipts(@RequestBody(required = false) java.util.Map<String, Object> body) {
+        try {
+            java.util.Map<String, String> filters = new java.util.HashMap<>();
+            if (body != null) { body.forEach((k, v) -> { if (v != null) filters.put(k, v.toString()); }); }
+            Long ttl = body != null && body.get("ttlMs") instanceof Number ? ((Number) body.get("ttlMs")).longValue() : null;
+            Integer maxPageSize = body != null && body.get("maxPageSize") instanceof Number ? ((Number) body.get("maxPageSize")).intValue() : null;
+
+            String token = paginationSessionService.createSession("workerReceipts", null, filters, ttl, maxPageSize);
+            com.example.paymentreconciliation.common.service.PaginationSessionService.PaginationSession s = paginationSessionService.getSession(token);
+            long expiresInMs = s != null ? s.expiresAt.toEpochMilli() - java.time.Instant.now().toEpochMilli() : 0L;
+            return ResponseEntity.ok(java.util.Map.of("paginationToken", token, "expiresInMs", expiresInMs));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/by-session")
+    public ResponseEntity<?> getReceiptsBySession(@RequestBody SessionedPageRequest pageRequest) {
+        try {
+            if (pageRequest == null || pageRequest.getPaginationToken() == null) return ResponseEntity.badRequest().body(java.util.Map.of("error","paginationToken required"));
+            com.example.paymentreconciliation.common.service.PaginationSessionService.PaginationSession session = paginationSessionService.getSession(pageRequest.getPaginationToken());
+            if (session == null) return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).body(java.util.Map.of("error","Invalid or expired token"));
+
+            int page = pageRequest.getPage() >= 0 ? pageRequest.getPage() : 0;
+            int size = Math.min(pageRequest.getSize() <= 0 ? 20 : pageRequest.getSize(), session.maxPageSize);
+
+            String status = session.filters.get("status");
+            String singleDate = session.filters.get("singleDate");
+            String startDate = session.filters.get("startDate");
+            String endDate = session.filters.get("endDate");
+            String sortBy = session.filters.getOrDefault("sortBy", "createdAt");
+            String sortDir = session.filters.getOrDefault("sortDir", "desc");
+
+            Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+            Pageable pageable = PageRequest.of(page, size, sort);
+
+            Page<com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt> receiptsPage;
+            if (singleDate != null && !singleDate.trim().isEmpty()) {
+                java.time.LocalDate date = java.time.LocalDate.parse(singleDate);
+                java.time.LocalDateTime startDateTime = date.atStartOfDay();
+                java.time.LocalDateTime endDateTime = date.plusDays(1).atStartOfDay().minusNanos(1);
+                if (status != null && !status.trim().isEmpty()) {
+                    receiptsPage = service.findByStatusAndDateRangePaginated(status.trim().toUpperCase(), startDateTime, endDateTime, pageable);
+                } else {
+                    receiptsPage = service.findByDateRangePaginated(startDateTime, endDateTime, pageable);
+                }
+            } else {
+                java.time.LocalDateTime startDateTime = java.time.LocalDate.parse(startDate.trim()).atStartOfDay();
+                java.time.LocalDateTime endDateTime;
+                if (endDate != null && !endDate.trim().isEmpty()) {
+                    endDateTime = java.time.LocalDate.parse(endDate.trim()).plusDays(1).atStartOfDay().minusNanos(1);
+                } else {
+                    endDateTime = java.time.LocalDate.now().plusDays(1).atStartOfDay().minusNanos(1);
+                }
+
+                if (status != null && !status.trim().isEmpty()) {
+                    receiptsPage = service.findByStatusAndDateRangePaginated(status.trim().toUpperCase(), startDateTime, endDateTime, pageable);
+                } else {
+                    receiptsPage = service.findByDateRangePaginated(startDateTime, endDateTime, pageable);
+                }
+            }
+
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("receipts", receiptsPage.getContent());
+            response.put("totalElements", receiptsPage.getTotalElements());
+            response.put("totalPages", receiptsPage.getTotalPages());
+            response.put("currentPage", receiptsPage.getNumber());
+            response.put("pageSize", receiptsPage.getSize());
+            response.put("hasNext", receiptsPage.hasNext());
+            response.put("hasPrevious", receiptsPage.hasPrevious());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    public static class SessionedPageRequest {
+        private String paginationToken; private int page; private int size;
+        public String getPaginationToken() { return paginationToken; } public void setPaginationToken(String paginationToken) { this.paginationToken = paginationToken; }
+        public int getPage() { return page; } public void setPage(int page) { this.page = page; }
+        public int getSize() { return size; } public void setSize(int size) { this.size = size; }
+    }
+
     @GetMapping("/all")
     @Operation(summary = "Get all worker receipts with pagination and filtering", 
                description = "Returns paginated worker receipts with optional filters for status and date range")
@@ -55,8 +145,8 @@ public class WorkerPaymentReceiptController {
             @RequestParam(required = false) String status,
             @Parameter(description = "Single date filter (YYYY-MM-DD)", example = "2024-01-15")
             @RequestParam(required = false) String singleDate,
-            @Parameter(description = "Start date for range filter (YYYY-MM-DD)", example = "2024-01-01")
-            @RequestParam(required = false) String startDate,
+            @Parameter(description = "Start date for range filter (YYYY-MM-DD) - MANDATORY", example = "2024-01-01")
+            @RequestParam(required = true) String startDate,
             @Parameter(description = "End date for range filter (YYYY-MM-DD)", example = "2024-01-31")
             @RequestParam(required = false) String endDate,
             @Parameter(description = "Sort field", example = "createdAt")
@@ -75,7 +165,7 @@ public class WorkerPaymentReceiptController {
             
             Page<WorkerPaymentReceipt> receiptsPage;
             
-            // Handle date filtering
+            // Handle date filtering - startDate is now mandatory
             if (singleDate != null && !singleDate.trim().isEmpty()) {
                 LocalDate date = LocalDate.parse(singleDate);
                 LocalDateTime startDateTime = date.atStartOfDay();
@@ -87,10 +177,17 @@ public class WorkerPaymentReceiptController {
                 } else {
                     receiptsPage = service.findByDateRangePaginated(startDateTime, endDateTime, pageable);
                 }
-            } else if (startDate != null && endDate != null && 
-                      !startDate.trim().isEmpty() && !endDate.trim().isEmpty()) {
-                LocalDateTime startDateTime = LocalDate.parse(startDate).atStartOfDay();
-                LocalDateTime endDateTime = LocalDate.parse(endDate).plusDays(1).atStartOfDay().minusNanos(1);
+            } else {
+                // StartDate is mandatory, use it with optional endDate
+                LocalDateTime startDateTime = LocalDate.parse(startDate.trim()).atStartOfDay();
+                LocalDateTime endDateTime;
+                
+                if (endDate != null && !endDate.trim().isEmpty()) {
+                    endDateTime = LocalDate.parse(endDate.trim()).plusDays(1).atStartOfDay().minusNanos(1);
+                } else {
+                    // If no endDate provided, use current date as end
+                    endDateTime = LocalDate.now().plusDays(1).atStartOfDay().minusNanos(1);
+                }
                 
                 if (status != null && !status.trim().isEmpty()) {
                     receiptsPage = service.findByStatusAndDateRangePaginated(status.trim().toUpperCase(), 
@@ -98,10 +195,6 @@ public class WorkerPaymentReceiptController {
                 } else {
                     receiptsPage = service.findByDateRangePaginated(startDateTime, endDateTime, pageable);
                 }
-            } else if (status != null && !status.trim().isEmpty()) {
-                receiptsPage = service.findByStatusPaginated(status.trim().toUpperCase(), pageable);
-            } else {
-                receiptsPage = service.findAllPaginated(pageable);
             }
             
             Map<String, Object> response = new HashMap<>();

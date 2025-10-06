@@ -91,7 +91,10 @@ public class BoardReceiptService {
         // Create board receipt
         BoardReceipt boardReceipt = new BoardReceipt();
         boardReceipt.setBoardRef(boardRef);
-        boardReceipt.setEmployerRef(employerReceipt.getEmployerReceiptNumber());  
+        boardReceipt.setBoardId("BOARD_" + boardRef); // Generate board_id from board_reference
+        boardReceipt.setEmployerRef(employerReceipt.getEmployerReceiptNumber());
+        boardReceipt.setEmployerId(employerReceipt.getEmployerId());
+        boardReceipt.setToliId(employerReceipt.getToliId());
         boardReceipt.setAmount(employerReceipt.getTotalAmount());
         boardReceipt.setUtrNumber(""); // Will be filled when processing
         boardReceipt.setStatus("PENDING");

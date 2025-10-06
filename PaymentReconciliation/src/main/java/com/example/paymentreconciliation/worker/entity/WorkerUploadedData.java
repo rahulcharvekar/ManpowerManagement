@@ -69,8 +69,8 @@ public class WorkerUploadedData {
     @Column(name = "rejection_reason", columnDefinition = "TEXT")
     private String rejectionReason;
 
-    @Column(name = "uploaded_at", nullable = false)
-    private LocalDateTime uploadedAt;
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
 
     @Column(name = "validated_at")
     private LocalDateTime validatedAt;
@@ -246,12 +246,23 @@ public class WorkerUploadedData {
         this.rejectionReason = rejectionReason;
     }
 
-    public LocalDateTime getUploadedAt() {
-        return uploadedAt;
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
 
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+    
+    // Backward compatibility - delegate to createdAt
+    @Deprecated
+    public LocalDateTime getUploadedAt() {
+        return createdAt;
+    }
+
+    @Deprecated  
     public void setUploadedAt(LocalDateTime uploadedAt) {
-        this.uploadedAt = uploadedAt;
+        this.createdAt = uploadedAt;
     }
 
     public LocalDateTime getValidatedAt() {

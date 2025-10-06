@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -16,6 +18,8 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/debug")
+@Tag(name = "Database Debug", description = "Admin-only APIs for database debugging and inspection")
+@SecurityRequirement(name = "Bearer Authentication")
 public class DatabaseInspectionController {
 
     @Autowired

@@ -326,12 +326,83 @@ CREATE TABLE IF NOT EXISTS board_receipts (
 -- FOREIGN KEY (employer_reference) REFERENCES employer_payment_receipts(employer_receipt_number);
 
 -- =============================================================================
--- INITIAL DATA / SAMPLE DATA (Optional)
+-- 11. USERS TABLE (Authentication & Authorization)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS users (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    role ENUM('ADMIN', 'WORKER', 'BOARD', 'EMPLOYER', 'RECONCILIATION_OFFICER') NOT NULL DEFAULT 'WORKER',
+    legacy_role VARCHAR(50), -- For backward compatibility during RBAC migration
+    is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    is_account_non_expired BOOLEAN NOT NULL DEFAULT TRUE,
+    is_account_non_locked BOOLEAN NOT NULL DEFAULT TRUE,
+    is_credentials_non_expired BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    last_login TIMESTAMP NULL,
+    INDEX idx_username (username),
+    INDEX idx_email (email),
+    INDEX idx_role (role)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================================================
+-- 12. PERMISSIONS TABLE (RBAC System)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS permissions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description VARCHAR(255),
+    module VARCHAR(50),
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_permission_name (name),
+    INDEX idx_permission_module (module)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================================================
+-- 13. ROLES TABLE (RBAC System)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS roles (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    description VARCHAR(255),
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_role_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================================================
+-- 14. ROLE_PERMISSIONS JUNCTION TABLE (RBAC System)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS role_permissions (
+    role_id BIGINT NOT NULL,
+    permission_id BIGINT NOT NULL,
+    PRIMARY KEY (role_id, permission_id),
+    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+    FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================================================
+-- 15. USER_ROLES JUNCTION TABLE (RBAC System)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS user_roles (
+    user_id BIGINT NOT NULL,
+    role_id BIGINT NOT NULL,
+    PRIMARY KEY (user_id, role_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================================================
+-- DEMO/DEFAULT DATA
 -- =============================================================================
 
--- You can add any initial configuration data here if needed
--- INSERT INTO uploaded_files (filename, stored_path, file_hash, file_type, upload_date, status) 
--- VALUES ('sample.csv', '/tmp/uploads/sample.csv', 'hash123', 'CSV', NOW(), 'PROCESSED');
+-- For demo data (users, roles, permissions, sample master data), run:
+-- SOURCE demo-data-insertion.sql;
+-- OR execute the demo-data-insertion.sql file separately
 
 -- =============================================================================
 -- VERIFICATION QUERIES
@@ -355,6 +426,14 @@ SHOW TABLES;
 -- WARNING: This will drop all tables and data!
 -- Only use this for development/testing environments
 
+-- Drop RBAC tables first (due to foreign key constraints)
+DROP TABLE IF EXISTS user_roles;
+DROP TABLE IF EXISTS role_permissions;
+DROP TABLE IF EXISTS roles;
+DROP TABLE IF EXISTS permissions;
+DROP TABLE IF EXISTS users;
+
+-- Drop main application tables
 DROP TABLE IF EXISTS board_receipts;
 DROP TABLE IF EXISTS employer_payment_receipts;
 DROP TABLE IF EXISTS worker_payment_receipts;
@@ -372,7 +451,7 @@ DROP TABLE IF EXISTS board_master;
 -- =============================================================================
 
 -- Replace 'your_app_user' with your actual application database user
--- GRANT SELECT, INSERT, UPDATE, DELETE ON paymentreconciliation_prod.* TO 'your_app_user'@'%';
+-- GRANT SELECT, INSERT, UPDATE, DELETE ON paymentreconciliation_dev.* TO 'your_app_user'@'%';
 -- FLUSH PRIVILEGES;
 
 -- =============================================================================
@@ -381,4 +460,4 @@ DROP TABLE IF EXISTS board_master;
 
 SELECT 'Database schema creation completed successfully!' as status;
 SELECT COUNT(*) as total_tables FROM information_schema.tables 
-WHERE table_schema = 'paymentreconciliation_prod';
+WHERE table_schema = 'paymentreconciliation_dev';
