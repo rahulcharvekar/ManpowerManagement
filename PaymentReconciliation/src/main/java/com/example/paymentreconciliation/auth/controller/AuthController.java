@@ -23,6 +23,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -113,19 +114,20 @@ public class AuthController {
             // Get API endpoints for user's permissions
             Map<String, List<String>> apiPermissions = permissionApiEndpointService.getUserApiEndpoints();
             
-            return ResponseEntity.ok(Map.of(
-                "id", user.getId(),
-                "username", user.getUsername(),
-                "email", user.getEmail(),
-                "fullName", user.getFullName(),
-                "roles", roles,
-                "permissions", apiPermissions,  // Changed to API permissions structure
-                "legacyRole", user.getLegacyRole() != null ? user.getLegacyRole().name() : null,
-                "enabled", user.isEnabled()
-            ));
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", user.getId());
+            response.put("username", user.getUsername());
+            response.put("email", user.getEmail());
+            response.put("fullName", user.getFullName());
+            response.put("roles", roles);
+            response.put("permissions", apiPermissions);
+            response.put("legacyRole", user.getLegacyRole() != null ? user.getLegacyRole().name() : null);
+            response.put("enabled", user.isEnabled());
+            
+            return ResponseEntity.ok(response);
         }
         return ResponseEntity.badRequest()
-            .body(Map.of("error", "User not authenticated"));
+            .body(new HashMap<String, Object>() {{ put("error", "User not authenticated"); }});
     }
     
     @GetMapping("/ui-config")
