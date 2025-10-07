@@ -5,6 +5,7 @@ import com.example.paymentreconciliation.board.entity.BoardReceipt;
 import com.example.paymentreconciliation.employer.entity.EmployerPaymentReceipt;
 import com.example.paymentreconciliation.exception.ResourceNotFoundException;
 import com.example.paymentreconciliation.board.dao.BoardReceiptRepository;
+import com.example.paymentreconciliation.board.dao.BoardReceiptQueryDao;
 import org.slf4j.Logger;
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
 import org.springframework.data.domain.Page;
@@ -28,9 +29,11 @@ public class BoardReceiptService {
     private static final Logger log = LoggerFactoryProvider.getLogger(BoardReceiptService.class);
 
     private final BoardReceiptRepository repository;
+    private final BoardReceiptQueryDao queryDao;
 
-    public BoardReceiptService(BoardReceiptRepository repository) {
+    public BoardReceiptService(BoardReceiptRepository repository, BoardReceiptQueryDao queryDao) {
         this.repository = repository;
+        this.queryDao = queryDao;
     }
 
     public BoardReceipt create(BoardReceipt boardReceipt) {
@@ -40,16 +43,17 @@ public class BoardReceiptService {
         return saved;
     }
 
+    // READ OPERATIONS - Using Query DAO
     @Transactional(readOnly = true)
     public List<BoardReceipt> findAll() {
-        log.info("Retrieving all board receipts");
-        return repository.findAll();
+        log.info("Retrieving all board receipts using query DAO");
+        return queryDao.findAll();
     }
 
     @Transactional(readOnly = true)
     public BoardReceipt findById(Long id) {
-        log.info("Retrieving board receipt id={}", id);
-        return repository.findById(id)
+        log.info("Retrieving board receipt id={} using query DAO", id);
+        return queryDao.findById(id)
                 .orElseThrow(() -> {
                     log.warn("Board receipt id={} not found", id);
                     return new ResourceNotFoundException("Board receipt not found for id=" + id);
@@ -143,16 +147,18 @@ public class BoardReceiptService {
                 statusValue = upperStatus;
             }
             
-            // Apply filters
+            // Apply filters - using simple pagination for now
+            List<BoardReceipt> allResults;
             if (statusValue != null && startLocalDate != null && endLocalDate != null) {
-                receiptsPage = repository.findByStatusAndDateBetween(statusValue, startLocalDate, endLocalDate, pageable);
+                allResults = queryDao.findByStatusAndDateRange(statusValue, startLocalDate.atStartOfDay(), endLocalDate.atTime(23, 59, 59));
             } else if (statusValue != null) {
-                receiptsPage = repository.findByStatus(statusValue, pageable);
+                allResults = queryDao.findByStatus(statusValue);
             } else if (startLocalDate != null && endLocalDate != null) {
-                receiptsPage = repository.findByDateBetween(startLocalDate, endLocalDate, pageable);
+                allResults = queryDao.findByDateRange(startLocalDate.atStartOfDay(), endLocalDate.atTime(23, 59, 59));
             } else {
-                receiptsPage = repository.findAll(pageable);
+                allResults = queryDao.findAll();
             }
+            receiptsPage = new org.springframework.data.domain.PageImpl<>(allResults, pageable, allResults.size());
             
             // Build response
             Map<String, Object> response = new HashMap<>();
@@ -183,26 +189,26 @@ public class BoardReceiptService {
             !upperStatus.equals("REJECTED") && !upperStatus.equals("PROCESSED")) {
             throw new RuntimeException("Invalid status: " + status + ". Valid values are: PENDING, VERIFIED, REJECTED, PROCESSED");
         }
-        return repository.findByStatus(upperStatus);
+        return queryDao.findByStatus(upperStatus);
     }
     
     @Transactional(readOnly = true)
     public Optional<BoardReceipt> findByBoardRef(String boardRef) {
         log.info("Finding board receipt for board ref: {}", boardRef);
-        return repository.findByBoardRef(boardRef);
+        return queryDao.findByBoardRef(boardRef);
     }
     
     @Transactional(readOnly = true)
     public Optional<BoardReceipt> findByEmployerRef(String employerRef) {
         log.info("Finding board receipt for employer ref: {}", employerRef);
-        return repository.findByEmployerRef(employerRef);
+        return queryDao.findByEmployerRef(employerRef);
     }
 
     public BoardReceipt processBoardReceipt(String boardRef, String utrNumber, String checker) {
         log.info("Processing board receipt: {} with UTR: {} by checker: {}", boardRef, utrNumber, checker);
         
         // Find the board receipt
-        Optional<BoardReceipt> boardReceiptOpt = repository.findByBoardRef(boardRef);
+        Optional<BoardReceipt> boardReceiptOpt = queryDao.findByBoardRef(boardRef);
         if (boardReceiptOpt.isEmpty()) {
             throw new RuntimeException("Board receipt not found: " + boardRef);
         }

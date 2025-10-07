@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.paymentreconciliation.worker.repository.WorkerPaymentReceiptRepository;
+import com.example.paymentreconciliation.worker.dao.WorkerPaymentReceiptQueryDao;
 import com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt;
 import com.example.paymentreconciliation.worker.entity.WorkerPayment;
 import com.example.paymentreconciliation.worker.service.WorkerPaymentService;
@@ -41,6 +42,9 @@ public class MT940ReconciliationService {
     
     @Autowired
     private WorkerPaymentReceiptRepository workerPaymentReceiptRepository;
+    
+    @Autowired
+    private WorkerPaymentReceiptQueryDao workerPaymentReceiptQueryDao;
     
     @Autowired
     private EmployerPaymentReceiptRepository employerPaymentReceiptRepository;
@@ -203,7 +207,7 @@ public class MT940ReconciliationService {
                     log.info("Updated employer receipt {} status to RECONCILED", employerReceipt.getEmployerReceiptNumber());
                     
                     // Find related worker receipt by worker receipt number
-                    Optional<WorkerPaymentReceipt> workerReceiptOpt = workerPaymentReceiptRepository.findByReceiptNumber(employerReceipt.getWorkerReceiptNumber());
+                    Optional<WorkerPaymentReceipt> workerReceiptOpt = workerPaymentReceiptQueryDao.findByReceiptNumber(employerReceipt.getWorkerReceiptNumber());
                     
                     if (workerReceiptOpt.isPresent()) {
                         WorkerPaymentReceipt workerReceipt = workerReceiptOpt.get();
@@ -213,7 +217,8 @@ public class MT940ReconciliationService {
                         log.info("Updated worker payment receipt {} status to PAYMENT_RECONCILED", workerReceipt.getReceiptNumber());
                         
                         // Also update all worker payments with this receipt number to PAYMENT_RECONCILED
-                        List<WorkerPayment> workerPayments = workerPaymentService.findByReceiptNumber(workerReceipt.getReceiptNumber());
+                        List<WorkerPayment> workerPayments = workerPaymentService.findByReceiptNumber(workerReceipt.getReceiptNumber(), 
+                            org.springframework.data.domain.PageRequest.of(0, 1000)).getContent();
                         for (WorkerPayment payment : workerPayments) {
                             payment.setStatus("PAYMENT_RECONCILED");
                             workerPaymentService.save(payment);

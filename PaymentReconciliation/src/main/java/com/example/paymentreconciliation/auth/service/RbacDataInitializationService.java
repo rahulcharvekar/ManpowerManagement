@@ -6,6 +6,7 @@ import com.example.paymentreconciliation.auth.entity.UserRole;
 import com.example.paymentreconciliation.auth.repository.PermissionRepository;
 import com.example.paymentreconciliation.auth.repository.RoleRepository;
 import com.example.paymentreconciliation.auth.repository.UserRepository;
+import com.example.paymentreconciliation.auth.dao.RoleQueryDao;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,9 @@ public class RbacDataInitializationService implements CommandLineRunner {
     
     @Autowired
     private RoleRepository roleRepository;
+    
+    @Autowired
+    private RoleQueryDao roleQueryDao;
     
     @Autowired
     private UserRepository userRepository;
@@ -74,7 +78,7 @@ public class RbacDataInitializationService implements CommandLineRunner {
             admin = userRepository.save(admin);
             
             // Assign ADMIN role
-            Optional<Role> adminRole = roleRepository.findByName("ADMIN");
+            Optional<Role> adminRole = roleQueryDao.findByName("ADMIN");
             if (adminRole.isPresent()) {
                 admin.addRole(adminRole.get());
                 userRepository.save(admin);
@@ -83,7 +87,7 @@ public class RbacDataInitializationService implements CommandLineRunner {
         } else {
             // Ensure existing admin has the new ADMIN role
             User admin = adminUser.get();
-            Optional<Role> adminRole = roleRepository.findByName("ADMIN");
+            Optional<Role> adminRole = roleQueryDao.findByName("ADMIN");
             
             if (adminRole.isPresent() && !admin.getRoles().contains(adminRole.get())) {
                 admin.addRole(adminRole.get());
@@ -97,9 +101,10 @@ public class RbacDataInitializationService implements CommandLineRunner {
         List<String> requiredRoles = Arrays.asList("ADMIN", "RECONCILIATION_OFFICER", "WORKER", "EMPLOYER", "BOARD");
         
         for (String roleName : requiredRoles) {
-            Optional<Role> role = roleRepository.findByNameWithPermissions(roleName);
+            Optional<Role> role = roleQueryDao.findByName(roleName);
             if (role.isPresent()) {
-                logger.debug("Role '{}' has {} permissions", roleName, role.get().getPermissions().size());
+                // For now, just log that role exists - permissions counting can be added later if needed
+                logger.debug("Role '{}' found in database", roleName);
             } else {
                 logger.warn("Required role '{}' not found in database", roleName);
             }

@@ -12,18 +12,13 @@ import java.util.List;
 import java.util.Optional;
 
 public interface EmployerPaymentReceiptRepository extends JpaRepository<EmployerPaymentReceipt, Long> {
-    
+    // READ operations - to be moved to EmployerPaymentReceiptQueryDao in future
     Optional<EmployerPaymentReceipt> findByWorkerReceiptNumber(String workerReceiptNumber);
-    
     List<EmployerPaymentReceipt> findByStatus(String status);
-    
     Page<EmployerPaymentReceipt> findByStatus(String status, Pageable pageable);
-    
     List<EmployerPaymentReceipt> findByValidatedBy(String validatedBy);
-    
     Optional<EmployerPaymentReceipt> findByEmployerReceiptNumber(String employerReceiptNumber);
     
-    // Find by status and date range
     @Query("SELECT e FROM EmployerPaymentReceipt e WHERE e.status = :status AND e.validatedAt BETWEEN :startDate AND :endDate")
     Page<EmployerPaymentReceipt> findByStatusAndValidatedAtBetween(
         @Param("status") String status, 
@@ -32,7 +27,6 @@ public interface EmployerPaymentReceiptRepository extends JpaRepository<Employer
         Pageable pageable
     );
     
-    // Find by date range only
     @Query("SELECT e FROM EmployerPaymentReceipt e WHERE e.validatedAt BETWEEN :startDate AND :endDate")
     Page<EmployerPaymentReceipt> findByValidatedAtBetween(
         @Param("startDate") LocalDateTime startDate, 
@@ -40,10 +34,8 @@ public interface EmployerPaymentReceiptRepository extends JpaRepository<Employer
         Pageable pageable
     );
     
-    // Find by employer receipt number with pagination
     Page<EmployerPaymentReceipt> findByEmployerReceiptNumber(String employerReceiptNumber, Pageable pageable);
     
-    // Find by employer receipt number and status
     @Query("SELECT e FROM EmployerPaymentReceipt e WHERE e.employerReceiptNumber = :empRef AND e.status = :status")
     Page<EmployerPaymentReceipt> findByEmployerReceiptNumberAndStatus(
         @Param("empRef") String employerReceiptNumber, 
@@ -51,7 +43,6 @@ public interface EmployerPaymentReceiptRepository extends JpaRepository<Employer
         Pageable pageable
     );
     
-    // Find by employer receipt number, status and date range
     @Query("SELECT e FROM EmployerPaymentReceipt e WHERE e.employerReceiptNumber = :empRef AND e.status = :status AND e.validatedAt BETWEEN :startDate AND :endDate")
     Page<EmployerPaymentReceipt> findByEmployerReceiptNumberAndStatusAndValidatedAtBetween(
         @Param("empRef") String employerReceiptNumber,
@@ -61,7 +52,6 @@ public interface EmployerPaymentReceiptRepository extends JpaRepository<Employer
         Pageable pageable
     );
     
-    // Find by employer receipt number and date range
     @Query("SELECT e FROM EmployerPaymentReceipt e WHERE e.employerReceiptNumber = :empRef AND e.validatedAt BETWEEN :startDate AND :endDate")
     Page<EmployerPaymentReceipt> findByEmployerReceiptNumberAndValidatedAtBetween(
         @Param("empRef") String employerReceiptNumber,
@@ -70,6 +60,5 @@ public interface EmployerPaymentReceiptRepository extends JpaRepository<Employer
         Pageable pageable
     );
     
-    // Find by transaction reference for MT940 reconciliation
     List<EmployerPaymentReceipt> findByTransactionReference(String transactionReference);
 }

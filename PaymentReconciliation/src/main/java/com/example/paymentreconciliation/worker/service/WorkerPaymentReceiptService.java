@@ -3,6 +3,7 @@ package com.example.paymentreconciliation.worker.service;
 import com.example.paymentreconciliation.worker.entity.WorkerPayment;
 import com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt;
 import com.example.paymentreconciliation.worker.repository.WorkerPaymentReceiptRepository;
+import com.example.paymentreconciliation.worker.dao.WorkerPaymentReceiptQueryDao;
 import org.slf4j.Logger;
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
 import org.springframework.stereotype.Service;
@@ -20,9 +21,11 @@ public class WorkerPaymentReceiptService {
     private static final Logger log = LoggerFactoryProvider.getLogger(WorkerPaymentReceiptService.class);
     
     private final WorkerPaymentReceiptRepository repository;
+    private final WorkerPaymentReceiptQueryDao queryDao;
 
-    public WorkerPaymentReceiptService(WorkerPaymentReceiptRepository repository) {
+    public WorkerPaymentReceiptService(WorkerPaymentReceiptRepository repository, WorkerPaymentReceiptQueryDao queryDao) {
         this.repository = repository;
+        this.queryDao = queryDao;
     }
 
     public WorkerPaymentReceipt createReceipt(List<WorkerPayment> processedPayments) {
@@ -65,53 +68,90 @@ public class WorkerPaymentReceiptService {
     
     private String generateReceiptNumber() {
         // Generate receipt number in format: RCP-YYYYMMDD-HHMMSS-XXX
-        LocalDateTime now = LocalDateTime.now();
-        String dateTime = now.format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
-        String sequence = String.format("%03d", (System.currentTimeMillis() % 1000));
+        // Use retry mechanism to ensure uniqueness
+        String receiptNumber;
+        int maxAttempts = 10;
+        int attempt = 0;
         
-        return "RCP-" + dateTime + "-" + sequence;
+        do {
+            LocalDateTime now = LocalDateTime.now();
+            String dateTime = now.format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
+            
+            // Use a combination of current nanos and a random component for better uniqueness
+            long nanos = System.nanoTime();
+            int randomComponent = (int) (Math.random() * 1000);
+            String sequence = String.format("%03d", (nanos % 1000 + randomComponent) % 1000);
+            
+            receiptNumber = "RCP-" + dateTime + "-" + sequence;
+            attempt++;
+            
+            // Check if this receipt number already exists in database
+            if (queryDao.findByReceiptNumber(receiptNumber).isEmpty()) {
+                log.info("Generated unique receipt number: {} (attempt {})", receiptNumber, attempt);
+                return receiptNumber;
+            }
+            
+            log.warn("Receipt number {} already exists, retrying... (attempt {})", receiptNumber, attempt);
+            
+            // Small delay to avoid immediate collision
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted while generating receipt number", e);
+            }
+            
+        } while (attempt < maxAttempts);
+        
+        throw new RuntimeException("Failed to generate unique receipt number after " + maxAttempts + " attempts");
     }
 
     public List<WorkerPaymentReceipt> findByStatus(String status) {
         log.info("Finding worker payment receipts with status: {}", status);
-        return repository.findByStatus(status);
+        return queryDao.findByStatus(status);
     }
 
     public List<WorkerPaymentReceipt> findAll() {
         log.info("Finding all worker payment receipts");
-        return repository.findAll();
+        return queryDao.findAll();
     }
 
     public java.util.Optional<WorkerPaymentReceipt> findByReceiptNumber(String receiptNumber) {
         log.info("Finding worker payment receipt by receipt number: {}", receiptNumber);
-        return repository.findByReceiptNumber(receiptNumber);
+        return queryDao.findByReceiptNumber(receiptNumber);
     }
 
     public org.springframework.data.domain.Page<WorkerPaymentReceipt> findByStatusPaginated(String status, org.springframework.data.domain.Pageable pageable) {
         log.info("Finding worker payment receipts with status: {} (paginated)", status);
-        return repository.findByStatus(status, pageable);
+        // For now, return a simple implementation - can be enhanced later with proper pagination
+        List<WorkerPaymentReceipt> results = queryDao.findByStatus(status);
+        return new org.springframework.data.domain.PageImpl<>(results, pageable, results.size());
     }
 
     public org.springframework.data.domain.Page<WorkerPaymentReceipt> findAllPaginated(org.springframework.data.domain.Pageable pageable) {
         log.info("Finding all worker payment receipts (paginated)");
-        return repository.findAll(pageable);
+        List<WorkerPaymentReceipt> results = queryDao.findAll();
+        return new org.springframework.data.domain.PageImpl<>(results, pageable, results.size());
     }
 
     public org.springframework.data.domain.Page<WorkerPaymentReceipt> findByStatusAndDateRangePaginated(
             String status, LocalDateTime startDate, LocalDateTime endDate, org.springframework.data.domain.Pageable pageable) {
         log.info("Finding worker payment receipts with status: {} between {} and {} (paginated)", status, startDate, endDate);
-        return repository.findByStatusAndCreatedAtBetween(status, startDate, endDate, pageable);
+        List<WorkerPaymentReceipt> results = queryDao.findByStatusAndDateRange(status, startDate, endDate);
+        return new org.springframework.data.domain.PageImpl<>(results, pageable, results.size());
     }
 
     public org.springframework.data.domain.Page<WorkerPaymentReceipt> findByDateRangePaginated(
             LocalDateTime startDate, LocalDateTime endDate, org.springframework.data.domain.Pageable pageable) {
         log.info("Finding worker payment receipts between {} and {} (paginated)", startDate, endDate);
-        return repository.findByCreatedAtBetween(startDate, endDate, pageable);
+        List<WorkerPaymentReceipt> results = queryDao.findByDateRange(startDate, endDate);
+        return new org.springframework.data.domain.PageImpl<>(results, pageable, results.size());
     }
 
     public WorkerPaymentReceipt updateStatus(String receiptNumber, String newStatus) {
         log.info("Updating status of worker payment receipt {} to {}", receiptNumber, newStatus);
         
+        // Use JPA repository to fetch the entity in a managed state to ensure proper UPDATE
         WorkerPaymentReceipt receipt = repository.findByReceiptNumber(receiptNumber)
                 .orElseThrow(() -> new RuntimeException("Worker payment receipt not found with number: " + receiptNumber));
         

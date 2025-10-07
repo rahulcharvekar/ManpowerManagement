@@ -3,8 +3,9 @@ package com.example.paymentreconciliation.employer.service;
 import com.example.paymentreconciliation.employer.entity.EmployerPaymentReceipt;
 import com.example.paymentreconciliation.employer.dao.EmployerPaymentReceiptRepository;
 import com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt;
-import com.example.paymentreconciliation.worker.repository.WorkerPaymentReceiptRepository;
+import com.example.paymentreconciliation.worker.dao.WorkerPaymentReceiptQueryDao;
 import com.example.paymentreconciliation.worker.entity.WorkerPayment;
+import com.example.paymentreconciliation.worker.service.WorkerPaymentReceiptService;
 
 import com.example.paymentreconciliation.worker.service.WorkerPaymentService;
 import com.example.paymentreconciliation.board.service.BoardReceiptService;
@@ -14,6 +15,7 @@ import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -33,24 +35,27 @@ public class EmployerPaymentReceiptService {
     private static final Logger log = LoggerFactoryProvider.getLogger(EmployerPaymentReceiptService.class);
     
     private final EmployerPaymentReceiptRepository repository;
-    private final WorkerPaymentReceiptRepository workerReceiptRepository;
+    private final WorkerPaymentReceiptQueryDao workerReceiptQueryDao;
     private final WorkerPaymentService workerPaymentService;
     private final BoardReceiptService boardReceiptService;
+    private final WorkerPaymentReceiptService workerReceiptService;
 
-    public EmployerPaymentReceiptService(EmployerPaymentReceiptRepository repository, 
-                                       WorkerPaymentReceiptRepository workerReceiptRepository,
+    public EmployerPaymentReceiptService(EmployerPaymentReceiptRepository repository,
+                                       WorkerPaymentReceiptQueryDao workerReceiptQueryDao,
                                        WorkerPaymentService workerPaymentService,
-                                       BoardReceiptService boardReceiptService) {
+                                       BoardReceiptService boardReceiptService,
+                                       WorkerPaymentReceiptService workerReceiptService) {
         this.repository = repository;
-        this.workerReceiptRepository = workerReceiptRepository;
+        this.workerReceiptQueryDao = workerReceiptQueryDao;
         this.workerPaymentService = workerPaymentService;
         this.boardReceiptService = boardReceiptService;
+        this.workerReceiptService = workerReceiptService;
     }
 
-    @Transactional(readOnly = true)
+        @Transactional(readOnly = true)
     public List<WorkerPaymentReceipt> getAvailableReceipts() {
-        log.info("Retrieving worker receipts available for employer validation");
-        return workerReceiptRepository.findByStatus("GENERATED");
+        log.info("Retrieving worker receipts available for employer validation using query DAO");
+        return workerReceiptQueryDao.findByStatus("GENERATED");
     }
 
     @Transactional(readOnly = true)
@@ -67,13 +72,14 @@ public class EmployerPaymentReceiptService {
         
         Page<WorkerPaymentReceipt> receiptsPage;
         
-        // Handle date filtering
+        // Handle date filtering using query DAO (converting to simple lists for now)
+        List<WorkerPaymentReceipt> allReceipts;
         if (singleDate != null && !singleDate.trim().isEmpty()) {
             // Single date filter
             LocalDate date = LocalDate.parse(singleDate);
             LocalDateTime startOfDay = date.atStartOfDay();
             LocalDateTime endOfDay = date.atTime(23, 59, 59);
-            receiptsPage = workerReceiptRepository.findByStatusAndCreatedAtBetween(filterStatus, startOfDay, endOfDay, pageable);
+            allReceipts = workerReceiptQueryDao.findByStatusAndDateRange(filterStatus, startOfDay, endOfDay);
             
         } else if (startDate != null && !startDate.trim().isEmpty() && endDate != null && !endDate.trim().isEmpty()) {
             // Date range filter
@@ -81,12 +87,18 @@ public class EmployerPaymentReceiptService {
             LocalDate end = LocalDate.parse(endDate);
             LocalDateTime startDateTime = start.atStartOfDay();
             LocalDateTime endDateTime = end.atTime(23, 59, 59);
-            receiptsPage = workerReceiptRepository.findByStatusAndCreatedAtBetween(filterStatus, startDateTime, endDateTime, pageable);
+            allReceipts = workerReceiptQueryDao.findByStatusAndDateRange(filterStatus, startDateTime, endDateTime);
             
         } else {
             // No date filter, just status
-            receiptsPage = workerReceiptRepository.findByStatus(filterStatus, pageable);
+            allReceipts = workerReceiptQueryDao.findByStatus(filterStatus);
         }
+        
+        // Manual pagination since our DAO doesn't support it yet
+        int start = Math.min(page * size, allReceipts.size());
+        int end = Math.min(start + size, allReceipts.size());
+        List<WorkerPaymentReceipt> pageContent = allReceipts.subList(start, end);
+        receiptsPage = new PageImpl<>(pageContent, pageable, allReceipts.size());
         
         // Create response
         Map<String, Object> response = new HashMap<>();
@@ -112,7 +124,7 @@ public class EmployerPaymentReceiptService {
                 workerReceiptNumber, transactionReference);
         
         // Find the worker receipt
-        Optional<WorkerPaymentReceipt> workerReceiptOpt = workerReceiptRepository.findByReceiptNumber(workerReceiptNumber);
+        Optional<WorkerPaymentReceipt> workerReceiptOpt = workerReceiptQueryDao.findByReceiptNumber(workerReceiptNumber);
         if (workerReceiptOpt.isEmpty()) {
             throw new RuntimeException("Worker receipt not found: " + workerReceiptNumber);
         }
@@ -162,12 +174,13 @@ public class EmployerPaymentReceiptService {
                     savedReceipt.getEmployerReceiptNumber(), e);
         }
         
-        // Update worker receipt status
-        workerReceipt.setStatus("VALIDATED");
-        workerReceiptRepository.save(workerReceipt);
+        // Update worker receipt status using the proper service method
+        workerReceiptService.updateStatus(workerReceiptNumber, "VALIDATED");
         
         // Update all worker payments with this receipt number to PAYMENT_INITIATED
-        List<WorkerPayment> workerPayments = workerPaymentService.findByReceiptNumber(workerReceiptNumber);
+        // Use WorkerPaymentService method that uses the query DAO
+        Page<WorkerPayment> paymentsPage = workerPaymentService.findByReceiptNumber(workerReceiptNumber, PageRequest.of(0, 1000));
+        List<WorkerPayment> workerPayments = paymentsPage.getContent();
         for (WorkerPayment payment : workerPayments) {
             if ("PAYMENT_REQUESTED".equals(payment.getStatus())) {
                 payment.setStatus("PAYMENT_INITIATED");
@@ -179,88 +192,6 @@ public class EmployerPaymentReceiptService {
                 savedReceipt.getEmployerReceiptNumber(), workerReceiptNumber, workerPayments.size());
         
         return savedReceipt;
-    }
-    
-    @Transactional(readOnly = true)
-    public List<EmployerPaymentReceipt> findByStatus(String status) {
-        log.info("Finding employer receipts with status: {}", status);
-        return repository.findByStatus(status);
-    }
-    
-    @Transactional(readOnly = true)
-    public Optional<EmployerPaymentReceipt> findByWorkerReceiptNumber(String workerReceiptNumber) {
-        log.info("Finding employer receipt for worker receipt: {}", workerReceiptNumber);
-        return repository.findByWorkerReceiptNumber(workerReceiptNumber);
-    }
-    
-    public Map<String, Object> getAllEmployerReceiptsWithFilters(int page, int size, String status, String empRef,
-                                                                String singleDate, String startDate, String endDate) {
-        log.info("Fetching employer receipts with filters - page: {}, size: {}, status: {}, empRef: {}, singleDate: {}, startDate: {}, endDate: {}", 
-                page, size, status, empRef, singleDate, startDate, endDate);
-        
-        try {
-            Pageable pageable = PageRequest.of(page, size, Sort.by("validatedAt").descending());
-            Page<EmployerPaymentReceipt> receiptsPage;
-            
-            // Parse dates if provided
-            LocalDateTime startDateTime = null;
-            LocalDateTime endDateTime = null;
-            
-            if (singleDate != null && !singleDate.trim().isEmpty()) {
-                LocalDate date = LocalDate.parse(singleDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-                startDateTime = date.atStartOfDay();
-                endDateTime = date.atTime(23, 59, 59);
-            } else if (startDate != null && endDate != null && 
-                      !startDate.trim().isEmpty() && !endDate.trim().isEmpty()) {
-                LocalDate start = LocalDate.parse(startDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-                LocalDate end = LocalDate.parse(endDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-                startDateTime = start.atStartOfDay();
-                endDateTime = end.atTime(23, 59, 59);
-            }
-            
-            // Check if empRef filter is provided
-            boolean hasEmpRef = empRef != null && !empRef.trim().isEmpty();
-            boolean hasStatus = status != null && !status.trim().isEmpty();
-            boolean hasDateRange = startDateTime != null && endDateTime != null;
-            
-            // Apply filters based on combinations
-            if (hasEmpRef && hasStatus && hasDateRange) {
-                receiptsPage = repository.findByEmployerReceiptNumberAndStatusAndValidatedAtBetween(empRef, status, startDateTime, endDateTime, pageable);
-            } else if (hasEmpRef && hasStatus) {
-                receiptsPage = repository.findByEmployerReceiptNumberAndStatus(empRef, status, pageable);
-            } else if (hasEmpRef && hasDateRange) {
-                receiptsPage = repository.findByEmployerReceiptNumberAndValidatedAtBetween(empRef, startDateTime, endDateTime, pageable);
-            } else if (hasEmpRef) {
-                receiptsPage = repository.findByEmployerReceiptNumber(empRef, pageable);
-            } else if (hasStatus && hasDateRange) {
-                receiptsPage = repository.findByStatusAndValidatedAtBetween(status, startDateTime, endDateTime, pageable);
-            } else if (hasStatus) {
-                receiptsPage = repository.findByStatus(status, pageable);
-            } else if (hasDateRange) {
-                receiptsPage = repository.findByValidatedAtBetween(startDateTime, endDateTime, pageable);
-            } else {
-                receiptsPage = repository.findAll(pageable);
-            }
-            
-            // Build response
-            Map<String, Object> response = new HashMap<>();
-            response.put("content", receiptsPage.getContent());
-            response.put("totalElements", receiptsPage.getTotalElements());
-            response.put("totalPages", receiptsPage.getTotalPages());
-            response.put("currentPage", receiptsPage.getNumber());
-            response.put("pageSize", receiptsPage.getSize());
-            response.put("hasNext", receiptsPage.hasNext());
-            response.put("hasPrevious", receiptsPage.hasPrevious());
-            
-            log.info("Found {} employer receipts (page {}/{})", 
-                    receiptsPage.getTotalElements(), receiptsPage.getNumber(), receiptsPage.getTotalPages());
-            
-            return response;
-            
-        } catch (Exception e) {
-            log.error("Error fetching employer receipts with filters", e);
-            throw new RuntimeException("Failed to fetch employer receipts: " + e.getMessage());
-        }
     }
 
     public EmployerPaymentReceipt createPendingEmployerReceipt(WorkerPaymentReceipt workerReceipt) {

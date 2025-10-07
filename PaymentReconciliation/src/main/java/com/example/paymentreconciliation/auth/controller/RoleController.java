@@ -1,5 +1,6 @@
 package com.example.paymentreconciliation.auth.controller;
 
+import com.example.paymentreconciliation.auth.dao.RoleQueryDao.RoleWithPermissionCount;
 import com.example.paymentreconciliation.auth.entity.Role;
 import com.example.paymentreconciliation.auth.entity.User;
 import com.example.paymentreconciliation.auth.service.RoleService;
@@ -30,8 +31,8 @@ public class RoleController {
     
     @GetMapping("/with-permissions")
     @Operation(summary = "Get all roles with permissions")
-    public ResponseEntity<List<Role>> getAllRolesWithPermissions() {
-        List<Role> roles = roleService.getAllRolesWithPermissions();
+    public ResponseEntity<List<RoleWithPermissionCount>> getAllRolesWithPermissions() {
+        List<RoleWithPermissionCount> roles = roleService.getAllRolesWithPermissionCounts();
         return ResponseEntity.ok(roles);
     }
     

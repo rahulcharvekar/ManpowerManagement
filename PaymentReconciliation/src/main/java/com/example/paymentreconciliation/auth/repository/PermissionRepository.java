@@ -7,23 +7,15 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface PermissionRepository extends JpaRepository<Permission, Long> {
     
-    Optional<Permission> findByName(String name);
-    
-    List<Permission> findByModule(String module);
+    // Only keep methods needed for WRITE operations and entity lookups during writes
     
     @Query("SELECT p FROM Permission p WHERE p.name IN :names")
     List<Permission> findByNames(@Param("names") List<String> names);
     
-    @Query("SELECT DISTINCT p.module FROM Permission p ORDER BY p.module")
-    List<String> findAllModules();
-    
+    // Keep for write operation validations
     boolean existsByName(String name);
-    
-    @Query("SELECT p FROM Permission p JOIN p.roles r WHERE r.name = :roleName")
-    List<Permission> findByRoleName(@Param("roleName") String roleName);
 }

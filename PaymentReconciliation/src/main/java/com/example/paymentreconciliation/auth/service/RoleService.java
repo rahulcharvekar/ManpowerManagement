@@ -6,6 +6,7 @@ import com.example.paymentreconciliation.auth.entity.User;
 import com.example.paymentreconciliation.auth.repository.PermissionRepository;
 import com.example.paymentreconciliation.auth.repository.RoleRepository;
 import com.example.paymentreconciliation.auth.repository.UserRepository;
+import com.example.paymentreconciliation.auth.dao.RoleQueryDao;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,34 +31,44 @@ public class RoleService {
     @Autowired
     private UserRepository userRepository;
     
+    @Autowired
+    private RoleQueryDao roleQueryDao;
+    
+    // READ OPERATIONS - Using Query DAO
+    @Transactional(readOnly = true)
     public List<Role> getAllRoles() {
-        logger.debug("Fetching all roles");
-        return roleRepository.findAll();
+        logger.debug("Fetching all roles using query DAO");
+        return roleQueryDao.findAll();
     }
     
-    public List<Role> getAllRolesWithPermissions() {
-        logger.debug("Fetching all roles with permissions");
-        return roleRepository.findAllWithPermissions();
+    @Transactional(readOnly = true)
+    public List<RoleQueryDao.RoleWithPermissionCount> getAllRolesWithPermissionCounts() {
+        logger.debug("Fetching all roles with permission counts using query DAO");
+        return roleQueryDao.findAllWithPermissionCounts();
     }
     
+    @Transactional(readOnly = true)
     public Optional<Role> getRoleById(Long id) {
-        logger.debug("Fetching role by id: {}", id);
-        return roleRepository.findById(id);
+        logger.debug("Fetching role by id: {} using query DAO", id);
+        return roleQueryDao.findById(id);
     }
     
+    @Transactional(readOnly = true)
     public Optional<Role> getRoleByName(String name) {
-        logger.debug("Fetching role by name: {}", name);
-        return roleRepository.findByName(name);
+        logger.debug("Fetching role by name: {} using query DAO", name);
+        return roleQueryDao.findByName(name);
     }
     
-    public Optional<Role> getRoleByNameWithPermissions(String name) {
-        logger.debug("Fetching role by name with permissions: {}", name);
-        return roleRepository.findByNameWithPermissions(name);
-    }
-    
+    @Transactional(readOnly = true)
     public List<Role> getRolesByUsername(String username) {
-        logger.debug("Fetching roles for user: {}", username);
-        return roleRepository.findByUsername(username);
+        logger.debug("Fetching roles for user: {} using query DAO", username);
+        return roleQueryDao.findByUsername(username);
+    }
+    
+    @Transactional(readOnly = true)
+    public List<Role> getRolesByUserId(Long userId) {
+        logger.debug("Fetching roles for user id: {} using query DAO", userId);
+        return roleQueryDao.findByUserId(userId);
     }
     
     public Role createRole(String name, String description) {
@@ -155,7 +166,23 @@ public class RoleService {
         return userRepository.save(user);
     }
     
+    @Transactional(readOnly = true)
     public boolean existsByName(String name) {
-        return roleRepository.existsByName(name);
+        return roleQueryDao.existsByName(name);
+    }
+    
+    @Transactional(readOnly = true)
+    public int countUsersWithRole(Long roleId) {
+        return roleQueryDao.countUsersWithRole(roleId);
+    }
+    
+    @Transactional(readOnly = true)
+    public int countPermissionsInRole(Long roleId) {
+        return roleQueryDao.countPermissionsInRole(roleId);
+    }
+
+    public Optional<Role> getRoleByNameWithPermissions(String name) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getRoleByNameWithPermissions'");
     }
 }

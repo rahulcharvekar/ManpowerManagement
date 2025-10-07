@@ -602,19 +602,9 @@ public class WorkerUploadedDataService {
         return repository.findByFileIdAndStatus(fileId, "REJECTED");
     }
 
-    public Page<WorkerUploadedData> findRejectedRecordsPaginated(String fileId, Pageable pageable) {
-        log.info("Finding rejected records for fileId: {} (paginated)", fileId);
-        return repository.findByFileIdAndStatus(fileId, "REJECTED", pageable);
-    }
-
     public List<WorkerUploadedData> findRequestGeneratedRecords(String fileId) {
         log.info("Finding request generated records for fileId: {}", fileId);
         return repository.findByFileIdAndStatus(fileId, "REQUEST_GENERATED");
-    }
-
-    public Page<WorkerUploadedData> findRequestGeneratedRecordsPaginated(String fileId, Pageable pageable) {
-        log.info("Finding request generated records for fileId: {} (paginated)", fileId);
-        return repository.findByFileIdAndStatus(fileId, "REQUEST_GENERATED", pageable);
     }
 
     public List<WorkerUploadedData> findByReceiptNumber(String receiptNumber) {

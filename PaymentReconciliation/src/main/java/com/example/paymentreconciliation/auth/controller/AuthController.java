@@ -7,6 +7,7 @@ import com.example.paymentreconciliation.auth.dto.RegisterRequest;
 import com.example.paymentreconciliation.auth.entity.User;
 import com.example.paymentreconciliation.auth.entity.UserRole;
 import com.example.paymentreconciliation.auth.service.AuthService;
+import com.example.paymentreconciliation.auth.service.PermissionApiEndpointService;
 import com.example.paymentreconciliation.auth.service.UIConfigService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -38,6 +39,9 @@ public class AuthController {
     
     @Autowired
     private UIConfigService uiConfigService;
+    
+    @Autowired
+    private PermissionApiEndpointService permissionApiEndpointService;
     
     @PostMapping("/login")
     @Operation(summary = "User login", description = "Authenticate user and return JWT token")
@@ -106,13 +110,16 @@ public class AuthController {
                 roles.add(user.getLegacyRole().name());
             }
             
+            // Get API endpoints for user's permissions
+            Map<String, List<String>> apiPermissions = permissionApiEndpointService.getUserApiEndpoints();
+            
             return ResponseEntity.ok(Map.of(
                 "id", user.getId(),
                 "username", user.getUsername(),
                 "email", user.getEmail(),
                 "fullName", user.getFullName(),
                 "roles", roles,
-                "permissions", permissions,
+                "permissions", apiPermissions,  // Changed to API permissions structure
                 "legacyRole", user.getLegacyRole() != null ? user.getLegacyRole().name() : null,
                 "enabled", user.isEnabled()
             ));

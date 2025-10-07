@@ -22,7 +22,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -45,93 +44,13 @@ public class WorkerPaymentReceiptController {
         this.service = service;
     }
 
-    @org.springframework.beans.factory.annotation.Autowired
-    private com.example.paymentreconciliation.common.service.PaginationSessionService paginationSessionService;
 
-    @PostMapping("/pagination-session")
-    public ResponseEntity<?> createPaginationSessionForReceipts(@RequestBody(required = false) java.util.Map<String, Object> body) {
-        try {
-            java.util.Map<String, String> filters = new java.util.HashMap<>();
-            if (body != null) { body.forEach((k, v) -> { if (v != null) filters.put(k, v.toString()); }); }
-            Long ttl = body != null && body.get("ttlMs") instanceof Number ? ((Number) body.get("ttlMs")).longValue() : null;
-            Integer maxPageSize = body != null && body.get("maxPageSize") instanceof Number ? ((Number) body.get("maxPageSize")).intValue() : null;
 
-            String token = paginationSessionService.createSession("workerReceipts", null, filters, ttl, maxPageSize);
-            com.example.paymentreconciliation.common.service.PaginationSessionService.PaginationSession s = paginationSessionService.getSession(token);
-            long expiresInMs = s != null ? s.expiresAt.toEpochMilli() - java.time.Instant.now().toEpochMilli() : 0L;
-            return ResponseEntity.ok(java.util.Map.of("paginationToken", token, "expiresInMs", expiresInMs));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
-        }
-    }
 
-    @PostMapping("/by-session")
-    public ResponseEntity<?> getReceiptsBySession(@RequestBody SessionedPageRequest pageRequest) {
-        try {
-            if (pageRequest == null || pageRequest.getPaginationToken() == null) return ResponseEntity.badRequest().body(java.util.Map.of("error","paginationToken required"));
-            com.example.paymentreconciliation.common.service.PaginationSessionService.PaginationSession session = paginationSessionService.getSession(pageRequest.getPaginationToken());
-            if (session == null) return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).body(java.util.Map.of("error","Invalid or expired token"));
 
-            int page = pageRequest.getPage() >= 0 ? pageRequest.getPage() : 0;
-            int size = Math.min(pageRequest.getSize() <= 0 ? 20 : pageRequest.getSize(), session.maxPageSize);
 
-            String status = session.filters.get("status");
-            String singleDate = session.filters.get("singleDate");
-            String startDate = session.filters.get("startDate");
-            String endDate = session.filters.get("endDate");
-            String sortBy = session.filters.getOrDefault("sortBy", "createdAt");
-            String sortDir = session.filters.getOrDefault("sortDir", "desc");
 
-            Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
-            Pageable pageable = PageRequest.of(page, size, sort);
 
-            Page<com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt> receiptsPage;
-            if (singleDate != null && !singleDate.trim().isEmpty()) {
-                java.time.LocalDate date = java.time.LocalDate.parse(singleDate);
-                java.time.LocalDateTime startDateTime = date.atStartOfDay();
-                java.time.LocalDateTime endDateTime = date.plusDays(1).atStartOfDay().minusNanos(1);
-                if (status != null && !status.trim().isEmpty()) {
-                    receiptsPage = service.findByStatusAndDateRangePaginated(status.trim().toUpperCase(), startDateTime, endDateTime, pageable);
-                } else {
-                    receiptsPage = service.findByDateRangePaginated(startDateTime, endDateTime, pageable);
-                }
-            } else {
-                java.time.LocalDateTime startDateTime = java.time.LocalDate.parse(startDate.trim()).atStartOfDay();
-                java.time.LocalDateTime endDateTime;
-                if (endDate != null && !endDate.trim().isEmpty()) {
-                    endDateTime = java.time.LocalDate.parse(endDate.trim()).plusDays(1).atStartOfDay().minusNanos(1);
-                } else {
-                    endDateTime = java.time.LocalDate.now().plusDays(1).atStartOfDay().minusNanos(1);
-                }
-
-                if (status != null && !status.trim().isEmpty()) {
-                    receiptsPage = service.findByStatusAndDateRangePaginated(status.trim().toUpperCase(), startDateTime, endDateTime, pageable);
-                } else {
-                    receiptsPage = service.findByDateRangePaginated(startDateTime, endDateTime, pageable);
-                }
-            }
-
-            java.util.Map<String, Object> response = new java.util.HashMap<>();
-            response.put("receipts", receiptsPage.getContent());
-            response.put("totalElements", receiptsPage.getTotalElements());
-            response.put("totalPages", receiptsPage.getTotalPages());
-            response.put("currentPage", receiptsPage.getNumber());
-            response.put("pageSize", receiptsPage.getSize());
-            response.put("hasNext", receiptsPage.hasNext());
-            response.put("hasPrevious", receiptsPage.hasPrevious());
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
-        }
-    }
-
-    public static class SessionedPageRequest {
-        private String paginationToken; private int page; private int size;
-        public String getPaginationToken() { return paginationToken; } public void setPaginationToken(String paginationToken) { this.paginationToken = paginationToken; }
-        public int getPage() { return page; } public void setPage(int page) { this.page = page; }
-        public int getSize() { return size; } public void setSize(int size) { this.size = size; }
-    }
 
     @GetMapping("/all")
     @Operation(summary = "Get all worker receipts with pagination and filtering", 
@@ -217,22 +136,7 @@ public class WorkerPaymentReceiptController {
         }
     }
 
-    @GetMapping("/status/{status}")
-    @Operation(summary = "Get worker receipts by status", 
-               description = "Returns all worker receipts with the specified status")
-    public ResponseEntity<List<WorkerPaymentReceipt>> getReceiptsByStatus(
-            @Parameter(description = "Receipt status") 
-            @PathVariable String status) {
-        log.info("Fetching worker receipts with status: {}", status);
-        
-        try {
-            List<WorkerPaymentReceipt> receipts = service.findByStatus(status.toUpperCase());
-            return ResponseEntity.ok(receipts);
-        } catch (Exception e) {
-            log.error("Error fetching receipts by status: {}", status, e);
-            return ResponseEntity.badRequest().build();
-        }
-    }
+
 
     @GetMapping("/{receiptNumber}")
     @Operation(summary = "Get worker receipt by receipt number", 
@@ -252,71 +156,9 @@ public class WorkerPaymentReceiptController {
         }
     }
 
-    @PutMapping("/{receiptNumber}/status")
-    @Operation(summary = "Update worker receipt status", 
-               description = "Updates the status of a worker receipt")
-    public ResponseEntity<?> updateReceiptStatus(
-            @Parameter(description = "Worker receipt number") 
-            @PathVariable String receiptNumber,
-            @RequestBody StatusUpdateRequest request) {
-        log.info("Updating status of worker receipt {} to {}", receiptNumber, request.getStatus());
-        
-        try {
-            WorkerPaymentReceipt updatedReceipt = service.updateStatus(receiptNumber, request.getStatus().toUpperCase());
-            
-            return ResponseEntity.ok(Map.of(
-                "message", "Receipt status updated successfully",
-                "receiptNumber", updatedReceipt.getReceiptNumber(),
-                "newStatus", updatedReceipt.getStatus(),
-                "totalAmount", updatedReceipt.getTotalAmount(),
-                "totalRecords", updatedReceipt.getTotalRecords()
-            ));
-            
-        } catch (Exception e) {
-            log.error("Error updating receipt status: {}", receiptNumber, e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
 
-    @GetMapping("/summary")
-    @Operation(summary = "Get worker receipts summary", 
-               description = "Returns summary statistics of worker receipts by status")
-    public ResponseEntity<?> getReceiptsSummary() {
-        log.info("Fetching worker receipts summary");
-        
-        try {
-            List<WorkerPaymentReceipt> allReceipts = service.findAll();
-            
-            Map<String, Integer> statusCounts = new HashMap<>();
-            Map<String, java.math.BigDecimal> statusAmounts = new HashMap<>();
-            
-            // Initialize common statuses
-            String[] statuses = {"GENERATED", "PAYMENT_PROCESSED", "PAYMENT_RECONCILED", "ERROR"};
-            for (String status : statuses) {
-                statusCounts.put(status, 0);
-                statusAmounts.put(status, java.math.BigDecimal.ZERO);
-            }
-            
-            // Count by status
-            for (WorkerPaymentReceipt receipt : allReceipts) {
-                String status = receipt.getStatus();
-                statusCounts.put(status, statusCounts.getOrDefault(status, 0) + 1);
-                statusAmounts.put(status, statusAmounts.getOrDefault(status, java.math.BigDecimal.ZERO)
-                        .add(receipt.getTotalAmount()));
-            }
-            
-            Map<String, Object> summary = new HashMap<>();
-            summary.put("totalReceipts", allReceipts.size());
-            summary.put("statusCounts", statusCounts);
-            summary.put("statusAmounts", statusAmounts);
-            
-            return ResponseEntity.ok(summary);
-            
-        } catch (Exception e) {
-            log.error("Error fetching receipts summary", e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
+
+
 
     @PostMapping("/{receiptNumber}/send-to-employer")
     @Operation(summary = "Send worker receipt to employer for validation", 
@@ -349,7 +191,8 @@ public class WorkerPaymentReceiptController {
             
             // Update all related worker payment records to PAYMENT_INITIATED
             java.util.List<com.example.paymentreconciliation.worker.entity.WorkerPayment> workerPayments = 
-                workerPaymentService.findByReceiptNumber(receiptNumber);
+                workerPaymentService.findByReceiptNumber(receiptNumber, 
+                    org.springframework.data.domain.PageRequest.of(0, 1000)).getContent();
             
             int updatedPayments = 0;
             for (com.example.paymentreconciliation.worker.entity.WorkerPayment payment : workerPayments) {
@@ -379,16 +222,5 @@ public class WorkerPaymentReceiptController {
         }
     }
 
-    // Request DTO class
-    public static class StatusUpdateRequest {
-        private String status;
 
-        public String getStatus() {
-            return status;
-        }
-
-        public void setStatus(String status) {
-            this.status = status;
-        }
-    }
 }

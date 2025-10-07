@@ -1,11 +1,13 @@
 package com.example.paymentreconciliation.reconciliation.service;
 
 import com.example.paymentreconciliation.board.dao.BoardReceiptRepository;
+import com.example.paymentreconciliation.board.dao.BoardReceiptQueryDao;
 import com.example.paymentreconciliation.board.entity.BoardReceipt;
 
 import com.example.paymentreconciliation.employer.dao.EmployerPaymentReceiptRepository;
 import com.example.paymentreconciliation.employer.entity.EmployerPaymentReceipt;
 import com.example.paymentreconciliation.worker.repository.WorkerPaymentReceiptRepository;
+import com.example.paymentreconciliation.worker.dao.WorkerPaymentReceiptQueryDao;
 import com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt;
 import com.example.paymentreconciliation.worker.entity.WorkerPayment;
 import com.example.paymentreconciliation.worker.service.WorkerPaymentService;
@@ -44,7 +46,13 @@ public class PaymentProcessingService {
     private WorkerPaymentReceiptRepository workerPaymentReceiptRepository;
     
     @Autowired
+    private WorkerPaymentReceiptQueryDao workerPaymentReceiptQueryDao;
+    
+    @Autowired
     private BoardReceiptRepository boardReceiptRepository;
+    
+    @Autowired
+    private BoardReceiptQueryDao boardReceiptQueryDao;
     
     @Autowired
     private WorkerPaymentService workerPaymentService;
@@ -81,7 +89,7 @@ public class PaymentProcessingService {
                 employerPaymentReceiptRepository.save(employerReceipt);
                 
                 // Find and update worker payment receipt
-                Optional<WorkerPaymentReceipt> workerReceiptOpt = workerPaymentReceiptRepository.findByReceiptNumber(employerReceipt.getWorkerReceiptNumber());
+                Optional<WorkerPaymentReceipt> workerReceiptOpt = workerPaymentReceiptQueryDao.findByReceiptNumber(employerReceipt.getWorkerReceiptNumber());
                 
                 if (workerReceiptOpt.isPresent()) {
                     WorkerPaymentReceipt workerReceipt = workerReceiptOpt.get();
@@ -90,7 +98,9 @@ public class PaymentProcessingService {
                     log.info("Updated worker payment receipt {} to PAYMENT_PROCESSED", workerReceipt.getReceiptNumber());
                     
                     // Also update all worker payments with this receipt number to PAYMENT_PROCESSED
-                    List<WorkerPayment> workerPayments = workerPaymentService.findByReceiptNumber(workerReceipt.getReceiptNumber());
+                    // For now, get first page of results - can be improved with proper pagination handling
+                    List<WorkerPayment> workerPayments = workerPaymentService.findByReceiptNumber(workerReceipt.getReceiptNumber(), 
+                        org.springframework.data.domain.PageRequest.of(0, 1000)).getContent();
                     for (WorkerPayment payment : workerPayments) {
                         payment.setStatus("PAYMENT_PROCESSED");
                         workerPaymentService.save(payment);
@@ -101,7 +111,7 @@ public class PaymentProcessingService {
                 }
                 
                 // Find and update board receipt
-                Optional<BoardReceipt> boardReceiptOpt = boardReceiptRepository.findByEmployerRef(employerReceipt.getEmployerReceiptNumber());
+                Optional<BoardReceipt> boardReceiptOpt = boardReceiptQueryDao.findByEmployerRef(employerReceipt.getEmployerReceiptNumber());
                 
                 if (boardReceiptOpt.isPresent()) {
                     BoardReceipt boardReceipt = boardReceiptOpt.get();

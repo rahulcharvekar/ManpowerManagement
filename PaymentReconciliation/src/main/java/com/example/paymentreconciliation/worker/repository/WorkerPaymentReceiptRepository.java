@@ -1,23 +1,12 @@
 package com.example.paymentreconciliation.worker.repository;
 
 import com.example.paymentreconciliation.worker.entity.WorkerPaymentReceipt;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-
 public interface WorkerPaymentReceiptRepository extends JpaRepository<WorkerPaymentReceipt, Long> {
+    // All read operations now handled by WorkerPaymentReceiptQueryDao
+    // Only JPA save operations remain for WRITE operations
     
-    List<WorkerPaymentReceipt> findByStatus(String status);
-    
-    Page<WorkerPaymentReceipt> findByStatus(String status, Pageable pageable);
-    
-    Page<WorkerPaymentReceipt> findByStatusAndCreatedAtBetween(String status, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable);
-    
-    Page<WorkerPaymentReceipt> findByCreatedAtBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable);
-    
-    Optional<WorkerPaymentReceipt> findByReceiptNumber(String receiptNumber);
+    // Add method to find by receipt number for proper JPA entity management
+    java.util.Optional<WorkerPaymentReceipt> findByReceiptNumber(String receiptNumber);
 }

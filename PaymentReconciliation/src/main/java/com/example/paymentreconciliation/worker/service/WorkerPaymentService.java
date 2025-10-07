@@ -3,12 +3,16 @@ package com.example.paymentreconciliation.worker.service;
 import com.example.paymentreconciliation.worker.entity.WorkerPayment;
 import com.example.paymentreconciliation.exception.ResourceNotFoundException;
 import com.example.paymentreconciliation.worker.repository.WorkerPaymentRepository;
+import com.example.paymentreconciliation.worker.dao.WorkerPaymentQueryDao;
+import com.example.paymentreconciliation.common.dao.BaseQueryDao.PageResult;
 import java.util.List;
+import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
 @Service
@@ -18,9 +22,11 @@ public class WorkerPaymentService {
     private static final Logger log = LoggerFactoryProvider.getLogger(WorkerPaymentService.class);
 
     private final WorkerPaymentRepository repository;
+    private final WorkerPaymentQueryDao workerPaymentQueryDao;
 
-    public WorkerPaymentService(WorkerPaymentRepository repository) {
+    public WorkerPaymentService(WorkerPaymentRepository repository, WorkerPaymentQueryDao workerPaymentQueryDao) {
         this.repository = repository;
+        this.workerPaymentQueryDao = workerPaymentQueryDao;
     }
 
     public WorkerPayment create(WorkerPayment workerPayment) {
@@ -44,70 +50,86 @@ public class WorkerPaymentService {
         return saved;
     }
 
+    // READ OPERATIONS - Using Query DAO
     @Transactional(readOnly = true)
     public List<WorkerPayment> findByRequestReferencePrefix(String prefix) {
-        log.info("Finding worker payments with request reference starting with: {}", prefix);
-        return repository.findByRequestReferenceNumberStartingWith(prefix);
+        log.info("Finding worker payments with request reference starting with: {} using query DAO", prefix);
+        return workerPaymentQueryDao.findByRequestReferenceNumberStartingWith(prefix);
     }
 
     @Transactional(readOnly = true)
     public List<WorkerPayment> findByStatus(String status) {
-        log.info("Finding worker payments with status: {}", status);
-        return repository.findByStatus(status);
+        log.info("Finding worker payments with status: {} using query DAO", status);
+        // Using paginated method with large page size to get all results
+        return workerPaymentQueryDao.findByStatus(status, 0, 10000).getContent();
     }
 
     @Transactional(readOnly = true)
     public List<WorkerPayment> findByReferencePrefixAndStatus(String prefix, String status) {
-        log.info("Finding worker payments with reference prefix: {} and status: {}", prefix, status);
-        return repository.findByRequestReferenceNumberStartingWithAndStatus(prefix, status);
+        log.info("Finding worker payments with reference prefix: {} and status: {} using query DAO", prefix, status);
+        // Use the filter method with null values for other filters
+        return workerPaymentQueryDao.findWithFilters(status, null, null, null, null, 0, 10000).getContent()
+                .stream()
+                .filter(wp -> wp.getRequestReferenceNumber().startsWith(prefix))
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public List<WorkerPayment> findByFileId(String fileId) {
-        log.info("Finding worker payments with fileId: {}", fileId);
-        return repository.findByFileId(fileId);
+        log.info("Finding worker payments for fileId: {} using query DAO", fileId);
+        // Using paginated method with large page size to get all results
+        return workerPaymentQueryDao.findByFileId(fileId, 0, 10000).getContent();
     }
 
     @Transactional(readOnly = true)
     public List<WorkerPayment> findByFileIdAndStatus(String fileId, String status) {
-        log.info("Finding worker payments with fileId: {} and status: {}", fileId, status);
-        return repository.findByFileIdAndStatus(fileId, status);
+        log.info("Finding worker payments for fileId: {} with status: {} using query DAO", fileId, status);
+        return workerPaymentQueryDao.findWithFilters(status, null, fileId, null, null, 0, 10000).getContent();
     }
 
     @Transactional(readOnly = true)
     public Page<WorkerPayment> findByFileIdPaginated(String fileId, Pageable pageable) {
-        log.info("Finding worker payments with fileId: {} (paginated)", fileId);
-        return repository.findByFileId(fileId, pageable);
+        log.info("Finding worker payments with fileId: {} (paginated) using query DAO", fileId);
+        var result = workerPaymentQueryDao.findByFileId(fileId, pageable.getPageNumber(), pageable.getPageSize());
+        return createPageFromPageResult(result, pageable);
     }
 
     @Transactional(readOnly = true)
     public Page<WorkerPayment> findByFileIdAndStatusPaginated(String fileId, String status, Pageable pageable) {
-        log.info("Finding worker payments with fileId: {} and status: {} (paginated)", fileId, status);
-        return repository.findByFileIdAndStatus(fileId, status, pageable);
+        log.info("Finding worker payments with fileId: {} and status: {} (paginated) using query DAO", fileId, status);
+        var result = workerPaymentQueryDao.findWithFilters(status, null, fileId, null, null, 
+                                                           pageable.getPageNumber(), pageable.getPageSize());
+        return createPageFromPageResult(result, pageable);
     }
 
     @Transactional(readOnly = true)
     public List<WorkerPayment> findAll() {
-        log.info("Retrieving all worker payments");
-        return repository.findAll();
+        log.info("Retrieving all worker payments using query DAO");
+        // Use a large page size to get all results
+        return workerPaymentQueryDao.findWithFilters(null, null, null, null, null, 0, 100000).getContent();
     }
     
     @Transactional(readOnly = true)
     public Page<WorkerPayment> findAllPaginated(Pageable pageable) {
-        log.info("Retrieving all worker payments (paginated)");
-        return repository.findAll(pageable);
+        log.info("Retrieving all worker payments (paginated) using query DAO");
+        var result = workerPaymentQueryDao.findWithFilters(null, null, null, null, null, 
+                                                           pageable.getPageNumber(), pageable.getPageSize());
+        return createPageFromPageResult(result, pageable);
     }
     
     @Transactional(readOnly = true)
     public Page<WorkerPayment> findByStatusPaginated(String status, Pageable pageable) {
-        log.info("Finding worker payments with status: {} (paginated)", status);
-        return repository.findByStatus(status, pageable);
+        log.info("Finding worker payments with status: {} (paginated) using query DAO", status);
+        var result = workerPaymentQueryDao.findByStatus(status, pageable.getPageNumber(), pageable.getPageSize());
+        return createPageFromPageResult(result, pageable);
     }
     
     @Transactional(readOnly = true)
     public Page<WorkerPayment> findByReceiptNumber(String receiptNumber, Pageable pageable) {
-        log.info("Finding worker payments with receipt number: {} (paginated)", receiptNumber);
-        return repository.findByReceiptNumber(receiptNumber, pageable);
+        log.info("Finding worker payments with receipt number: {} (paginated) using query DAO", receiptNumber);
+        var result = workerPaymentQueryDao.findWithFilters(null, receiptNumber, null, null, null, 
+                                                           pageable.getPageNumber(), pageable.getPageSize());
+        return createPageFromPageResult(result, pageable);
     }
     
     @Transactional(readOnly = true)
@@ -115,9 +137,11 @@ public class WorkerPaymentService {
             String status,
             String receiptNumber,
             Pageable pageable) {
-        log.info("Finding worker payments with status: {}, receipt number: {} (paginated)", 
+        log.info("Finding worker payments with status: {}, receipt number: {} (paginated) using query DAO", 
                 status, receiptNumber);
-        return repository.findByStatusAndReceiptNumber(status, receiptNumber, pageable);
+        var result = workerPaymentQueryDao.findWithFilters(status, receiptNumber, null, null, null, 
+                                                           pageable.getPageNumber(), pageable.getPageSize());
+        return createPageFromPageResult(result, pageable);
     }
 
     @Transactional(readOnly = true)
@@ -166,30 +190,33 @@ public class WorkerPaymentService {
         return saved;
     }
 
-    public List<WorkerPayment> findByReceiptNumber(String receiptNumber) {
-        log.info("Finding worker payments by receipt number: {}", receiptNumber);
-        return repository.findByReceiptNumber(receiptNumber);
-    }
-
-    @Transactional(readOnly = true)
-    public Page<WorkerPayment> findByUploadedFileRefPaginated(String uploadedFileRef, Pageable pageable) {
-        log.info("Finding worker payments by uploaded file ref: {} (paginated)", uploadedFileRef);
-        return repository.findByUploadedFileRef(uploadedFileRef, pageable);
-    }
-
-    @Transactional(readOnly = true)
-    public List<WorkerPayment> findByUploadedFileRef(String uploadedFileRef) {
-        log.info("Finding worker payments by uploaded file ref: {}", uploadedFileRef);
-        return repository.findByUploadedFileRef(uploadedFileRef);
-    }
-
+    // All read methods now use WorkerPaymentQueryDao
+    // These methods are removed as they used the old repository approach
+    
     @Transactional(readOnly = true)
     public Page<WorkerPayment> findByStatusAndReceiptNumberAndDateRange(
-            String status, String receiptNumber, 
-            java.time.LocalDateTime startDate, java.time.LocalDateTime endDate, 
+            String status,
+            String receiptNumber,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
             Pageable pageable) {
-        log.info("Finding worker payments with comprehensive filters - status: {}, receiptNumber: {}, dateRange: {} to {}", 
+        log.info("Finding worker payments with status: {}, receipt number: {}, date range: {} to {} (paginated) using query DAO", 
                 status, receiptNumber, startDate, endDate);
-        return repository.findByStatusAndReceiptNumberAndDateRange(status, receiptNumber, startDate, endDate, pageable);
+        var result = workerPaymentQueryDao.findWithFilters(status, receiptNumber, null, startDate, endDate, 
+                                                           pageable.getPageNumber(), pageable.getPageSize());
+        return createPageFromPageResult(result, pageable);
+    }
+    
+    @Transactional(readOnly = true)
+    public Page<WorkerPayment> findByUploadedFileRefPaginated(String uploadedFileRef, Pageable pageable) {
+        log.info("Finding worker payments by uploaded file ref: {} (paginated) using query DAO", uploadedFileRef);
+        var result = workerPaymentQueryDao.findWithFilters(null, null, uploadedFileRef, null, null, 
+                                                           pageable.getPageNumber(), pageable.getPageSize());
+        return createPageFromPageResult(result, pageable);
+    }
+    
+    // Utility method to convert PageResult to Spring Page
+    private Page<WorkerPayment> createPageFromPageResult(PageResult<WorkerPayment> pageResult, Pageable pageable) {
+        return new PageImpl<>(pageResult.getContent(), pageable, pageResult.getTotalElements());
     }
 }

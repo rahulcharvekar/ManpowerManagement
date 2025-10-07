@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePermissions } from '../contexts/PermissionContext';
-import ActionGate from './ActionGate';
+import ActionGate from './core/ActionGate';
 
 const Dashboard = () => {
   const { getUserInfo, canPerformAction } = usePermissions();

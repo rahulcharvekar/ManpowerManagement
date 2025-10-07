@@ -10,6 +10,7 @@ import java.util.List;
 import java.time.LocalDateTime;
 
 public interface UploadedFileRepository extends JpaRepository<UploadedFile, Long> {
+    // READ operations - to be moved to UploadedFileQueryDao in future
     Optional<UploadedFile> findByFileHash(String fileHash);
     Optional<UploadedFile> findByFilename(String filename);
     Optional<UploadedFile> findByStoredPath(String storedPath);
@@ -18,7 +19,6 @@ public interface UploadedFileRepository extends JpaRepository<UploadedFile, Long
     List<UploadedFile> findByFileTypeOrderByUploadDateDesc(String fileType);
     List<UploadedFile> findByStatusOrderByUploadDateDesc(String status);
     
-    // Date-based queries
     @Query("SELECT uf FROM UploadedFile uf WHERE uf.uploadDate BETWEEN :startDate AND :endDate ORDER BY uf.uploadDate DESC")
     List<UploadedFile> findByUploadDateBetweenOrderByUploadDateDesc(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
     
@@ -31,7 +31,6 @@ public interface UploadedFileRepository extends JpaRepository<UploadedFile, Long
     @Query("SELECT uf FROM UploadedFile uf WHERE uf.uploadDate >= :startOfDay AND uf.uploadDate < :startOfNextDay ORDER BY uf.uploadDate DESC")
     List<UploadedFile> findByUploadDateOnly(@Param("startOfDay") LocalDateTime startOfDay, @Param("startOfNextDay") LocalDateTime startOfNextDay);
     
-    // Paginated methods for file summaries
     Page<UploadedFile> findByStatus(String status, Pageable pageable);
     
     @Query("SELECT uf FROM UploadedFile uf WHERE uf.uploadDate BETWEEN :startDate AND :endDate")

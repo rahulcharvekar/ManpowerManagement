@@ -8,6 +8,7 @@ export const API_ENDPOINTS = {
     LOGIN: '/api/auth/login',
     REGISTER: '/api/auth/register',
     ME: '/api/auth/me',
+    UI_CONFIG: '/api/auth/ui-config',
     USERS: '/api/auth/users', // Admin only
   },
 

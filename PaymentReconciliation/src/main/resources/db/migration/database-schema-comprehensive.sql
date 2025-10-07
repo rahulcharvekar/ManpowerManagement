@@ -397,12 +397,41 @@ CREATE TABLE IF NOT EXISTS user_roles (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
+-- 16. PERMISSION_API_ENDPOINTS TABLE (API Permission Mapping)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS permission_api_endpoints (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    permission_id BIGINT NOT NULL,
+    api_endpoint VARCHAR(255) NOT NULL,
+    http_method VARCHAR(10) NOT NULL DEFAULT 'GET',
+    description VARCHAR(255),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Indexes for performance
+    INDEX idx_permission_id (permission_id),
+    INDEX idx_api_endpoint (api_endpoint),
+    INDEX idx_http_method (http_method),
+    INDEX idx_active (is_active),
+    
+    -- Foreign key constraint
+    FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    
+    -- Unique constraint to prevent duplicate endpoint-method combinations per permission
+    UNIQUE KEY unique_permission_endpoint_method (permission_id, api_endpoint, http_method)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================================================
 -- DEMO/DEFAULT DATA
 -- =============================================================================
 
 -- For demo data (users, roles, permissions, sample master data), run:
 -- SOURCE demo-data-insertion.sql;
 -- OR execute the demo-data-insertion.sql file separately
+
+-- For permission-API endpoint mappings, run:
+-- SOURCE sample-permission-api-endpoints.sql;
 
 -- =============================================================================
 -- VERIFICATION QUERIES
@@ -429,6 +458,7 @@ SHOW TABLES;
 -- Drop RBAC tables first (due to foreign key constraints)
 DROP TABLE IF EXISTS user_roles;
 DROP TABLE IF EXISTS role_permissions;
+DROP TABLE IF EXISTS permission_api_endpoints;
 DROP TABLE IF EXISTS roles;
 DROP TABLE IF EXISTS permissions;
 DROP TABLE IF EXISTS users;

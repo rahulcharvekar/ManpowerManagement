@@ -48,20 +48,7 @@ public class UploadedFileService {
                     return new ResourceNotFoundException("Uploaded file not found with id: " + id);
                 });
     }
-    
-    @Transactional(readOnly = true)
-    public List<UploadedFile> getUploadedFilesByType(String fileType) {
-        log.info("Retrieving uploaded files by type: {}", fileType);
-        // Note: You'll need to add this method to the repository
-        return uploadedFileRepository.findByFileType(fileType);
-    }
-    
-    @Transactional(readOnly = true)
-    public List<UploadedFile> getUploadedFilesByStatus(String status) {
-        log.info("Retrieving uploaded files by status: {}", status);
-        // Note: You'll need to add this method to the repository
-        return uploadedFileRepository.findByStatus(status);
-    }
+
     
     public Resource downloadFile(Long fileId) {
         log.info("Attempting to download file with id: {}", fileId);
@@ -113,30 +100,7 @@ public class UploadedFileService {
             return MediaType.APPLICATION_OCTET_STREAM_VALUE;
         }
     }
-    
-    @Transactional
-    public void deleteUploadedFile(Long fileId) {
-        log.info("Deleting uploaded file with id: {}", fileId);
-        
-        UploadedFile uploadedFile = getUploadedFileById(fileId);
-        
-        try {
-            // Delete physical file
-            Path filePath = Paths.get(uploadedFile.getStoredPath());
-            Files.deleteIfExists(filePath);
-            log.info("Physical file deleted: {}", uploadedFile.getStoredPath());
-            
-            // Delete database record
-            uploadedFileRepository.deleteById(fileId);
-            log.info("Database record deleted for file id: {}", fileId);
-            
-        } catch (IOException e) {
-            log.error("Error deleting physical file for id: {}", fileId, e);
-            // Still delete from database even if physical file deletion fails
-            uploadedFileRepository.deleteById(fileId);
-            throw new RuntimeException("File deleted from database but physical file deletion failed: " + e.getMessage(), e);
-        }
-    }
+
     
     @Transactional(readOnly = true)
     public boolean fileExists(Long fileId) {
@@ -155,79 +119,6 @@ public class UploadedFileService {
                 fileId, true, exists);
         
         return exists;
-    }
-    
-    /**
-     * Get uploaded files by date criteria
-     * @param singleDate Single date in YYYY-MM-DD format (optional)
-     * @param startDate Start date in YYYY-MM-DD format (optional)
-     * @param endDate End date in YYYY-MM-DD format (optional)
-     * @return Map containing the results or error information
-     */
-    @Transactional(readOnly = true)
-    public Map<String, Object> getFilesByDate(String singleDate, String startDate, String endDate) {
-        log.info("Getting files by date criteria: singleDate={}, startDate={}, endDate={}", singleDate, startDate, endDate);
-        
-        try {
-            List<UploadedFile> files;
-            String queryDescription;
-            
-            if (singleDate != null && !singleDate.trim().isEmpty()) {
-                // Single date query
-                LocalDateTime startOfDay = parseDate(singleDate).atStartOfDay();
-                LocalDateTime startOfNextDay = startOfDay.plusDays(1);
-                files = uploadedFileRepository.findByUploadDateOnly(startOfDay, startOfNextDay);
-                queryDescription = "Files uploaded on " + singleDate;
-                
-            } else if (startDate != null && endDate != null && 
-                      !startDate.trim().isEmpty() && !endDate.trim().isEmpty()) {
-                // Date range query
-                LocalDateTime start = parseDate(startDate).atStartOfDay();
-                LocalDateTime end = parseDate(endDate).atTime(23, 59, 59);
-                files = uploadedFileRepository.findByUploadDateBetweenOrderByUploadDateDesc(start, end);
-                queryDescription = "Files uploaded between " + startDate + " and " + endDate;
-                
-            } else if (startDate != null && !startDate.trim().isEmpty()) {
-                // From start date onwards
-                LocalDateTime start = parseDate(startDate).atStartOfDay();
-                files = uploadedFileRepository.findByUploadDateGreaterThanEqualOrderByUploadDateDesc(start);
-                queryDescription = "Files uploaded from " + startDate + " onwards";
-                
-            } else if (endDate != null && !endDate.trim().isEmpty()) {
-                // Up to end date
-                LocalDateTime end = parseDate(endDate).atTime(23, 59, 59);
-                files = uploadedFileRepository.findByUploadDateLessThanEqualOrderByUploadDateDesc(end);
-                queryDescription = "Files uploaded up to " + endDate;
-                
-            } else {
-                // No date criteria provided, return all files
-                files = uploadedFileRepository.findAll();
-                queryDescription = "All uploaded files";
-            }
-            
-            Map<String, Object> result = new HashMap<>();
-            result.put("files", files.stream().map(this::createFileSummary).toList());
-            result.put("totalCount", files.size());
-            result.put("queryDescription", queryDescription);
-            result.put("success", true);
-            
-            log.info("Found {} files for date criteria", files.size());
-            return result;
-            
-        } catch (DateTimeParseException e) {
-            log.error("Invalid date format provided", e);
-            return Map.of(
-                "success", false,
-                "error", "Invalid date format. Please use YYYY-MM-DD format.",
-                "details", e.getMessage()
-            );
-        } catch (Exception e) {
-            log.error("Error retrieving files by date", e);
-            return Map.of(
-                "success", false,
-                "error", "Failed to retrieve files: " + e.getMessage()
-            );
-        }
     }
     
     private LocalDate parseDate(String dateString) throws DateTimeParseException {

@@ -36,9 +36,6 @@ public class WorkerUploadedDataController {
     @Autowired
     private WorkerPaymentFileService fileService;
 
-    @Autowired
-    private com.example.paymentreconciliation.common.service.PaginationSessionService paginationSessionService;
-
     public WorkerUploadedDataController(WorkerUploadedDataService service) {
         this.service = service;
     }
@@ -89,38 +86,6 @@ public class WorkerUploadedDataController {
                 "error", "Failed to retrieve data: " + e.getMessage(),
                 "timestamp", java.time.LocalDateTime.now()
             ));
-        }
-    }
-
-    // Create an opaque pagination session to avoid exposing query params in URLs
-    @PostMapping("/file/{fileId}/pagination-session")
-    @Operation(summary = "Create pagination session", description = "Create an opaque pagination session token for subsequent paginated requests. Prevents tampering with query parameters in the URL.")
-    public ResponseEntity<?> createPaginationSession(
-            @Parameter(description = "File ID") @PathVariable String fileId,
-            @RequestBody(required = false) PaginationSessionRequest request) {
-        try {
-            // Build a generic filters map to store server-side
-            java.util.Map<String, String> filters = new java.util.HashMap<>();
-            if (request != null) {
-                if (request.getStatus() != null) filters.put("status", request.getStatus());
-                if (request.getStartDate() != null) filters.put("startDate", request.getStartDate());
-                if (request.getEndDate() != null) filters.put("endDate", request.getEndDate());
-                if (request.getSortBy() != null) filters.put("sortBy", request.getSortBy());
-                if (request.getSortDir() != null) filters.put("sortDir", request.getSortDir());
-            }
-
-            Long ttlMs = request != null ? request.getTtlMs() : null;
-            Integer maxPageSize = request != null ? request.getMaxPageSize() : null;
-
-            String token = paginationSessionService.createSession("workerUploadedData", fileId, filters, ttlMs, maxPageSize);
-
-            com.example.paymentreconciliation.common.service.PaginationSessionService.PaginationSession s = paginationSessionService.getSession(token);
-            long expiresInMs = s != null ? s.expiresAt.toEpochMilli() - java.time.Instant.now().toEpochMilli() : 0L;
-
-            return ResponseEntity.ok(Map.of("paginationToken", token, "expiresInMs", expiresInMs));
-        } catch (Exception e) {
-            log.error("Error creating pagination session for fileId={}", fileId, e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -220,28 +185,6 @@ public class WorkerUploadedDataController {
         }
     }
 
-    @GetMapping("/file/{fileId}/summary")
-    @Operation(summary = "Get comprehensive file summary", 
-               description = "Returns comprehensive summary including file metadata, validation counts, and total amount for payment generation")
-    public ResponseEntity<?> getComprehensiveFileSummary(
-            @Parameter(description = "File ID") 
-            @PathVariable String fileId) {
-        log.info("Getting comprehensive summary for fileId: {}", fileId);
-        
-        try {
-            Map<String, Object> summary = service.getComprehensiveFileSummary(fileId);
-            
-            if (summary.containsKey("error")) {
-                return ResponseEntity.badRequest().body(summary);
-            }
-            
-            return ResponseEntity.ok(summary);
-        } catch (Exception e) {
-            log.error("Error getting comprehensive summary for fileId: {}", fileId, e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
     @PostMapping("/file/{fileId}/validate")
     @Operation(summary = "Validate uploaded data", 
                description = "Validates all uploaded data for a specific file and updates uploaded file status")
@@ -307,91 +250,6 @@ public class WorkerUploadedDataController {
         }
     }
 
-    // New endpoint: fetch paginated results using server-side session token (sent in POST body)
-    @PostMapping("/results/{fileId}/by-session")
-    @Operation(summary = "Get uploaded data results by session token", description = "Submit pagination token and page request in body to avoid exposing params in URL. Token enforces server-side filters and limits.")
-    public ResponseEntity<?> getValidationResultsBySession(
-            @Parameter(description = "File ID") @PathVariable String fileId,
-            @RequestBody SessionedPageRequest pageRequest) {
-        try {
-            if (pageRequest == null || pageRequest.getPaginationToken() == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "paginationToken is required in body"));
-            }
-
-            com.example.paymentreconciliation.common.service.PaginationSessionService.PaginationSession session = paginationSessionService.getSession(pageRequest.getPaginationToken());
-            if (session == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid or expired pagination token"));
-            }
-
-            // Ensure token fileId matches requested path
-        if (!fileId.equals(session.resourceId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Token does not belong to requested fileId"));
-            }
-
-            int page = pageRequest.getPage() >= 0 ? pageRequest.getPage() : 0;
-        int size = Math.min(pageRequest.getSize() <= 0 ? 20 : pageRequest.getSize(), session.maxPageSize);
-
-        // Delegate to existing service but use session's filters
-        String status = session.filters != null ? session.filters.get("status") : null;
-        String startDate = session.filters != null ? session.filters.get("startDate") : null;
-        String endDate = session.filters != null ? session.filters.get("endDate") : null;
-        String sortBy = session.filters != null ? session.filters.getOrDefault("sortBy", "rowNumber") : "rowNumber";
-        String sortDir = session.filters != null ? session.filters.getOrDefault("sortDir", "asc") : "asc";
-
-        Map<String, Object> result = fileService.getValidationResultsPaginated(
-            fileId, page, size, status, startDate, endDate, sortBy, sortDir);
-
-            if (result.containsKey("error")) {
-                return ResponseEntity.badRequest().body(result);
-            }
-
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            log.error("Error fetching sessioned validation results for fileId={}", fileId, e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    // DTOs for session endpoints
-    public static class PaginationSessionRequest {
-        private String status;
-        private String startDate;
-        private String endDate;
-        private String sortBy;
-        private String sortDir;
-        private Long ttlMs; // dev-only override
-        private Integer maxPageSize; // dev-only override
-
-        // getters/setters
-        public String getStatus() { return status; }
-        public void setStatus(String status) { this.status = status; }
-        public String getStartDate() { return startDate; }
-        public void setStartDate(String startDate) { this.startDate = startDate; }
-        public String getEndDate() { return endDate; }
-        public void setEndDate(String endDate) { this.endDate = endDate; }
-        public String getSortBy() { return sortBy; }
-        public void setSortBy(String sortBy) { this.sortBy = sortBy; }
-        public String getSortDir() { return sortDir; }
-        public void setSortDir(String sortDir) { this.sortDir = sortDir; }
-        public Long getTtlMs() { return ttlMs; }
-        public void setTtlMs(Long ttlMs) { this.ttlMs = ttlMs; }
-        public Integer getMaxPageSize() { return maxPageSize; }
-        public void setMaxPageSize(Integer maxPageSize) { this.maxPageSize = maxPageSize; }
-    }
-
-    public static class SessionedPageRequest {
-        private String paginationToken;
-        private int page;
-        private int size;
-
-        public String getPaginationToken() { return paginationToken; }
-        public void setPaginationToken(String paginationToken) { this.paginationToken = paginationToken; }
-        public int getPage() { return page; }
-        public void setPage(int page) { this.page = page; }
-        public int getSize() { return size; }
-        public void setSize(int size) { this.size = size; }
-    }
-
     @PostMapping("/file/{fileId}/generate-request")
     @Operation(summary = "Generate request for validated data", 
                description = "Generates request numbers for validated data (keeps data in same table)")
@@ -423,39 +281,6 @@ public class WorkerUploadedDataController {
         }
     }
 
-    @GetMapping("/file/{fileId}/rejected")
-    @Operation(summary = "Get rejected records", 
-               description = "Returns rejected records for a specific file with pagination")
-    public ResponseEntity<?> getRejectedRecords(
-            @Parameter(description = "File ID") 
-            @PathVariable String fileId,
-            @Parameter(description = "Page number (0-based)", example = "0")
-            @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Page size", example = "20") 
-            @RequestParam(defaultValue = "20") int size) {
-        log.info("Fetching rejected records for fileId: {}", fileId);
-        
-        try {
-            Pageable pageable = PageRequest.of(page, size, Sort.by("rowNumber").ascending());
-            Page<WorkerUploadedData> rejectedPage = service.findRejectedRecordsPaginated(fileId, pageable);
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("rejectedRecords", rejectedPage.getContent());
-            response.put("totalElements", rejectedPage.getTotalElements());
-            response.put("totalPages", rejectedPage.getTotalPages());
-            response.put("currentPage", rejectedPage.getNumber());
-            response.put("pageSize", rejectedPage.getSize());
-            response.put("hasNext", rejectedPage.hasNext());
-            response.put("hasPrevious", rejectedPage.hasPrevious());
-            
-            return ResponseEntity.ok(response);
-            
-        } catch (Exception e) {
-            log.error("Error fetching rejected records for fileId: {}", fileId, e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
     @DeleteMapping("/file/{fileId}")
     @Operation(summary = "Delete uploaded data", 
                description = "Deletes all uploaded data for a specific file")
@@ -474,39 +299,6 @@ public class WorkerUploadedDataController {
             
         } catch (Exception e) {
             log.error("Error deleting uploaded data for fileId: {}", fileId, e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    @GetMapping("/file/{fileId}/requests")
-    @Operation(summary = "Get generated requests", 
-               description = "Returns requests (records with REQUEST_GENERATED status) for a specific file with pagination")
-    public ResponseEntity<?> getGeneratedRequests(
-            @Parameter(description = "File ID") 
-            @PathVariable String fileId,
-            @Parameter(description = "Page number (0-based)", example = "0")
-            @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Page size", example = "20") 
-            @RequestParam(defaultValue = "20") int size) {
-        log.info("Fetching generated requests for fileId: {}", fileId);
-        
-        try {
-            Pageable pageable = PageRequest.of(page, size, Sort.by("receiptNumber", "rowNumber").ascending());
-            Page<WorkerUploadedData> requestsPage = service.findRequestGeneratedRecordsPaginated(fileId, pageable);
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("requests", requestsPage.getContent());
-            response.put("totalElements", requestsPage.getTotalElements());
-            response.put("totalPages", requestsPage.getTotalPages());
-            response.put("currentPage", requestsPage.getNumber());
-            response.put("pageSize", requestsPage.getSize());
-            response.put("hasNext", requestsPage.hasNext());
-            response.put("hasPrevious", requestsPage.hasPrevious());
-            
-            return ResponseEntity.ok(response);
-            
-        } catch (Exception e) {
-            log.error("Error fetching generated requests for fileId: {}", fileId, e);
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
