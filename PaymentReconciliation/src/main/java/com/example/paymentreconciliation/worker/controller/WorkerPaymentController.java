@@ -59,7 +59,7 @@ public class WorkerPaymentController {
             @Parameter(description = "Payment status filter") @RequestParam(required = false) String status,
             @Parameter(description = "Receipt number filter") @RequestParam(required = false) String receiptNumber,
             @Parameter(description = "Start date for filtering (YYYY-MM-DD) - MANDATORY") @RequestParam(required = true) String startDate,
-            @Parameter(description = "End date for filtering (YYYY-MM-DD)") @RequestParam(required = false) String endDate,
+            @Parameter(description = "End date for filtering (YYYY-MM-DD) - MANDATORY") @RequestParam(required = true) String endDate,
             @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size,
             @Parameter(description = "Sort field") @RequestParam(defaultValue = "createdAt") String sortBy,

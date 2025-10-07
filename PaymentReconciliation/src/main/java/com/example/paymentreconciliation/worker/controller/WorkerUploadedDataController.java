@@ -157,8 +157,8 @@ public class WorkerUploadedDataController {
             @RequestParam(required = false) String status,
             @Parameter(description = "Start date for range filter (YYYY-MM-DD) - MANDATORY", example = "2024-01-01")
             @RequestParam(required = true) String startDate,
-            @Parameter(description = "End date for range filter (YYYY-MM-DD)", example = "2024-01-31")
-            @RequestParam(required = false) String endDate,
+            @Parameter(description = "End date for range filter (YYYY-MM-DD) - MANDATORY", example = "2024-01-31")
+            @RequestParam(required = true) String endDate,
             @Parameter(description = "Sort field", example = "uploadDate")
             @RequestParam(defaultValue = "uploadDate") String sortBy,
             @Parameter(description = "Sort direction", example = "desc")
@@ -224,8 +224,8 @@ public class WorkerUploadedDataController {
             @RequestParam(required = false) String status,
             @Parameter(description = "Start date for range filter (YYYY-MM-DD) - MANDATORY", example = "2024-01-01")
             @RequestParam(required = true) String startDate,
-            @Parameter(description = "End date for range filter (YYYY-MM-DD)", example = "2024-01-31")
-            @RequestParam(required = false) String endDate,
+            @Parameter(description = "End date for range filter (YYYY-MM-DD) - MANDATORY", example = "2024-01-31")
+            @RequestParam(required = true) String endDate,
             @Parameter(description = "Sort field", example = "rowNumber")
             @RequestParam(defaultValue = "rowNumber") String sortBy,
             @Parameter(description = "Sort direction", example = "asc")

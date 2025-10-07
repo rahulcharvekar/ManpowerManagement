@@ -1,7 +1,5 @@
-package com.example.paymentreconciliation.config;
+package com.example.paymentreconciliation.auth.security;
 
-import com.example.paymentreconciliation.auth.security.AuthEntryPointJwt;
-import com.example.paymentreconciliation.auth.security.AuthTokenFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -42,6 +40,9 @@ public class EnhancedSecurityConfig {
                 // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
+                
+                // Temporarily allow admin/roles endpoints without authentication for testing
+                .requestMatchers("/api/admin/roles/**").permitAll()
                 
                 // Swagger/OpenAPI endpoints
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()

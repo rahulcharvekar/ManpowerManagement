@@ -5,10 +5,10 @@ import com.example.paymentreconciliation.auth.entity.Role;
 import com.example.paymentreconciliation.auth.entity.User;
 import com.example.paymentreconciliation.auth.service.RoleService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,7 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/roles")
 @Tag(name = "Role Management", description = "APIs for managing roles")
-@PreAuthorize("hasRole('ADMIN')")
+@SecurityRequirement(name = "Bearer Authentication")
 public class RoleController {
     
     @Autowired

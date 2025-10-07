@@ -1,4 +1,4 @@
-package com.example.paymentreconciliation.config;
+package com.example.paymentreconciliation.exception;
 
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.http.HttpStatus;

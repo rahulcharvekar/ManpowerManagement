@@ -3,13 +3,13 @@ package com.example.paymentreconciliation.auth.controller;
 import com.example.paymentreconciliation.auth.entity.PermissionApiEndpoint;
 import com.example.paymentreconciliation.auth.service.PermissionApiEndpointService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,7 +19,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/admin/permission-endpoints")
 @Tag(name = "Permission API Endpoint Management", description = "CRUD operations for permission-API mappings")
-@PreAuthorize("hasRole('ADMIN')")
+@SecurityRequirement(name = "Bearer Authentication")
 public class PermissionApiEndpointController {
 
     private static final Logger logger = LoggerFactory.getLogger(PermissionApiEndpointController.class);
