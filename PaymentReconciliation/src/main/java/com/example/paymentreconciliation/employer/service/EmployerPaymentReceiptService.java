@@ -68,7 +68,7 @@ public class EmployerPaymentReceiptService {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         
         // Default status to GENERATED if not provided
-        String filterStatus = (status != null && !status.trim().isEmpty()) ? status : "GENERATED";
+        String filterStatus = (status != null && !status.trim().isEmpty()) ? status : "PAYMENT_INITIATED";
         
         Page<WorkerPaymentReceipt> receiptsPage;
         

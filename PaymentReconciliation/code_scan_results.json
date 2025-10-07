@@ -1,0 +1,2228 @@
+{
+  "jwt_issues": [
+    {
+      "file": "code_scanner.py",
+      "issue": "JWT verification disabled (verify=False)",
+      "severity": "CRITICAL"
+    },
+    {
+      "file": "code_scanner.py",
+      "issue": "JWT decode without explicit algorithm specification",
+      "severity": "MEDIUM"
+    },
+    {
+      "file": "code_scanner.py",
+      "issue": "JWT token may be logged or printed",
+      "severity": "HIGH"
+    },
+    {
+      "file": "src/main/java/com/example/paymentreconciliation/auth/security/JwtUtils.java",
+      "issue": "JWT decode without explicit algorithm specification",
+      "severity": "MEDIUM"
+    },
+    {
+      "file": "src/main/java/com/example/paymentreconciliation/auth/security/JwtUtils.java",
+      "issue": "JWT token may be logged or printed",
+      "severity": "HIGH"
+    },
+    {
+      "file": "src/main/java/com/example/paymentreconciliation/auth/security/AuthEntryPointJwt.java",
+      "issue": "JWT token may be logged or printed",
+      "severity": "HIGH"
+    }
+  ],
+  "duplicate_code": [
+    {
+      "locations": [
+        {
+          "file": "code_scanner.py",
+          "start_line": 129,
+          "block": "            matches = re.finditer(pattern, content, re.IGNORECASE)\n            for match in matches:..."
+        },
+        {
+          "file": "code_scanner.py",
+          "start_line": 149,
+          "block": "            matches = re.finditer(pattern, content, re.IGNORECASE)\n            for match in matches:..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "code_scanner.py",
+          "start_line": 130,
+          "block": "            for match in matches:\n                line_num = content[:match.start()].count('\\n') + 1..."
+        },
+        {
+          "file": "code_scanner.py",
+          "start_line": 150,
+          "block": "            for match in matches:\n                line_num = content[:match.start()].count('\\n') + 1..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "code_scanner.py",
+          "start_line": 131,
+          "block": "                line_num = content[:match.start()].count('\\n') + 1\n                issues_found.appe..."
+        },
+        {
+          "file": "code_scanner.py",
+          "start_line": 151,
+          "block": "                line_num = content[:match.start()].count('\\n') + 1\n                issues_found.appe..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 43,
+          "block": "        \n        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 63,
+          "block": "        \n        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 81,
+          "block": "        \n        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 99,
+          "block": "        \n        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 117,
+          "block": "        \n        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 135,
+          "block": "        \n        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 153,
+          "block": "        \n        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 171,
+          "block": "        \n        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 189,
+          "block": "        \n        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 209,
+          "block": "        \n        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 229,
+          "block": "        \n        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 44,
+          "block": "        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);\n        ..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 64,
+          "block": "        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);\n        ..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 82,
+          "block": "        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);\n        ..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 100,
+          "block": "        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);\n        ..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 118,
+          "block": "        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);\n        ..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 136,
+          "block": "        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);\n        ..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 154,
+          "block": "        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);\n        ..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 172,
+          "block": "        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);\n        ..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 190,
+          "block": "        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);\n        ..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 210,
+          "block": "        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);\n        ..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 230,
+          "block": "        when(repository.findByFileIdAndStatus(testFileId, \"UPLOADED\")).thenReturn(records);\n        ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 45,
+          "block": "        when(repository.saveAll(anyList())).thenReturn(records);\n\n        // Act\n        service.val..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 65,
+          "block": "        when(repository.saveAll(anyList())).thenReturn(records);\n\n        // Act\n        service.val..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 83,
+          "block": "        when(repository.saveAll(anyList())).thenReturn(records);\n\n        // Act\n        service.val..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 101,
+          "block": "        when(repository.saveAll(anyList())).thenReturn(records);\n\n        // Act\n        service.val..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 119,
+          "block": "        when(repository.saveAll(anyList())).thenReturn(records);\n\n        // Act\n        service.val..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 137,
+          "block": "        when(repository.saveAll(anyList())).thenReturn(records);\n\n        // Act\n        service.val..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 155,
+          "block": "        when(repository.saveAll(anyList())).thenReturn(records);\n\n        // Act\n        service.val..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 173,
+          "block": "        when(repository.saveAll(anyList())).thenReturn(records);\n\n        // Act\n        service.val..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 191,
+          "block": "        when(repository.saveAll(anyList())).thenReturn(records);\n\n        // Act\n        service.val..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 211,
+          "block": "        when(repository.saveAll(anyList())).thenReturn(records);\n\n        // Act\n        service.val..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 231,
+          "block": "        when(repository.saveAll(anyList())).thenReturn(records);\n\n        // Act\n        service.val..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 62,
+          "block": "        List<WorkerUploadedData> records = Arrays.asList(invalidRecord);\n        \n        when(repos..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 80,
+          "block": "        List<WorkerUploadedData> records = Arrays.asList(invalidRecord);\n        \n        when(repos..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 98,
+          "block": "        List<WorkerUploadedData> records = Arrays.asList(invalidRecord);\n        \n        when(repos..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 116,
+          "block": "        List<WorkerUploadedData> records = Arrays.asList(invalidRecord);\n        \n        when(repos..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 134,
+          "block": "        List<WorkerUploadedData> records = Arrays.asList(invalidRecord);\n        \n        when(repos..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 152,
+          "block": "        List<WorkerUploadedData> records = Arrays.asList(invalidRecord);\n        \n        when(repos..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 170,
+          "block": "        List<WorkerUploadedData> records = Arrays.asList(invalidRecord);\n        \n        when(repos..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 188,
+          "block": "        List<WorkerUploadedData> records = Arrays.asList(invalidRecord);\n        \n        when(repos..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 208,
+          "block": "        List<WorkerUploadedData> records = Arrays.asList(invalidRecord);\n        \n        when(repos..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/WorkerUploadedDataServiceTest.java",
+          "start_line": 228,
+          "block": "        List<WorkerUploadedData> records = Arrays.asList(invalidRecord);\n        \n        when(repos..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/EnhancedWorkerPaymentServiceTest.java",
+          "start_line": 185,
+          "block": "        \n        PageResult<WorkerPayment> mockPageResult = new PageResult<>(\n            List.of(sa..."
+        },
+        {
+          "file": "src/test/java/com/example/paymentreconciliation/worker/service/EnhancedWorkerPaymentServiceTest.java",
+          "start_line": 214,
+          "block": "        \n        PageResult<WorkerPayment> mockPageResult = new PageResult<>(\n            List.of(sa..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 71,
+          "block": "                \"message\", e.getMessage(),\n                \"transactionReference\", transactionRefere..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 130,
+          "block": "                \"message\", e.getMessage(),\n                \"transactionReference\", transactionRefere..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 205,
+          "block": "                \"message\", e.getMessage(),\n                \"transactionReference\", transactionRefere..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 80,
+          "block": "                \"transactionReference\", transactionReference,\n                \"timestamp\", LocalDate..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 139,
+          "block": "                \"transactionReference\", transactionReference,\n                \"timestamp\", LocalDate..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 214,
+          "block": "                \"transactionReference\", transactionReference,\n                \"timestamp\", LocalDate..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 81,
+          "block": "                \"timestamp\", LocalDateTime.now().toString()\n            ));\n        }\n    }\n    "
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 140,
+          "block": "                \"timestamp\", LocalDateTime.now().toString()\n            ));\n        }\n    }\n    "
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 82,
+          "block": "            ));\n        }\n    }\n    \n    /**"
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 141,
+          "block": "            ));\n        }\n    }\n    \n    /**"
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 110,
+          "block": "            byte[] pdfBytes = paymentProcessingService.generatePaymentReportPDF(result);\n           ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 179,
+          "block": "            byte[] pdfBytes = paymentProcessingService.generatePaymentReportPDF(result);\n           ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 113,
+          "block": "            String filename = \"New Doc \" + LocalDateTime.now().format(DateTimeFormatter.ofPattern(\"M..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 182,
+          "block": "            String filename = \"New Doc \" + LocalDateTime.now().format(DateTimeFormatter.ofPattern(\"M..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 114,
+          "block": "            \n            HttpHeaders headers = new HttpHeaders();\n            headers.setContentType..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 183,
+          "block": "            \n            HttpHeaders headers = new HttpHeaders();\n            headers.setContentType..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 115,
+          "block": "            HttpHeaders headers = new HttpHeaders();\n            headers.setContentType(MediaType.AP..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 184,
+          "block": "            HttpHeaders headers = new HttpHeaders();\n            headers.setContentType(MediaType.AP..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 121,
+          "block": "            \n            return ResponseEntity.ok()\n                    .headers(headers)\n          ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 196,
+          "block": "            \n            return ResponseEntity.ok()\n                    .headers(headers)\n          ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 122,
+          "block": "            return ResponseEntity.ok()\n                    .headers(headers)\n                    .bo..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/controller/PaymentProcessingController.java",
+          "start_line": 197,
+          "block": "            return ResponseEntity.ok()\n                    .headers(headers)\n                    .bo..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/service/MT940ReconciliationService.java",
+          "start_line": 241,
+          "block": "    }\n    \n    /**\n     * Load and parse actual MT940 transactions from files in classpath\n     */"
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/service/MT940ReconciliationService.java",
+          "start_line": 271,
+          "block": "    }\n    \n    /**\n     * Load and parse actual MT940 transactions from files in classpath\n     */"
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/service/MT940ReconciliationService.java",
+          "start_line": 269,
+          "block": "        \n        return transactions;\n    }\n    \n    /**"
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/service/MT940ReconciliationService.java",
+          "start_line": 307,
+          "block": "        \n        return transactions;\n    }\n    \n    /**"
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/service/MT940ReconciliationService.java",
+          "start_line": 333,
+          "block": "        \n        return transactions;\n    }\n    \n    /**"
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/service/MT940ReconciliationService.java",
+          "start_line": 306,
+          "block": "        }\n        \n        return transactions;\n    }\n    "
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/reconciliation/service/MT940ReconciliationService.java",
+          "start_line": 332,
+          "block": "        }\n        \n        return transactions;\n    }\n    "
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 26,
+          "block": "        config.addAllowedMethod(\"GET\");\n        config.addAllowedMethod(\"POST\");\n        config.addA..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 58,
+          "block": "        config.addAllowedMethod(\"GET\");\n        config.addAllowedMethod(\"POST\");\n        config.addA..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 90,
+          "block": "        config.addAllowedMethod(\"GET\");\n        config.addAllowedMethod(\"POST\");\n        config.addA..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 27,
+          "block": "        config.addAllowedMethod(\"POST\");\n        config.addAllowedMethod(\"PUT\");\n        config.addA..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 59,
+          "block": "        config.addAllowedMethod(\"POST\");\n        config.addAllowedMethod(\"PUT\");\n        config.addA..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 91,
+          "block": "        config.addAllowedMethod(\"POST\");\n        config.addAllowedMethod(\"PUT\");\n        config.addA..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 33,
+          "block": "\n        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();\n        sou..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 64,
+          "block": "\n        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();\n        sou..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 96,
+          "block": "\n        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();\n        sou..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 34,
+          "block": "        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();\n        sour..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 65,
+          "block": "        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();\n        sour..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 35,
+          "block": "        source.registerCorsConfiguration(\"/**\", config);\n        return new CorsFilter(source);\n    ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 66,
+          "block": "        source.registerCorsConfiguration(\"/**\", config);\n        return new CorsFilter(source);\n    ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 48,
+          "block": "        \n        config.setAllowCredentials(true);\n        \n        // Set allowed headers\n        c..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 80,
+          "block": "        \n        config.setAllowCredentials(true);\n        \n        // Set allowed headers\n        c..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 49,
+          "block": "        config.setAllowCredentials(true);\n        \n        // Set allowed headers\n        config.add..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 81,
+          "block": "        config.setAllowCredentials(true);\n        \n        // Set allowed headers\n        config.add..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 52,
+          "block": "        config.addAllowedHeader(\"Content-Type\");\n        config.addAllowedHeader(\"Authorization\");\n ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 84,
+          "block": "        config.addAllowedHeader(\"Content-Type\");\n        config.addAllowedHeader(\"Authorization\");\n ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 53,
+          "block": "        config.addAllowedHeader(\"Authorization\");\n        config.addAllowedHeader(\"X-Requested-With\"..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 85,
+          "block": "        config.addAllowedHeader(\"Authorization\");\n        config.addAllowedHeader(\"X-Requested-With\"..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 54,
+          "block": "        config.addAllowedHeader(\"X-Requested-With\");\n        config.addAllowedHeader(\"Accept\");\n    ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 86,
+          "block": "        config.addAllowedHeader(\"X-Requested-With\");\n        config.addAllowedHeader(\"Accept\");\n    ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 55,
+          "block": "        config.addAllowedHeader(\"Accept\");\n        \n        // Set allowed methods\n        config.ad..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 87,
+          "block": "        config.addAllowedHeader(\"Accept\");\n        \n        // Set allowed methods\n        config.ad..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 60,
+          "block": "        config.addAllowedMethod(\"PUT\");\n        config.addAllowedMethod(\"PATCH\");\n        config.add..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 92,
+          "block": "        config.addAllowedMethod(\"PUT\");\n        config.addAllowedMethod(\"PATCH\");\n        config.add..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 61,
+          "block": "        config.addAllowedMethod(\"PATCH\");\n        config.addAllowedMethod(\"DELETE\");\n        config...."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 93,
+          "block": "        config.addAllowedMethod(\"PATCH\");\n        config.addAllowedMethod(\"DELETE\");\n        config...."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 62,
+          "block": "        config.addAllowedMethod(\"DELETE\");\n        config.addAllowedMethod(\"OPTIONS\");\n\n        UrlB..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 94,
+          "block": "        config.addAllowedMethod(\"DELETE\");\n        config.addAllowedMethod(\"OPTIONS\");\n\n        UrlB..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 63,
+          "block": "        config.addAllowedMethod(\"OPTIONS\");\n\n        UrlBasedCorsConfigurationSource source = new Ur..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+          "start_line": 95,
+          "block": "        config.addAllowedMethod(\"OPTIONS\");\n\n        UrlBasedCorsConfigurationSource source = new Ur..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/security/JwtUtils.java",
+          "start_line": 48,
+          "block": "                .issuedAt(Date.from(now))\n                .expiration(Date.from(now.plus(jwtExpirati..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/security/JwtUtils.java",
+          "start_line": 58,
+          "block": "                .issuedAt(Date.from(now))\n                .expiration(Date.from(now.plus(jwtExpirati..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/security/JwtUtils.java",
+          "start_line": 49,
+          "block": "                .expiration(Date.from(now.plus(jwtExpirationMs, ChronoUnit.SECONDS)))\n              ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/security/JwtUtils.java",
+          "start_line": 59,
+          "block": "                .expiration(Date.from(now.plus(jwtExpirationMs, ChronoUnit.SECONDS)))\n              ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/security/JwtUtils.java",
+          "start_line": 102,
+          "block": "        try {\n            io.jsonwebtoken.Claims claims = Jwts.parser()\n                    .verifyW..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/security/JwtUtils.java",
+          "start_line": 119,
+          "block": "        try {\n            io.jsonwebtoken.Claims claims = Jwts.parser()\n                    .verifyW..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/security/JwtUtils.java",
+          "start_line": 103,
+          "block": "            io.jsonwebtoken.Claims claims = Jwts.parser()\n                    .verifyWith(getSigning..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/security/JwtUtils.java",
+          "start_line": 120,
+          "block": "            io.jsonwebtoken.Claims claims = Jwts.parser()\n                    .verifyWith(getSigning..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/security/JwtUtils.java",
+          "start_line": 104,
+          "block": "                    .verifyWith(getSigningKey())\n                    .build()\n                    .p..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/security/JwtUtils.java",
+          "start_line": 121,
+          "block": "                    .verifyWith(getSigningKey())\n                    .build()\n                    .p..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/security/CustomPermissionEvaluator.java",
+          "start_line": 32,
+          "block": "        if (authentication == null || !authentication.isAuthenticated()) {\n            return false;..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/security/CustomPermissionEvaluator.java",
+          "start_line": 48,
+          "block": "        if (authentication == null || !authentication.isAuthenticated()) {\n            return false;..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/security/CustomPermissionEvaluator.java",
+          "start_line": 38,
+          "block": "                return true;\n            }\n        }\n        return false;\n    }"
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/security/CustomPermissionEvaluator.java",
+          "start_line": 83,
+          "block": "                return true;\n            }\n        }\n        return false;\n    }"
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/dao/PermissionQueryDao.java",
+          "start_line": 71,
+          "block": "        String sql = \"\"\"\n            SELECT DISTINCT p.id, p.name, p.description, p.module, p.create..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/dao/PermissionQueryDao.java",
+          "start_line": 84,
+          "block": "        String sql = \"\"\"\n            SELECT DISTINCT p.id, p.name, p.description, p.module, p.create..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/dao/PermissionQueryDao.java",
+          "start_line": 72,
+          "block": "            SELECT DISTINCT p.id, p.name, p.description, p.module, p.created_at, p.updated_at\n      ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/dao/PermissionQueryDao.java",
+          "start_line": 85,
+          "block": "            SELECT DISTINCT p.id, p.name, p.description, p.module, p.created_at, p.updated_at\n      ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/AuthController.java",
+          "start_line": 79,
+          "block": "            return ResponseEntity.badRequest()\n                .body(Map.of(\"error\", e.getMessage())..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/AuthController.java",
+          "start_line": 189,
+          "block": "            return ResponseEntity.badRequest()\n                .body(Map.of(\"error\", e.getMessage())..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 60,
+          "block": "            return ResponseEntity.ok(role);\n        } catch (IllegalArgumentException e) {\n         ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 72,
+          "block": "            return ResponseEntity.ok(role);\n        } catch (IllegalArgumentException e) {\n         ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 97,
+          "block": "            return ResponseEntity.ok(role);\n        } catch (IllegalArgumentException e) {\n         ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 109,
+          "block": "            return ResponseEntity.ok(role);\n        } catch (IllegalArgumentException e) {\n         ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 61,
+          "block": "        } catch (IllegalArgumentException e) {\n            return ResponseEntity.badRequest().build(..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 73,
+          "block": "        } catch (IllegalArgumentException e) {\n            return ResponseEntity.badRequest().build(..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 98,
+          "block": "        } catch (IllegalArgumentException e) {\n            return ResponseEntity.badRequest().build(..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 110,
+          "block": "        } catch (IllegalArgumentException e) {\n            return ResponseEntity.badRequest().build(..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 121,
+          "block": "        } catch (IllegalArgumentException e) {\n            return ResponseEntity.badRequest().build(..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 132,
+          "block": "        } catch (IllegalArgumentException e) {\n            return ResponseEntity.badRequest().build(..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 120,
+          "block": "            return ResponseEntity.ok(user);\n        } catch (IllegalArgumentException e) {\n         ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 131,
+          "block": "            return ResponseEntity.ok(user);\n        } catch (IllegalArgumentException e) {\n         ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 139,
+          "block": "        private String name;\n        private String description;\n        \n        public String getN..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 149,
+          "block": "        private String name;\n        private String description;\n        \n        public String getN..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 140,
+          "block": "        private String description;\n        \n        public String getName() { return name; }\n      ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 150,
+          "block": "        private String description;\n        \n        public String getName() { return name; }\n      ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 141,
+          "block": "        \n        public String getName() { return name; }\n        public void setName(String name) {..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 151,
+          "block": "        \n        public String getName() { return name; }\n        public void setName(String name) {..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 142,
+          "block": "        public String getName() { return name; }\n        public void setName(String name) { this.nam..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 152,
+          "block": "        public String getName() { return name; }\n        public void setName(String name) { this.nam..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 143,
+          "block": "        public void setName(String name) { this.name = name; }\n        public String getDescription(..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 153,
+          "block": "        public void setName(String name) { this.name = name; }\n        public String getDescription(..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 159,
+          "block": "        private Long userId;\n        private Long roleId;\n        \n        public Long getUserId() {..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 169,
+          "block": "        private Long userId;\n        private Long roleId;\n        \n        public Long getUserId() {..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 160,
+          "block": "        private Long roleId;\n        \n        public Long getUserId() { return userId; }\n        pub..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 170,
+          "block": "        private Long roleId;\n        \n        public Long getUserId() { return userId; }\n        pub..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 161,
+          "block": "        \n        public Long getUserId() { return userId; }\n        public void setUserId(Long userI..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 171,
+          "block": "        \n        public Long getUserId() { return userId; }\n        public void setUserId(Long userI..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 162,
+          "block": "        public Long getUserId() { return userId; }\n        public void setUserId(Long userId) { this..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/RoleController.java",
+          "start_line": 172,
+          "block": "        public Long getUserId() { return userId; }\n        public void setUserId(Long userId) { this..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/PermissionController.java",
+          "start_line": 58,
+          "block": "            return ResponseEntity.ok(permission);\n        } catch (IllegalArgumentException e) {\n   ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/PermissionController.java",
+          "start_line": 71,
+          "block": "            return ResponseEntity.ok(permission);\n        } catch (IllegalArgumentException e) {\n   ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/PermissionController.java",
+          "start_line": 59,
+          "block": "        } catch (IllegalArgumentException e) {\n            return ResponseEntity.badRequest().build(..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/PermissionController.java",
+          "start_line": 72,
+          "block": "        } catch (IllegalArgumentException e) {\n            return ResponseEntity.badRequest().build(..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/PermissionController.java",
+          "start_line": 92,
+          "block": "        private String name;\n        private String description;\n        private String module;\n    ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/PermissionController.java",
+          "start_line": 106,
+          "block": "        private String name;\n        private String description;\n        private String module;\n    ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/PermissionController.java",
+          "start_line": 93,
+          "block": "        private String description;\n        private String module;\n        \n        // Getters and s..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/PermissionController.java",
+          "start_line": 107,
+          "block": "        private String description;\n        private String module;\n        \n        // Getters and s..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/PermissionController.java",
+          "start_line": 94,
+          "block": "        private String module;\n        \n        // Getters and setters\n        public String getName..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/PermissionController.java",
+          "start_line": 108,
+          "block": "        private String module;\n        \n        // Getters and setters\n        public String getName..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/PermissionController.java",
+          "start_line": 97,
+          "block": "        public String getName() { return name; }\n        public void setName(String name) { this.nam..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/PermissionController.java",
+          "start_line": 111,
+          "block": "        public String getName() { return name; }\n        public void setName(String name) { this.nam..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/PermissionController.java",
+          "start_line": 98,
+          "block": "        public void setName(String name) { this.name = name; }\n        public String getDescription(..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/PermissionController.java",
+          "start_line": 112,
+          "block": "        public void setName(String name) { this.name = name; }\n        public String getDescription(..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/PermissionController.java",
+          "start_line": 99,
+          "block": "        public String getDescription() { return description; }\n        public void setDescription(St..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/controller/PermissionController.java",
+          "start_line": 113,
+          "block": "        public String getDescription() { return description; }\n        public void setDescription(St..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/service/RoleService.java",
+          "start_line": 119,
+          "block": "        \n        Role role = roleRepository.findById(roleId)\n                .orElseThrow(() -> new ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/service/RoleService.java",
+          "start_line": 132,
+          "block": "        \n        Role role = roleRepository.findById(roleId)\n                .orElseThrow(() -> new ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/service/RoleService.java",
+          "start_line": 120,
+          "block": "        Role role = roleRepository.findById(roleId)\n                .orElseThrow(() -> new IllegalAr..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/service/RoleService.java",
+          "start_line": 133,
+          "block": "        Role role = roleRepository.findById(roleId)\n                .orElseThrow(() -> new IllegalAr..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/service/RoleService.java",
+          "start_line": 121,
+          "block": "                .orElseThrow(() -> new IllegalArgumentException(\"Role not found with id: \" + roleId)..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/service/RoleService.java",
+          "start_line": 134,
+          "block": "                .orElseThrow(() -> new IllegalArgumentException(\"Role not found with id: \" + roleId)..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/service/RoleService.java",
+          "start_line": 145,
+          "block": "        \n        User user = userRepository.findById(userId)\n                .orElseThrow(() -> new ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/service/RoleService.java",
+          "start_line": 158,
+          "block": "        \n        User user = userRepository.findById(userId)\n                .orElseThrow(() -> new ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/service/RoleService.java",
+          "start_line": 146,
+          "block": "        User user = userRepository.findById(userId)\n                .orElseThrow(() -> new IllegalAr..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/service/RoleService.java",
+          "start_line": 159,
+          "block": "        User user = userRepository.findById(userId)\n                .orElseThrow(() -> new IllegalAr..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/service/RoleService.java",
+          "start_line": 147,
+          "block": "                .orElseThrow(() -> new IllegalArgumentException(\"User not found with id: \" + userId)..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/service/RoleService.java",
+          "start_line": 160,
+          "block": "                .orElseThrow(() -> new IllegalArgumentException(\"User not found with id: \" + userId)..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/service/AuthService.java",
+          "start_line": 68,
+          "block": "        \n        return new AuthResponse(jwt, user.getId(), user.getUsername(), \n                   ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/service/AuthService.java",
+          "start_line": 105,
+          "block": "        \n        return new AuthResponse(jwt, user.getId(), user.getUsername(), \n                   ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/service/PermissionApiEndpointService.java",
+          "start_line": 73,
+          "block": "            return new HashMap<>();\n        }\n    }\n    \n    /**"
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/service/PermissionApiEndpointService.java",
+          "start_line": 109,
+          "block": "            return new HashMap<>();\n        }\n    }\n    \n    /**"
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/service/PermissionApiEndpointService.java",
+          "start_line": 170,
+          "block": "        \n        return permissionApiEndpointRepository.save(endpoint);\n    }\n    \n    /**"
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/service/PermissionApiEndpointService.java",
+          "start_line": 196,
+          "block": "        \n        return permissionApiEndpointRepository.save(endpoint);\n    }\n    \n    /**"
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/service/PermissionApiEndpointService.java",
+          "start_line": 223,
+          "block": "        endpoint.setUpdatedAt(LocalDateTime.now());\n        permissionApiEndpointRepository.save(end..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/auth/service/PermissionApiEndpointService.java",
+          "start_line": 237,
+          "block": "        endpoint.setUpdatedAt(LocalDateTime.now());\n        permissionApiEndpointRepository.save(end..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/employer/dao/EmployerPaymentReceiptQueryDao.java",
+          "start_line": 106,
+          "block": "        \n        return queryForPage(sql, countSql, params, page, size, this::mapEmployerPaymentRece..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/employer/dao/EmployerPaymentReceiptQueryDao.java",
+          "start_line": 117,
+          "block": "        \n        return queryForPage(sql, countSql, params, page, size, this::mapEmployerPaymentRece..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/employer/dao/EmployerPaymentReceiptQueryDao.java",
+          "start_line": 142,
+          "block": "        \n        return queryForPage(sql, countSql, params, page, size, this::mapEmployerPaymentRece..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/employer/dao/EmployerPaymentReceiptQueryDao.java",
+          "start_line": 224,
+          "block": "        \n        return queryForPage(sql, countSql, params, page, size, this::mapEmployerPaymentRece..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/employer/dao/EmployerPaymentReceiptQueryDao.java",
+          "start_line": 137,
+          "block": "        \n        Map<String, Object> params = Map.of(\n            \"startDate\", startDate,\n          ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/employer/dao/EmployerPaymentReceiptQueryDao.java",
+          "start_line": 162,
+          "block": "        \n        Map<String, Object> params = Map.of(\n            \"startDate\", startDate,\n          ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/employer/dao/EmployerPaymentReceiptQueryDao.java",
+          "start_line": 138,
+          "block": "        Map<String, Object> params = Map.of(\n            \"startDate\", startDate,\n            \"endDat..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/employer/dao/EmployerPaymentReceiptQueryDao.java",
+          "start_line": 163,
+          "block": "        Map<String, Object> params = Map.of(\n            \"startDate\", startDate,\n            \"endDat..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/employer/dao/EmployerPaymentReceiptQueryDao.java",
+          "start_line": 139,
+          "block": "            \"startDate\", startDate,\n            \"endDate\", endDate\n        );\n        \n        retur..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/employer/dao/EmployerPaymentReceiptQueryDao.java",
+          "start_line": 221,
+          "block": "            \"startDate\", startDate,\n            \"endDate\", endDate\n        );\n        \n        retur..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/employer/dao/EmployerPaymentReceiptQueryDao.java",
+          "start_line": 140,
+          "block": "            \"endDate\", endDate\n        );\n        \n        return queryForPage(sql, countSql, params..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/employer/dao/EmployerPaymentReceiptQueryDao.java",
+          "start_line": 222,
+          "block": "            \"endDate\", endDate\n        );\n        \n        return queryForPage(sql, countSql, params..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/employer/dao/EmployerPaymentReceiptQueryDao.java",
+          "start_line": 141,
+          "block": "        );\n        \n        return queryForPage(sql, countSql, params, page, size, this::mapEmployer..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/employer/dao/EmployerPaymentReceiptQueryDao.java",
+          "start_line": 223,
+          "block": "        );\n        \n        return queryForPage(sql, countSql, params, page, size, this::mapEmployer..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/employer/dao/EmployerPaymentReceiptRepository.java",
+          "start_line": 24,
+          "block": "        @Param(\"status\") String status, \n        @Param(\"startDate\") LocalDateTime startDate, \n     ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/employer/dao/EmployerPaymentReceiptRepository.java",
+          "start_line": 49,
+          "block": "        @Param(\"status\") String status, \n        @Param(\"startDate\") LocalDateTime startDate, \n     ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/employer/dao/EmployerPaymentReceiptRepository.java",
+          "start_line": 25,
+          "block": "        @Param(\"startDate\") LocalDateTime startDate, \n        @Param(\"endDate\") LocalDateTime endDat..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/employer/dao/EmployerPaymentReceiptRepository.java",
+          "start_line": 32,
+          "block": "        @Param(\"startDate\") LocalDateTime startDate, \n        @Param(\"endDate\") LocalDateTime endDat..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/employer/dao/EmployerPaymentReceiptRepository.java",
+          "start_line": 50,
+          "block": "        @Param(\"startDate\") LocalDateTime startDate, \n        @Param(\"endDate\") LocalDateTime endDat..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/employer/dao/EmployerPaymentReceiptRepository.java",
+          "start_line": 58,
+          "block": "        @Param(\"startDate\") LocalDateTime startDate, \n        @Param(\"endDate\") LocalDateTime endDat..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/utilities/file/FileParsingUtil.java",
+          "start_line": 75,
+          "block": "            \n            Sheet sheet = workbook.getSheetAt(0); // Get first sheet\n            return..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/utilities/file/FileParsingUtil.java",
+          "start_line": 87,
+          "block": "            \n            Sheet sheet = workbook.getSheetAt(0); // Get first sheet\n            return..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/utilities/file/FileParsingUtil.java",
+          "start_line": 76,
+          "block": "            Sheet sheet = workbook.getSheetAt(0); // Get first sheet\n            return parseExcelSh..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/utilities/file/FileParsingUtil.java",
+          "start_line": 88,
+          "block": "            Sheet sheet = workbook.getSheetAt(0); // Get first sheet\n            return parseExcelSh..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/DatabaseInspectionController.java",
+          "start_line": 51,
+          "block": "            \n        } catch (Exception e) {\n            result.put(\"error\", e.getMessage());\n      ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/DatabaseInspectionController.java",
+          "start_line": 79,
+          "block": "            \n        } catch (Exception e) {\n            result.put(\"error\", e.getMessage());\n      ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/DatabaseInspectionController.java",
+          "start_line": 52,
+          "block": "        } catch (Exception e) {\n            result.put(\"error\", e.getMessage());\n            result...."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/DatabaseInspectionController.java",
+          "start_line": 80,
+          "block": "        } catch (Exception e) {\n            result.put(\"error\", e.getMessage());\n            result...."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/DatabaseInspectionController.java",
+          "start_line": 53,
+          "block": "            result.put(\"error\", e.getMessage());\n            result.put(\"status\", \"error\");\n        ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/DatabaseInspectionController.java",
+          "start_line": 81,
+          "block": "            result.put(\"error\", e.getMessage());\n            result.put(\"status\", \"error\");\n        ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/DatabaseInspectionController.java",
+          "start_line": 54,
+          "block": "            result.put(\"status\", \"error\");\n        }\n        \n        return result;\n    }"
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/DatabaseInspectionController.java",
+          "start_line": 82,
+          "block": "            result.put(\"status\", \"error\");\n        }\n        \n        return result;\n    }"
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/DatabaseInspectionController.java",
+          "start_line": 55,
+          "block": "        }\n        \n        return result;\n    }\n"
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/DatabaseInspectionController.java",
+          "start_line": 83,
+          "block": "        }\n        \n        return result;\n    }\n"
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/SystemController.java",
+          "start_line": 41,
+          "block": "                \"status\", \"failed\"\n            ));\n        }\n    }\n"
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/SystemController.java",
+          "start_line": 58,
+          "block": "                \"status\", \"failed\"\n            ));\n        }\n    }\n"
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/SystemController.java",
+          "start_line": 75,
+          "block": "                \"status\", \"failed\"\n            ));\n        }\n    }\n"
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/SystemController.java",
+          "start_line": 92,
+          "block": "                \"status\", \"failed\"\n            ));\n        }\n    }\n"
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/SystemController.java",
+          "start_line": 109,
+          "block": "                \"status\", \"failed\"\n            ));\n        }\n    }\n"
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/DatabaseCleanupController.java",
+          "start_line": 82,
+          "block": "            Map<String, Integer> tableCounts = new HashMap<>();\n            for (String table : tabl..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/DatabaseCleanupController.java",
+          "start_line": 134,
+          "block": "            Map<String, Integer> tableCounts = new HashMap<>();\n            for (String table : tabl..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/DatabaseCleanupController.java",
+          "start_line": 90,
+          "block": "                    }\n                } catch (Exception e) {\n                    log.error(\"Failed ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/DatabaseCleanupController.java",
+          "start_line": 140,
+          "block": "                    }\n                } catch (Exception e) {\n                    log.error(\"Failed ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/DatabaseCleanupController.java",
+          "start_line": 91,
+          "block": "                } catch (Exception e) {\n                    log.error(\"Failed to count rows in table..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/DatabaseCleanupController.java",
+          "start_line": 141,
+          "block": "                } catch (Exception e) {\n                    log.error(\"Failed to count rows in table..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/DatabaseCleanupController.java",
+          "start_line": 92,
+          "block": "                    log.error(\"Failed to count rows in table {}: {}\", table, e.getMessage());\n      ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/system/controller/DatabaseCleanupController.java",
+          "start_line": 142,
+          "block": "                    log.error(\"Failed to count rows in table {}: {}\", table, e.getMessage());\n      ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/dao/WorkerPaymentQueryDao.java",
+          "start_line": 90,
+          "block": "        \n        return queryForPage(sql, countSql, params, page, size, this::mapWorkerPayment);\n   ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/dao/WorkerPaymentQueryDao.java",
+          "start_line": 110,
+          "block": "        \n        return queryForPage(sql, countSql, params, page, size, this::mapWorkerPayment);\n   ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/dao/WorkerPaymentQueryDao.java",
+          "start_line": 157,
+          "block": "        \n        return queryForPage(sql, countSql, params, page, size, this::mapWorkerPayment);\n   ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/EnhancedWorkerPaymentController.java",
+          "start_line": 123,
+          "block": "        response.put(\"pagination\", Map.of(\n            \"page\", result.getPage(),\n            \"size\",..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/EnhancedWorkerPaymentController.java",
+          "start_line": 155,
+          "block": "        response.put(\"pagination\", Map.of(\n            \"page\", result.getPage(),\n            \"size\",..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/EnhancedWorkerPaymentController.java",
+          "start_line": 124,
+          "block": "            \"page\", result.getPage(),\n            \"size\", result.getSize(),\n            \"totalElemen..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/EnhancedWorkerPaymentController.java",
+          "start_line": 156,
+          "block": "            \"page\", result.getPage(),\n            \"size\", result.getSize(),\n            \"totalElemen..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/EnhancedWorkerPaymentController.java",
+          "start_line": 125,
+          "block": "            \"size\", result.getSize(),\n            \"totalElements\", result.getTotalElements(),\n      ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/EnhancedWorkerPaymentController.java",
+          "start_line": 157,
+          "block": "            \"size\", result.getSize(),\n            \"totalElements\", result.getTotalElements(),\n      ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/EnhancedWorkerPaymentController.java",
+          "start_line": 126,
+          "block": "            \"totalElements\", result.getTotalElements(),\n            \"totalPages\", result.getTotalPag..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/EnhancedWorkerPaymentController.java",
+          "start_line": 158,
+          "block": "            \"totalElements\", result.getTotalElements(),\n            \"totalPages\", result.getTotalPag..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/EnhancedWorkerPaymentController.java",
+          "start_line": 127,
+          "block": "            \"totalPages\", result.getTotalPages()\n        ));\n        \n        return ResponseEntity...."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/EnhancedWorkerPaymentController.java",
+          "start_line": 159,
+          "block": "            \"totalPages\", result.getTotalPages()\n        ));\n        \n        return ResponseEntity...."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/EnhancedWorkerPaymentController.java",
+          "start_line": 128,
+          "block": "        ));\n        \n        return ResponseEntity.ok(response);\n    }\n"
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/EnhancedWorkerPaymentController.java",
+          "start_line": 160,
+          "block": "        ));\n        \n        return ResponseEntity.ok(response);\n    }\n"
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerPaymentController.java",
+          "start_line": 120,
+          "block": "        } catch (Exception e) {\n            return ResponseEntity.badRequest().body(java.util.Map.of..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerPaymentController.java",
+          "start_line": 158,
+          "block": "        } catch (Exception e) {\n            return ResponseEntity.badRequest().body(java.util.Map.of..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerUploadedDataController.java",
+          "start_line": 132,
+          "block": "            }\n            \n            return ResponseEntity.ok(result);\n            \n        } catc..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerUploadedDataController.java",
+          "start_line": 176,
+          "block": "            }\n            \n            return ResponseEntity.ok(result);\n            \n        } catc..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerUploadedDataController.java",
+          "start_line": 203,
+          "block": "            }\n            \n            return ResponseEntity.ok(result);\n            \n        } catc..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerUploadedDataController.java",
+          "start_line": 240,
+          "block": "            }\n            \n            return ResponseEntity.ok(result);\n            \n        } catc..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerUploadedDataController.java",
+          "start_line": 157,
+          "block": "            @RequestParam(required = false) String status,\n            @Parameter(description = \"Sta..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerUploadedDataController.java",
+          "start_line": 224,
+          "block": "            @RequestParam(required = false) String status,\n            @Parameter(description = \"Sta..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerUploadedDataController.java",
+          "start_line": 173,
+          "block": "            \n            if (result.containsKey(\"error\")) {\n                return ResponseEntity.ba..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerUploadedDataController.java",
+          "start_line": 200,
+          "block": "            \n            if (result.containsKey(\"error\")) {\n                return ResponseEntity.ba..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerUploadedDataController.java",
+          "start_line": 237,
+          "block": "            \n            if (result.containsKey(\"error\")) {\n                return ResponseEntity.ba..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerUploadedDataController.java",
+          "start_line": 174,
+          "block": "            if (result.containsKey(\"error\")) {\n                return ResponseEntity.badRequest().bo..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerUploadedDataController.java",
+          "start_line": 201,
+          "block": "            if (result.containsKey(\"error\")) {\n                return ResponseEntity.badRequest().bo..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerUploadedDataController.java",
+          "start_line": 238,
+          "block": "            if (result.containsKey(\"error\")) {\n                return ResponseEntity.badRequest().bo..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerUploadedDataController.java",
+          "start_line": 175,
+          "block": "                return ResponseEntity.badRequest().body(result);\n            }\n            \n        ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerUploadedDataController.java",
+          "start_line": 202,
+          "block": "                return ResponseEntity.badRequest().body(result);\n            }\n            \n        ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerUploadedDataController.java",
+          "start_line": 239,
+          "block": "                return ResponseEntity.badRequest().body(result);\n            }\n            \n        ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerPaymentReceiptController.java",
+          "start_line": 92,
+          "block": "                \n                if (status != null && !status.trim().isEmpty()) {\n                 ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerPaymentReceiptController.java",
+          "start_line": 110,
+          "block": "                \n                if (status != null && !status.trim().isEmpty()) {\n                 ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerPaymentReceiptController.java",
+          "start_line": 93,
+          "block": "                if (status != null && !status.trim().isEmpty()) {\n                    receiptsPage =..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerPaymentReceiptController.java",
+          "start_line": 111,
+          "block": "                if (status != null && !status.trim().isEmpty()) {\n                    receiptsPage =..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerPaymentReceiptController.java",
+          "start_line": 94,
+          "block": "                    receiptsPage = service.findByStatusAndDateRangePaginated(status.trim().toUpperCa..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerPaymentReceiptController.java",
+          "start_line": 112,
+          "block": "                    receiptsPage = service.findByStatusAndDateRangePaginated(status.trim().toUpperCa..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerPaymentReceiptController.java",
+          "start_line": 135,
+          "block": "            return ResponseEntity.badRequest().body(Map.of(\"error\", e.getMessage()));\n        }\n    ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/controller/WorkerPaymentReceiptController.java",
+          "start_line": 155,
+          "block": "            return ResponseEntity.badRequest().body(Map.of(\"error\", e.getMessage()));\n        }\n    ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/service/WorkerPaymentFileService.java",
+          "start_line": 102,
+          "block": "        \n        try {\n            Long uploadedFileId = Long.parseLong(fileId);\n            Optiona..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/service/WorkerPaymentFileService.java",
+          "start_line": 278,
+          "block": "        \n        try {\n            Long uploadedFileId = Long.parseLong(fileId);\n            Optiona..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/service/WorkerPaymentFileService.java",
+          "start_line": 103,
+          "block": "        try {\n            Long uploadedFileId = Long.parseLong(fileId);\n            Optional<Uploade..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/service/WorkerPaymentFileService.java",
+          "start_line": 279,
+          "block": "        try {\n            Long uploadedFileId = Long.parseLong(fileId);\n            Optional<Uploade..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/service/WorkerPaymentFileService.java",
+          "start_line": 104,
+          "block": "            Long uploadedFileId = Long.parseLong(fileId);\n            Optional<UploadedFile> uploade..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/service/WorkerPaymentFileService.java",
+          "start_line": 280,
+          "block": "            Long uploadedFileId = Long.parseLong(fileId);\n            Optional<UploadedFile> uploade..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/service/WorkerPaymentFileService.java",
+          "start_line": 105,
+          "block": "            Optional<UploadedFile> uploadedFileOpt = uploadedFileRepository.findById(uploadedFileId)..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/service/WorkerPaymentFileService.java",
+          "start_line": 281,
+          "block": "            Optional<UploadedFile> uploadedFileOpt = uploadedFileRepository.findById(uploadedFileId)..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/service/WorkerPaymentFileService.java",
+          "start_line": 106,
+          "block": "            \n            if (uploadedFileOpt.isEmpty()) {\n                return Map.of(\"error\", \"Fi..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/service/WorkerPaymentFileService.java",
+          "start_line": 282,
+          "block": "            \n            if (uploadedFileOpt.isEmpty()) {\n                return Map.of(\"error\", \"Fi..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/service/WorkerPaymentFileService.java",
+          "start_line": 530,
+          "block": "                    continue;\n                }\n\n                try {\n                    com.examp..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/service/WorkerPaymentFileService.java",
+          "start_line": 571,
+          "block": "                    continue;\n                }\n\n                try {\n                    com.examp..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/service/WorkerPaymentService.java",
+          "start_line": 101,
+          "block": "                                                           pageable.getPageNumber(), pageable.getPag..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/service/WorkerPaymentService.java",
+          "start_line": 143,
+          "block": "                                                           pageable.getPageNumber(), pageable.getPag..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/service/WorkerPaymentService.java",
+          "start_line": 116,
+          "block": "                                                           pageable.getPageNumber(), pageable.getPag..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/service/WorkerPaymentService.java",
+          "start_line": 131,
+          "block": "                                                           pageable.getPageNumber(), pageable.getPag..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/service/WorkerPaymentService.java",
+          "start_line": 206,
+          "block": "                                                           pageable.getPageNumber(), pageable.getPag..."
+        }
+      ],
+      "severity": "MEDIUM"
+    },
+    {
+      "locations": [
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/service/EnhancedWorkerPaymentService.java",
+          "start_line": 72,
+          "block": "        Optional<WorkerPayment> existing = readDao.findById(id);\n        if (existing.isEmpty()) {\n ..."
+        },
+        {
+          "file": "src/main/java/com/example/paymentreconciliation/worker/service/EnhancedWorkerPaymentService.java",
+          "start_line": 100,
+          "block": "        Optional<WorkerPayment> existing = readDao.findById(id);\n        if (existing.isEmpty()) {\n ..."
+        }
+      ],
+      "severity": "MEDIUM"
+    }
+  ],
+  "dummy_code": [
+    {
+      "file": "code_scanner.py",
+      "line": 117,
+      "issue": "TODO comment found",
+      "severity": "LOW"
+    },
+    {
+      "file": "src/main/java/com/example/paymentreconciliation/config/OpenApiConfig.java",
+      "line": 25,
+      "issue": "Hardcoded localhost URL",
+      "severity": "MEDIUM"
+    },
+    {
+      "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+      "line": 78,
+      "issue": "Hardcoded localhost URL",
+      "severity": "MEDIUM"
+    },
+    {
+      "file": "src/main/java/com/example/paymentreconciliation/config/WebCorsConfigProfileBased.java",
+      "line": 79,
+      "issue": "Hardcoded localhost URL",
+      "severity": "MEDIUM"
+    },
+    {
+      "file": "src/main/java/com/example/paymentreconciliation/auth/service/RoleService.java",
+      "line": 185,
+      "issue": "TODO comment found",
+      "severity": "LOW"
+    },
+    {
+      "file": "src/main/java/com/example/paymentreconciliation/utilities/file/FileValidationService.java",
+      "line": 30,
+      "issue": "TODO comment found",
+      "severity": "LOW"
+    },
+    {
+      "file": "src/main/java/com/example/paymentreconciliation/utilities/file/FileValidationService.java",
+      "line": 35,
+      "issue": "TODO comment found",
+      "severity": "LOW"
+    },
+    {
+      "file": "src/main/java/com/example/paymentreconciliation/utilities/file/FileValidationService.java",
+      "line": 40,
+      "issue": "TODO comment found",
+      "severity": "LOW"
+    }
+  ],
+  "unused_code": [
+    {
+      "file": "code_scanner.py",
+      "issue": "Potentially unused functions: check_dummy_code, check_duplicate_code, check_jwt_issues, check_unused_python_code, print_results, save_results, scan_all",
+      "severity": "LOW"
+    }
+  ]
+}

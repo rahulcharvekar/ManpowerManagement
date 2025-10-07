@@ -89,12 +89,17 @@ public class JwtUtils {
     }
     
     public String getUserNameFromJwtToken(String token) {
-        return Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
+        try {
+            return Jwts.parser()
+                    .verifyWith(getSigningKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
+                    .getSubject();
+        } catch (Exception e) {
+            logger.error("Error extracting username from JWT: {}", e.getMessage());
+            return null;
+        }
     }
     
     @SuppressWarnings("unchecked")
@@ -138,6 +143,8 @@ public class JwtUtils {
                 .build()
                 .parseSignedClaims(authToken);
             return true;
+        } catch (io.jsonwebtoken.security.SecurityException e) {
+            logger.error("Invalid JWT signature: {}", e.getMessage());
         } catch (MalformedJwtException e) {
             logger.error("Invalid JWT token: {}", e.getMessage());
         } catch (ExpiredJwtException e) {
@@ -147,6 +154,7 @@ public class JwtUtils {
         } catch (IllegalArgumentException e) {
             logger.error("JWT claims string is empty: {}", e.getMessage());
         }
+        
         return false;
     }
 }
