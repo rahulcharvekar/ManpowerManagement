@@ -2,6 +2,7 @@ package com.example.paymentreconciliation.auth.entity;
 
 public enum UserRole {
     ADMIN("Administrator"),
+    USER("User"),
     WORKER("Worker"),
     BOARD("Board Member"),
     EMPLOYER("Employer"),

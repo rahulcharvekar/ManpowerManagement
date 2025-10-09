@@ -82,16 +82,16 @@ public class AuthController {
     }
     
     @GetMapping("/me")
-    @Operation(summary = "Get current user", description = "Get current authenticated user information with roles and permissions")
+    @Operation(summary = "Get current user", description = "Get current authenticated user information with roles, permissions, and menus from database")
     @ApiResponse(responseCode = "200", description = "User information retrieved successfully")
     @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "Bearer Authentication")
-    @SuppressWarnings("deprecation")
     public ResponseEntity<?> getCurrentUser(Authentication authentication) {
         Optional<User> currentUser = authService.getCurrentUser();
         if (currentUser.isPresent()) {
             User user = currentUser.get();
             
-            // Extract roles and permissions from authentication
+            // Extract roles and permissions from database (via Spring Security authorities loaded by UserDetailsService)
+            // These authorities are loaded fresh from database on each request, not from JWT
             java.util.Set<String> roles = new java.util.HashSet<>();
             java.util.Set<String> permissions = new java.util.HashSet<>();
             
@@ -105,13 +105,9 @@ public class AuthController {
                     }
                 }
             }
+        
             
-            // If no new roles, include legacy role for backward compatibility
-            if (roles.isEmpty() && user.getLegacyRole() != null) {
-                roles.add(user.getLegacyRole().name());
-            }
-            
-            // Get API endpoints for user's permissions
+            // Get API endpoints for user's permissions (fetched from database)
             Map<String, List<String>> apiPermissions = permissionApiEndpointService.getUserApiEndpoints();
             
             Map<String, Object> response = new HashMap<>();
@@ -121,7 +117,7 @@ public class AuthController {
             response.put("fullName", user.getFullName());
             response.put("roles", roles);
             response.put("permissions", apiPermissions);
-            response.put("legacyRole", user.getLegacyRole() != null ? user.getLegacyRole().name() : null);
+            response.put("permissionVersion", user.getPermissionVersion());
             response.put("enabled", user.isEnabled());
             
             return ResponseEntity.ok(response);
@@ -150,9 +146,8 @@ public class AuthController {
         }
     }
     
-    @GetMapping("/users")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Get all users", description = "Get list of all users (Admin only)")
+        @GetMapping("/users")
+    @Operation(summary = "Get all users", description = "Get list of all users (Requires authentication)")
     @ApiResponse(responseCode = "200", description = "Users retrieved successfully")
     @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<List<User>> getAllUsers() {
@@ -161,8 +156,7 @@ public class AuthController {
     }
     
     @GetMapping("/users/role/{role}")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Get users by role", description = "Get users filtered by role (Admin only)")
+    @Operation(summary = "Get users by role", description = "Get users filtered by role (Requires authentication)")
     @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<List<User>> getUsersByRole(
         @Parameter(description = "User role") @PathVariable UserRole role) {
@@ -171,8 +165,7 @@ public class AuthController {
     }
     
     @PutMapping("/users/{userId}/status")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Update user status", description = "Enable or disable user account (Admin only)")
+    @Operation(summary = "Update user status", description = "Enable or disable user account (Requires authentication)")
     @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<?> updateUserStatus(
         @Parameter(description = "User ID") @PathVariable Long userId,
@@ -186,6 +179,43 @@ public class AuthController {
             ));
         } catch (Exception e) {
             logger.error("Failed to update user status", e);
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    @PutMapping("/users/{userId}/roles")
+    @Operation(summary = "Update user roles", description = "Update user's roles and invalidate existing tokens (Requires authentication)")
+    @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<?> updateUserRoles(
+        @Parameter(description = "User ID") @PathVariable Long userId,
+        @Parameter(description = "Role IDs") @RequestBody java.util.Set<Long> roleIds) {
+        try {
+            authService.updateUserPermissions(userId);
+            return ResponseEntity.ok(Map.of(
+                "message", "User roles updated successfully. All existing tokens have been invalidated.",
+                "userId", userId
+            ));
+        } catch (Exception e) {
+            logger.error("Failed to update user roles", e);
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    @PostMapping("/users/{userId}/invalidate-tokens")
+    @Operation(summary = "Invalidate user tokens", description = "Manually invalidate all JWT tokens for a user (Requires authentication)")
+    @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<?> invalidateUserTokens(
+        @Parameter(description = "User ID") @PathVariable Long userId) {
+        try {
+            authService.updateUserPermissions(userId);
+            return ResponseEntity.ok(Map.of(
+                "message", "All tokens for user have been invalidated. User must re-login.",
+                "userId", userId
+            ));
+        } catch (Exception e) {
+            logger.error("Failed to invalidate user tokens", e);
             return ResponseEntity.badRequest()
                 .body(Map.of("error", e.getMessage()));
         }

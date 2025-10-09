@@ -80,9 +80,13 @@ public class User implements UserDetails {
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
     
+    @Column(name = "permission_version", nullable = false)
+    private Integer permissionVersion = 1;
+    
     // Constructors
     public User() {
         this.createdAt = LocalDateTime.now();
+        this.permissionVersion = 1;
     }
     
     public User(String username, String email, String password, String fullName, UserRole legacyRole) {
@@ -257,6 +261,22 @@ public class User implements UserDetails {
     
     public void setLastLogin(LocalDateTime lastLogin) {
         this.lastLogin = lastLogin;
+    }
+    
+    public Integer getPermissionVersion() {
+        return permissionVersion;
+    }
+    
+    public void setPermissionVersion(Integer permissionVersion) {
+        this.permissionVersion = permissionVersion;
+    }
+    
+    /**
+     * Increment permission version to invalidate existing JWT tokens
+     * Call this method whenever user roles or permissions are modified
+     */
+    public void incrementPermissionVersion() {
+        this.permissionVersion = (this.permissionVersion != null ? this.permissionVersion : 0) + 1;
     }
     
     @PreUpdate

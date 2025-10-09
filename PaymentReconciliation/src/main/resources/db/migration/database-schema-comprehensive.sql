@@ -334,8 +334,9 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     full_name VARCHAR(255) NOT NULL,
-    role ENUM('ADMIN', 'WORKER', 'BOARD', 'EMPLOYER', 'RECONCILIATION_OFFICER') NOT NULL DEFAULT 'WORKER',
+    role ENUM('ADMIN', 'WORKER', 'BOARD', 'EMPLOYER', 'RECONCILIATION_OFFICER', 'USER') NOT NULL DEFAULT 'WORKER',
     legacy_role VARCHAR(50), -- For backward compatibility during RBAC migration
+    permission_version INT NOT NULL DEFAULT 1, -- Permission version for JWT invalidation
     is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
     is_account_non_expired BOOLEAN NOT NULL DEFAULT TRUE,
     is_account_non_locked BOOLEAN NOT NULL DEFAULT TRUE,
@@ -345,7 +346,8 @@ CREATE TABLE IF NOT EXISTS users (
     last_login TIMESTAMP NULL,
     INDEX idx_username (username),
     INDEX idx_email (email),
-    INDEX idx_role (role)
+    INDEX idx_role (role),
+    INDEX idx_permission_version (permission_version)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================

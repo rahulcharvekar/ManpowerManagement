@@ -56,15 +56,18 @@ public class AuthService {
         );
         
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtUtils.generateJwtToken(authentication);
         
         User user = (User) authentication.getPrincipal();
+        
+        // Generate JWT token with user's current permission version (auto-sourced from User entity)
+        String jwt = jwtUtils.generateJwtToken(authentication);
         
         // Update last login
         user.setLastLogin(LocalDateTime.now());
         userRepository.save(user);
         
-        logger.info("User {} logged in successfully", user.getUsername());
+        logger.info("User {} logged in successfully with permission version {}", 
+                   user.getUsername(), user.getPermissionVersion());
         
         return new AuthResponse(jwt, user.getId(), user.getUsername(), 
                                user.getEmail(), user.getFullName(), user.getRole());
@@ -81,7 +84,7 @@ public class AuthService {
             throw new RuntimeException("Error: Email is already in use!");
         }
         
-        // Create new user account
+        // Create new user account with default permission version 1
         User user = new User(
             registerRequest.getUsername(),
             registerRequest.getEmail(),
@@ -92,7 +95,8 @@ public class AuthService {
         
         userRepository.save(user);
         
-        logger.info("User {} registered successfully", user.getUsername());
+        logger.info("User {} registered successfully with permission version {}", 
+                   user.getUsername(), user.getPermissionVersion());
         
         // Auto-login after registration
         Authentication authentication = authenticationManager.authenticate(
@@ -101,6 +105,7 @@ public class AuthService {
                 registerRequest.getPassword())
         );
         
+        // Generate JWT token with user's permission version (auto-sourced from User entity)
         String jwt = jwtUtils.generateJwtToken(authentication);
         
         return new AuthResponse(jwt, user.getId(), user.getUsername(), 
@@ -154,6 +159,22 @@ public class AuthService {
         user.setEnabled(enabled);
         userRepository.save(user);
         logger.info("User {} status updated to: {}", user.getUsername(), enabled ? "enabled" : "disabled");
+    }
+    
+    /**
+     * Update user roles or permissions and increment permission version
+     * This will invalidate all existing JWT tokens for the user
+     */
+    public void updateUserPermissions(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        // Increment permission version to invalidate existing tokens
+        user.incrementPermissionVersion();
+        userRepository.save(user);
+        
+        logger.info("User {} permissions updated. Permission version incremented to {}", 
+                   user.getUsername(), user.getPermissionVersion());
     }
     
     /**

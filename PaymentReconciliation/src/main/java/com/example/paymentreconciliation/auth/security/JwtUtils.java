@@ -1,5 +1,6 @@
 package com.example.paymentreconciliation.auth.security;
 
+import com.example.paymentreconciliation.auth.entity.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -26,39 +27,48 @@ public class JwtUtils {
     @Value("${app.jwt.expiration:86400}")
     private int jwtExpirationMs;
     
+    @Value("${app.jwt.issuer:payment-reconciliation-service}")
+    private String jwtIssuer;
+    
+    @Value("${app.jwt.audience:payment-reconciliation-api}")
+    private String jwtAudience;
+    
+    /**
+     * Generate JWT token with minimal claims: sub (username), iss, aud, iat, exp, pv (permission version)
+     * Permission version is automatically sourced from the User entity
+     * @param authentication Spring Security authentication object
+     * @return JWT token string
+     */
     public String generateJwtToken(Authentication authentication) {
-        UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
-        
-        // Extract roles and permissions
-        java.util.Set<String> roles = userPrincipal.getAuthorities().stream()
-            .filter(auth -> auth.getAuthority().startsWith("ROLE_"))
-            .map(auth -> auth.getAuthority().substring(5)) // Remove "ROLE_" prefix
-            .collect(java.util.stream.Collectors.toSet());
-            
-        java.util.Set<String> permissions = userPrincipal.getAuthorities().stream()
-            .filter(auth -> auth.getAuthority().startsWith("PERM_"))
-            .map(auth -> auth.getAuthority().substring(5)) // Remove "PERM_" prefix
-            .collect(java.util.stream.Collectors.toSet());
+        User userPrincipal = (User) authentication.getPrincipal();
         
         Instant now = Instant.now();
         return Jwts.builder()
-                .subject(userPrincipal.getUsername())
-                .claim("roles", roles)
-                .claim("permissions", permissions)
+                .issuer(jwtIssuer)                    // iss: token issuer
+                .subject(userPrincipal.getUsername()) // sub: user identifier (username)
+                .audience().add(jwtAudience).and()    // aud: intended recipient
+                .issuedAt(Date.from(now))             // iat: token creation time
+                .expiration(Date.from(now.plus(jwtExpirationMs, ChronoUnit.SECONDS))) // exp: expiration
+                .claim("pv", userPrincipal.getPermissionVersion()) // pv: permission version from User entity
+                .signWith(getSigningKey(), Jwts.SIG.HS256)
+                .compact();
+    }
+    
+    public String generateTokenFromUsername(String username, Integer permissionVersion) {
+        Instant now = Instant.now();
+        return Jwts.builder()
+                .issuer(jwtIssuer)
+                .subject(username)
+                .audience().add(jwtAudience).and()
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(jwtExpirationMs, ChronoUnit.SECONDS)))
+                .claim("pv", permissionVersion)
                 .signWith(getSigningKey(), Jwts.SIG.HS256)
                 .compact();
     }
     
     public String generateTokenFromUsername(String username) {
-        Instant now = Instant.now();
-        return Jwts.builder()
-                .subject(username)
-                .issuedAt(Date.from(now))
-                .expiration(Date.from(now.plus(jwtExpirationMs, ChronoUnit.SECONDS)))
-                .signWith(getSigningKey(), Jwts.SIG.HS256)
-                .compact();
+        return generateTokenFromUsername(username, 1);
     }
     
     private SecretKey getSigningKey() {
@@ -92,6 +102,8 @@ public class JwtUtils {
         try {
             return Jwts.parser()
                     .verifyWith(getSigningKey())
+                    .requireIssuer(jwtIssuer)
+                    .requireAudience(jwtAudience)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload()
@@ -102,44 +114,59 @@ public class JwtUtils {
         }
     }
     
-    @SuppressWarnings("unchecked")
+    /**
+     * Extract permission version from JWT token
+     * @param token JWT token string
+     * @return permission version number or null if not found
+     */
+    public Integer getPermissionVersionFromToken(String token) {
+        try {
+            io.jsonwebtoken.Claims claims = Jwts.parser()
+                    .verifyWith(getSigningKey())
+                    .requireIssuer(jwtIssuer)
+                    .requireAudience(jwtAudience)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            
+            return claims.get("pv", Integer.class);
+        } catch (Exception e) {
+            logger.error("Cannot get permission version from JWT token: {}", e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * @deprecated Roles are no longer stored in JWT. Use UserService to fetch roles from database.
+     * This method now returns an empty set for backward compatibility.
+     */
+    @Deprecated
     public java.util.Set<String> getRolesFromToken(String token) {
-        try {
-            io.jsonwebtoken.Claims claims = Jwts.parser()
-                    .verifyWith(getSigningKey())
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
-                    
-            java.util.List<String> rolesList = (java.util.List<String>) claims.get("roles");
-            return rolesList != null ? new java.util.HashSet<>(rolesList) : new java.util.HashSet<>();
-        } catch (Exception e) {
-            logger.error("Cannot get roles from JWT token: {}", e.getMessage());
-            return new java.util.HashSet<>();
-        }
+        logger.warn("getRolesFromToken() is deprecated. Roles should be fetched from database using username.");
+        return new java.util.HashSet<>();
     }
     
-    @SuppressWarnings("unchecked")
+    /**
+     * @deprecated Permissions are no longer stored in JWT. Use UserService to fetch permissions from database.
+     * This method now returns an empty set for backward compatibility.
+     */
+    @Deprecated
     public java.util.Set<String> getPermissionsFromToken(String token) {
-        try {
-            io.jsonwebtoken.Claims claims = Jwts.parser()
-                    .verifyWith(getSigningKey())
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
-                    
-            java.util.List<String> permissionsList = (java.util.List<String>) claims.get("permissions");
-            return permissionsList != null ? new java.util.HashSet<>(permissionsList) : new java.util.HashSet<>();
-        } catch (Exception e) {
-            logger.error("Cannot get permissions from JWT token: {}", e.getMessage());
-            return new java.util.HashSet<>();
-        }
+        logger.warn("getPermissionsFromToken() is deprecated. Permissions should be fetched from database using username.");
+        return new java.util.HashSet<>();
     }
     
+    /**
+     * Validate JWT token signature, expiration, issuer, and audience
+     * @param authToken JWT token string
+     * @return true if valid, false otherwise
+     */
     public boolean validateJwtToken(String authToken) {
         try {
             Jwts.parser()
                 .verifyWith(getSigningKey())
+                .requireIssuer(jwtIssuer)           // Validate issuer
+                .requireAudience(jwtAudience)       // Validate audience
                 .build()
                 .parseSignedClaims(authToken);
             return true;
@@ -156,5 +183,31 @@ public class JwtUtils {
         }
         
         return false;
+    }
+    
+    /**
+     * Validate JWT token and check if permission version matches the current user's permission version
+     * @param authToken JWT token string
+     * @param currentPermissionVersion Current permission version from database
+     * @return true if valid and permission version matches, false otherwise
+     */
+    public boolean validateJwtTokenWithPermissionVersion(String authToken, Integer currentPermissionVersion) {
+        if (!validateJwtToken(authToken)) {
+            return false;
+        }
+        
+        Integer tokenPv = getPermissionVersionFromToken(authToken);
+        if (tokenPv == null || currentPermissionVersion == null) {
+            logger.warn("Permission version missing in token or database");
+            return false;
+        }
+        
+        if (!tokenPv.equals(currentPermissionVersion)) {
+            logger.info("Permission version mismatch. Token: {}, Current: {}. User permissions have been updated.", 
+                       tokenPv, currentPermissionVersion);
+            return false;
+        }
+        
+        return true;
     }
 }
