@@ -7,7 +7,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Repository for PageAction entity.
@@ -15,11 +14,6 @@ import java.util.Optional;
  */
 @Repository
 public interface PageActionRepository extends JpaRepository<PageAction, Long> {
-
-    /**
-     * Find a page action by its unique key
-     */
-    Optional<PageAction> findByKey(String key);
 
     /**
      * Find all actions for a specific page
@@ -44,7 +38,8 @@ public interface PageActionRepository extends JpaRepository<PageAction, Long> {
     /**
      * Find actions by required capability
      */
-    List<PageAction> findByRequiredCapability(String requiredCapability);
+    @Query("SELECT pa FROM PageAction pa WHERE pa.capability.name = :capabilityName")
+    List<PageAction> findByCapabilityName(@Param("capabilityName") String capabilityName);
 
     /**
      * Find actions by action type (CREATE, EDIT, DELETE, etc.)
@@ -52,17 +47,12 @@ public interface PageActionRepository extends JpaRepository<PageAction, Long> {
     List<PageAction> findByAction(String action);
 
     /**
-     * Check if an action exists by key
-     */
-    boolean existsByKey(String key);
-
-    /**
      * Find all actions accessible to a role
      * This checks if the required capability is granted by policies for that role
      */
     @Query("SELECT DISTINCT pa FROM PageAction pa " +
-           "WHERE pa.requiredCapability IN (" +
-           "  SELECT c.name FROM Capability c " +
+           "WHERE pa.capability.id IN (" +
+           "  SELECT c.id FROM Capability c " +
            "  JOIN PolicyCapability pc ON pc.capability.id = c.id " +
            "  JOIN Policy p ON p.id = pc.policy.id " +
            "  WHERE p.expression LIKE CONCAT('%', :roleName, '%') " +

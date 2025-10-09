@@ -53,8 +53,8 @@ const SystemSettings = () => {
       // const response = await apiClient.get(API_ENDPOINTS.SYSTEM.SETTINGS, token);
       // setSettings(response);
       
-      // Simulate API call
-      setTimeout(() => setLoading(false), 1000);
+      // No delay - load immediately
+      setLoading(false);
     } catch (error) {
       console.error('Failed to fetch settings:', error);
       setLoading(false);
@@ -72,12 +72,10 @@ const SystemSettings = () => {
       // In a real implementation, this would save to backend
       // await apiClient.put(API_ENDPOINTS.SYSTEM.SETTINGS, settings, token);
       
-      // Simulate API call
-      setTimeout(() => {
-        setSaving(false);
-        setMessage('Settings saved successfully!');
-        setTimeout(() => setMessage(''), 3000);
-      }, 1000);
+      // No delay - save immediately
+      setSaving(false);
+      setMessage('Settings saved successfully!');
+      setTimeout(() => setMessage(''), 3000);
       
     } catch (error) {
       console.error('Failed to save settings:', error);

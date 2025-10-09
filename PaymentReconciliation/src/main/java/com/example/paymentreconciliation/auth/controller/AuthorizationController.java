@@ -33,18 +33,18 @@ public class AuthorizationController {
 
     /**
      * Get comprehensive authorization data for the authenticated user
-     * Returns: roles, capabilities, pages, menus, endpoints
+     * Returns: roles, permissions (can), pages, menus, endpoints
      * 
      * Frontend should call this after login and cache the response (using ETag)
      * Call again only when user permissions change or version number changes
      * 
      * @param authentication The authenticated user
-     * @return Authorization data including roles, capabilities, pages, and endpoints
+     * @return Authorization data including roles, permissions (can), pages, and endpoints
      */
     @GetMapping("/me/authorizations")
     @Operation(
             summary = "Get user authorizations",
-            description = "Returns comprehensive authorization data including roles, capabilities, accessible pages, menu tree, and endpoints for the authenticated user",
+            description = "Returns comprehensive authorization data including roles, permissions (can), accessible pages, menu tree, and endpoints for the authenticated user",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<Map<String, Object>> getUserAuthorizations(Authentication authentication) {
@@ -121,25 +121,6 @@ public class AuthorizationController {
         );
         
         return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Resolve endpoint by key
-     * Frontend can call this to get full endpoint details by key
-     * 
-     * @param key The endpoint key
-     * @return Endpoint details
-     */
-    @GetMapping("/meta/endpoints/{key}")
-    @Operation(
-            summary = "Resolve endpoint by key",
-            description = "Get full endpoint details by its unique key",
-            security = @SecurityRequirement(name = "bearerAuth")
-    )
-    public ResponseEntity<Map<String, Object>> resolveEndpoint(@PathVariable String key) {
-        return serviceCatalogService.resolveEndpoint(key)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
     }
 
     /**

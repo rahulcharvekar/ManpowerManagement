@@ -55,7 +55,7 @@ public class EmployerPaymentReceiptService {
         @Transactional(readOnly = true)
     public List<WorkerPaymentReceipt> getAvailableReceipts() {
         log.info("Retrieving worker receipts available for employer validation using query DAO");
-        return workerReceiptQueryDao.findByStatus("GENERATED");
+        return workerReceiptQueryDao.findByStatus("PROCESSED");
     }
 
     @Transactional(readOnly = true)
@@ -67,7 +67,7 @@ public class EmployerPaymentReceiptService {
         // Create pageable object
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         
-        // Default status to GENERATED if not provided
+        // Default status to PROCESSED if not provided (receipts that are ready for employer validation)
         String filterStatus = (status != null && !status.trim().isEmpty()) ? status : "PAYMENT_INITIATED";
         
         Page<WorkerPaymentReceipt> receiptsPage;

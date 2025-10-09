@@ -71,9 +71,6 @@ public class AuthorizationService {
         // Get accessible pages for user's roles
         List<Map<String, Object>> pages = getAccessiblePages(roleNames);
 
-        // Build menu tree
-        Map<String, Object> menuTree = buildMenuTree(pages);
-
         // Get accessible endpoints
         List<Map<String, Object>> endpoints = getAccessibleEndpoints(roleNames);
 
@@ -82,10 +79,8 @@ public class AuthorizationService {
         response.put("userId", userId);
         response.put("username", user.getUsername());
         response.put("roles", roleNames);
-        response.put("capabilities", capabilities);
         response.put("can", buildCapabilityMap(capabilities)); // { "USER_CREATE": true, ...}
         response.put("pages", pages);
-        response.put("menuTree", menuTree);
         response.put("endpoints", endpoints);
         response.put("version", System.currentTimeMillis()); // For client-side cache invalidation
 
@@ -114,15 +109,18 @@ public class AuthorizationService {
     private List<Map<String, Object>> getAccessiblePages(Set<String> roleNames) {
         List<UIPage> allPages = uiPageRepository.findByIsActiveTrueOrderByDisplayOrderAsc();
         List<Map<String, Object>> accessiblePages = new ArrayList<>();
+        Set<Long> accessiblePageIds = new HashSet<>();
 
+        // First pass: collect pages with actions
         for (UIPage page : allPages) {
             // Check if user has access to this page
             List<PageAction> actions = pageActionRepository.findByPageIdAndIsActiveTrue(page.getId());
             
-            // Get actions user can perform on this page
+            // Get actions user can perform on this page - return just the capability names
             List<String> userActions = actions.stream()
-                    .filter(action -> hasCapability(action.getRequiredCapability(), roleNames))
-                    .map(PageAction::getRequiredCapability)
+                    .filter(action -> action.getCapability() != null && 
+                                     hasCapability(action.getCapability().getName(), roleNames))
+                    .map(action -> action.getCapability().getName())
                     .collect(Collectors.toList());
 
             if (!userActions.isEmpty()) {
@@ -137,10 +135,86 @@ public class AuthorizationService {
                 pageData.put("actions", userActions);
 
                 accessiblePages.add(pageData);
+                accessiblePageIds.add(page.getId());
             }
         }
 
-        logger.debug("User has access to {} pages", accessiblePages.size());
+        // Second pass: add parent pages that don't have actions but have accessible children
+        Set<Long> parentIdsToAdd = new HashSet<>();
+        for (Map<String, Object> pageData : accessiblePages) {
+            Long parentId = (Long) pageData.get("parentId");
+            if (parentId != null && !accessiblePageIds.contains(parentId)) {
+                parentIdsToAdd.add(parentId);
+            }
+        }
+
+        // Add parent pages
+        for (Long parentId : parentIdsToAdd) {
+            UIPage parentPage = allPages.stream()
+                    .filter(p -> p.getId().equals(parentId))
+                    .findFirst()
+                    .orElse(null);
+            
+            if (parentPage != null) {
+                Map<String, Object> parentData = new HashMap<>();
+                parentData.put("id", parentPage.getId());
+                parentData.put("name", parentPage.getLabel());
+                parentData.put("path", parentPage.getRoute());
+                parentData.put("parentId", parentPage.getParentId());
+                parentData.put("icon", parentPage.getIcon());
+                parentData.put("displayOrder", parentPage.getDisplayOrder());
+                parentData.put("isMenuItem", parentPage.getIsMenuItem());
+                parentData.put("actions", new ArrayList<>()); // No direct actions
+
+                accessiblePages.add(parentData);
+                accessiblePageIds.add(parentPage.getId());
+            }
+        }
+
+        // Sort pages: parents first (by displayOrder), then children (by displayOrder)
+        accessiblePages.sort((a, b) -> {
+            Long parentIdA = (Long) a.get("parentId");
+            Long parentIdB = (Long) b.get("parentId");
+            Integer displayOrderA = (Integer) a.getOrDefault("displayOrder", 0);
+            Integer displayOrderB = (Integer) b.getOrDefault("displayOrder", 0);
+            
+            // Both are root pages - sort by displayOrder
+            if (parentIdA == null && parentIdB == null) {
+                return Integer.compare(displayOrderA, displayOrderB);
+            }
+            
+            // A is root, B is child - A comes first
+            if (parentIdA == null && parentIdB != null) {
+                return -1;
+            }
+            
+            // A is child, B is root - B comes first
+            if (parentIdA != null && parentIdB == null) {
+                return 1;
+            }
+            
+            // Both are children (neither is null at this point)
+            // Check if same parent
+            if (parentIdA != null && parentIdA.equals(parentIdB)) {
+                return Integer.compare(displayOrderA, displayOrderB);
+            }
+            
+            // Different parents - group by parent's display order
+            Integer parentOrderA = accessiblePages.stream()
+                    .filter(p -> p.get("id").equals(parentIdA))
+                    .map(p -> (Integer) p.getOrDefault("displayOrder", 0))
+                    .findFirst()
+                    .orElse(0);
+            Integer parentOrderB = accessiblePages.stream()
+                    .filter(p -> p.get("id").equals(parentIdB))
+                    .map(p -> (Integer) p.getOrDefault("displayOrder", 0))
+                    .findFirst()
+                    .orElse(0);
+            
+            return Integer.compare(parentOrderA, parentOrderB);
+        });
+
+        logger.debug("User has access to {} pages (including parent pages)", accessiblePages.size());
         return accessiblePages;
     }
 
@@ -156,44 +230,10 @@ public class AuthorizationService {
     }
 
     /**
-     * Build hierarchical menu tree from flat pages list
-     */
-    private Map<String, Object> buildMenuTree(List<Map<String, Object>> pages) {
-        Map<String, Object> menuTree = new HashMap<>();
-        List<Map<String, Object>> menuItems = pages.stream()
-                .filter(page -> (Boolean) page.getOrDefault("isMenuItem", false))
-                .collect(Collectors.toList());
-
-        // Build tree structure
-        List<Map<String, Object>> rootItems = new ArrayList<>();
-        Map<Long, List<Map<String, Object>>> childrenMap = new HashMap<>();
-
-        for (Map<String, Object> page : menuItems) {
-            Long parentId = (Long) page.get("parentId");
-            if (parentId == null) {
-                rootItems.add(page);
-            } else {
-                childrenMap.computeIfAbsent(parentId, k -> new ArrayList<>()).add(page);
-            }
-        }
-
-        // Attach children to parents
-        for (Map<String, Object> item : menuItems) {
-            Long itemId = (Long) item.get("id");
-            if (childrenMap.containsKey(itemId)) {
-                item.put("children", childrenMap.get(itemId));
-            }
-        }
-
-        menuTree.put("items", rootItems);
-        return menuTree;
-    }
-
-    /**
      * Get accessible endpoints for user's roles
      */
     private List<Map<String, Object>> getAccessibleEndpoints(Set<String> roleNames) {
-        List<Endpoint> allEndpoints = endpointRepository.findByIsActiveTrueOrderByModuleAscKeyAsc();
+        List<Endpoint> allEndpoints = endpointRepository.findByIsActiveTrue();
         List<Map<String, Object>> accessibleEndpoints = new ArrayList<>();
 
         for (Endpoint endpoint : allEndpoints) {
@@ -201,11 +241,11 @@ public class AuthorizationService {
             if (hasEndpointAccess(endpoint.getId(), roleNames)) {
                 Map<String, Object> endpointData = new HashMap<>();
                 endpointData.put("id", endpoint.getId());
-                endpointData.put("key", endpoint.getKey());
+                endpointData.put("service", endpoint.getService());
+                endpointData.put("version", endpoint.getVersion());
                 endpointData.put("method", endpoint.getMethod());
                 endpointData.put("path", endpoint.getPath());
                 endpointData.put("description", endpoint.getDescription());
-                endpointData.put("module", endpoint.getModule());
 
                 accessibleEndpoints.add(endpointData);
             }
@@ -222,9 +262,27 @@ public class AuthorizationService {
         List<Policy> policies = policyRepository.findByEndpointId(endpointId);
         
         for (Policy policy : policies) {
-            // Simple role check - can be enhanced with PolicyEngineService
-            if (roleNames.contains(policy.getName().replace("_POLICY", ""))) {
-                return true;
+            if (!policy.getIsActive()) {
+                continue;
+            }
+            
+            // Parse the policy expression JSON to check if user has required roles
+            // Expression format: {"roles": ["ADMIN", "WORKER"], "conditions": []}
+            try {
+                String expression = policy.getExpression();
+                if (expression != null && expression.contains("\"roles\"")) {
+                    // Simple JSON parsing - extract roles array
+                    // Check if any of the user's roles match the policy roles
+                    for (String roleName : roleNames) {
+                        if (expression.contains("\"" + roleName + "\"")) {
+                            logger.debug("User role '{}' matches policy '{}' for endpoint {}", 
+                                       roleName, policy.getName(), endpointId);
+                            return true;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                logger.warn("Error parsing policy expression for policy: {}", policy.getName(), e);
             }
         }
         

@@ -23,6 +23,8 @@ import PaymentProcessing from './components/reconciliation/PaymentProcessing';
 import ReconciliationDashboard from './components/reconciliation/ReconciliationDashboard';
 
 // Worker Components
+import WorkerDashboard from './components/worker/WorkerDashboard';
+import WorkerList from './components/worker/WorkerList';
 import WorkerUpload from './components/worker/WorkerUpload';
 import WorkerPayments from './components/worker/WorkerPayments';
 
@@ -119,15 +121,14 @@ const AppContent = () => {
 
   // Show main application if authenticated  
   return (
-    <PermissionProvider>
-      <Router>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/unauthorized" element={<UnauthorizedPage />} />
-          
-          {/* Protected routes with MainLayout */}
-          <Route path="/" element={<MainLayout />}>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/unauthorized" element={<UnauthorizedPage />} />
+        
+        {/* Protected routes with MainLayout */}
+        <Route path="/" element={<MainLayout />}>
             {/* Default redirect to dashboard */}
             <Route index element={<Navigate to="/dashboard" replace />} />
             
@@ -138,13 +139,22 @@ const AppContent = () => {
               </ProtectedRoute>
             } />
             
-            {/* Administration Routes - Match backend navigation IDs */}
+            {/* Administration Routes - Match backend navigation structure */}
+            {/* Main admin route */}
+            <Route path="admin" element={
+              <ProtectedRoute componentKey="7">
+                <Navigate to="/admin/users" replace />
+              </ProtectedRoute>
+            } />
+            
+            {/* Admin - User Management */}
             <Route path="admin/users" element={
-              <ProtectedRoute componentKey="admin-users">
+              <ProtectedRoute componentKey="14">
                 <UserManagement />
               </ProtectedRoute>
             } />
             
+            {/* Legacy admin routes */}
             <Route path="admin/system" element={
               <ProtectedRoute componentKey="admin-system">
                 <SystemSettings />
@@ -157,7 +167,22 @@ const AppContent = () => {
               </ProtectedRoute>
             } />
             
-            {/* Payment Processing - Match backend navigation */}
+            {/* Payment Routes - Match backend navigation structure */}
+            {/* Main payments route */}
+            <Route path="payments" element={
+              <ProtectedRoute componentKey="3">
+                <Navigate to="/payments/list" replace />
+              </ProtectedRoute>
+            } />
+            
+            {/* Payment List */}
+            <Route path="payments/list" element={
+              <ProtectedRoute componentKey="11">
+                <WorkerPayments />
+              </ProtectedRoute>
+            } />
+            
+            {/* Legacy payment processing route */}
             <Route path="payments/process" element={
               <ProtectedRoute componentKey="payment-processing">
                 <PaymentProcessing />
@@ -171,7 +196,29 @@ const AppContent = () => {
               </ProtectedRoute>
             } />
             
-            {/* Worker Routes - Match backend navigation IDs */}
+            {/* Worker Routes - Match backend navigation structure */}
+            {/* Main workers route - shows submenu or redirect to first available */}
+            <Route path="workers" element={
+              <ProtectedRoute componentKey="2">
+                <Navigate to="/workers/list" replace />
+              </ProtectedRoute>
+            } />
+            
+            {/* Worker List */}
+            <Route path="workers/list" element={
+              <ProtectedRoute componentKey="8">
+                <WorkerList />
+              </ProtectedRoute>
+            } />
+            
+            {/* Worker Upload */}
+            <Route path="workers/upload" element={
+              <ProtectedRoute componentKey="9">
+                <WorkerUpload />
+              </ProtectedRoute>
+            } />
+            
+            {/* Legacy routes for backward compatibility */}
             <Route path="worker/payments" element={
               <ProtectedRoute componentKey="worker-payments">
                 <WorkerPayments />
@@ -179,9 +226,7 @@ const AppContent = () => {
             } />
             
             <Route path="worker/upload" element={
-              <ProtectedRoute componentKey="worker-upload">
-                <WorkerUpload />
-              </ProtectedRoute>
+              <Navigate to="/workers/upload" replace />
             } />
             
             {/* Employer Routes */}
@@ -216,7 +261,6 @@ const AppContent = () => {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Router>
-    </PermissionProvider>
   );
 };
 
@@ -224,7 +268,9 @@ function App() {
   return (
     <div className="App">
       <AuthProvider>
-        <AppContent />
+        <PermissionProvider>
+          <AppContent />
+        </PermissionProvider>
       </AuthProvider>
     </div>
   );

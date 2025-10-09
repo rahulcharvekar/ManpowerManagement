@@ -17,26 +17,20 @@ public class Endpoint {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 100)
-    private String key; // Unique identifier like "user.list"
+    @Column(nullable = false, length = 64)
+    private String service; // Service name, e.g., 'worker', 'payment'
 
-    @Column(nullable = false, length = 10)
-    private String method; // GET, POST, PUT, DELETE
+    @Column(nullable = false, length = 64)
+    private String version; // API version, e.g., 'v1', 'v2'
 
-    @Column(nullable = false, length = 255)
-    private String path; // /api/users
+    @Column(nullable = false, length = 8)
+    private String method; // GET, POST, PUT, DELETE, PATCH
 
-    @Column(nullable = false, length = 255)
-    private String description;
+    @Column(nullable = false, length = 256)
+    private String path; // API path template, e.g., /api/worker/upload
 
-    @Column(nullable = false, length = 50)
-    private String module;
-
-    @Column(name = "required_capability", length = 100)
-    private String requiredCapability; // The capability name required for this endpoint
-
-    @Column(name = "is_public", nullable = false)
-    private Boolean isPublic = false; // Public endpoints don't require authentication
+    @Column(columnDefinition = "TEXT")
+    private String description; // Endpoint description
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
@@ -54,14 +48,12 @@ public class Endpoint {
     public Endpoint() {
     }
 
-    public Endpoint(String key, String method, String path, String description, String module, String requiredCapability) {
-        this.key = key;
+    public Endpoint(String service, String version, String method, String path, String description) {
+        this.service = service;
+        this.version = version;
         this.method = method;
         this.path = path;
         this.description = description;
-        this.module = module;
-        this.requiredCapability = requiredCapability;
-        this.isPublic = false;
         this.isActive = true;
     }
 
@@ -85,12 +77,20 @@ public class Endpoint {
         this.id = id;
     }
 
-    public String getKey() {
-        return key;
+    public String getService() {
+        return service;
     }
 
-    public void setKey(String key) {
-        this.key = key;
+    public void setService(String service) {
+        this.service = service;
+    }
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
     }
 
     public String getMethod() {
@@ -115,30 +115,6 @@ public class Endpoint {
 
     public void setDescription(String description) {
         this.description = description;
-    }
-
-    public String getModule() {
-        return module;
-    }
-
-    public void setModule(String module) {
-        this.module = module;
-    }
-
-    public String getRequiredCapability() {
-        return requiredCapability;
-    }
-
-    public void setRequiredCapability(String requiredCapability) {
-        this.requiredCapability = requiredCapability;
-    }
-
-    public Boolean getIsPublic() {
-        return isPublic;
-    }
-
-    public void setIsPublic(Boolean isPublic) {
-        this.isPublic = isPublic;
     }
 
     public Boolean getIsActive() {
@@ -177,11 +153,11 @@ public class Endpoint {
     public String toString() {
         return "Endpoint{" +
                 "id=" + id +
-                ", key='" + key + '\'' +
+                ", service='" + service + '\'' +
+                ", version='" + version + '\'' +
                 ", method='" + method + '\'' +
                 ", path='" + path + '\'' +
-                ", module='" + module + '\'' +
-                ", isPublic=" + isPublic +
+                ", isActive=" + isActive +
                 '}';
     }
 }

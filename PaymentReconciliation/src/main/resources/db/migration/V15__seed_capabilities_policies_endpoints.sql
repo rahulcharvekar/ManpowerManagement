@@ -7,97 +7,97 @@
 -- PART 1: SEED CAPABILITIES
 -- =============================================================================
 
-INSERT INTO capabilities (name, module, action, description) VALUES
+INSERT INTO capabilities (name, module, action, resource, description) VALUES
 -- AUTH MODULE
-('AUTH.LOGIN', 'AUTH', 'LOGIN', 'User can login to the system'),
-('AUTH.LOGOUT', 'AUTH', 'LOGOUT', 'User can logout from the system'),
-('AUTH.REFRESH_TOKEN', 'AUTH', 'REFRESH_TOKEN', 'User can refresh authentication token'),
-('AUTH.VIEW_PROFILE', 'AUTH', 'VIEW_PROFILE', 'User can view their own profile'),
-('AUTH.UPDATE_PROFILE', 'AUTH', 'UPDATE_PROFILE', 'User can update their own profile'),
-('AUTH.CHANGE_PASSWORD', 'AUTH', 'CHANGE_PASSWORD', 'User can change their password'),
+('AUTH.LOGIN', 'AUTH', 'LOGIN', 'AUTH', 'User can login to the system'),
+('AUTH.LOGOUT', 'AUTH', 'LOGOUT', 'AUTH', 'User can logout from the system'),
+('AUTH.REFRESH_TOKEN', 'AUTH', 'REFRESH_TOKEN', 'AUTH', 'User can refresh authentication token'),
+('AUTH.VIEW_PROFILE', 'AUTH', 'VIEW_PROFILE', 'AUTH', 'User can view their own profile'),
+('AUTH.UPDATE_PROFILE', 'AUTH', 'UPDATE_PROFILE', 'AUTH', 'User can update their own profile'),
+('AUTH.CHANGE_PASSWORD', 'AUTH', 'CHANGE_PASSWORD', 'AUTH', 'User can change their password'),
 
 -- USER_MANAGEMENT MODULE
-('USER_MANAGEMENT.LIST', 'USER_MANAGEMENT', 'LIST', 'View list of all users'),
-('USER_MANAGEMENT.READ', 'USER_MANAGEMENT', 'READ', 'View specific user details'),
-('USER_MANAGEMENT.CREATE', 'USER_MANAGEMENT', 'CREATE', 'Create new user accounts'),
-('USER_MANAGEMENT.UPDATE', 'USER_MANAGEMENT', 'UPDATE', 'Update user information'),
-('USER_MANAGEMENT.DELETE', 'USER_MANAGEMENT', 'DELETE', 'Delete user accounts'),
-('USER_MANAGEMENT.ACTIVATE', 'USER_MANAGEMENT', 'ACTIVATE', 'Activate/deactivate users'),
+('USER_MANAGEMENT.LIST', 'USER_MANAGEMENT', 'LIST', 'USER', 'View list of all users'),
+('USER_MANAGEMENT.READ', 'USER_MANAGEMENT', 'READ', 'USER', 'View specific user details'),
+('USER_MANAGEMENT.CREATE', 'USER_MANAGEMENT', 'CREATE', 'USER', 'Create new user accounts'),
+('USER_MANAGEMENT.UPDATE', 'USER_MANAGEMENT', 'UPDATE', 'USER', 'Update user information'),
+('USER_MANAGEMENT.DELETE', 'USER_MANAGEMENT', 'DELETE', 'USER', 'Delete user accounts'),
+('USER_MANAGEMENT.ACTIVATE', 'USER_MANAGEMENT', 'ACTIVATE', 'USER', 'Activate/deactivate users'),
 
 -- ROLE_MANAGEMENT MODULE
-('ROLE_MANAGEMENT.LIST', 'ROLE_MANAGEMENT', 'LIST', 'View list of all roles'),
-('ROLE_MANAGEMENT.READ', 'ROLE_MANAGEMENT', 'READ', 'View specific role details'),
-('ROLE_MANAGEMENT.CREATE', 'ROLE_MANAGEMENT', 'CREATE', 'Create new roles'),
-('ROLE_MANAGEMENT.UPDATE', 'ROLE_MANAGEMENT', 'UPDATE', 'Update role information'),
-('ROLE_MANAGEMENT.DELETE', 'ROLE_MANAGEMENT', 'DELETE', 'Delete roles'),
-('ROLE_MANAGEMENT.ASSIGN_USERS', 'ROLE_MANAGEMENT', 'ASSIGN_USERS', 'Assign roles to users'),
+('ROLE_MANAGEMENT.LIST', 'ROLE_MANAGEMENT', 'LIST', 'ROLE', 'View list of all roles'),
+('ROLE_MANAGEMENT.READ', 'ROLE_MANAGEMENT', 'READ', 'ROLE', 'View specific role details'),
+('ROLE_MANAGEMENT.CREATE', 'ROLE_MANAGEMENT', 'CREATE', 'ROLE', 'Create new roles'),
+('ROLE_MANAGEMENT.UPDATE', 'ROLE_MANAGEMENT', 'UPDATE', 'ROLE', 'Update role information'),
+('ROLE_MANAGEMENT.DELETE', 'ROLE_MANAGEMENT', 'DELETE', 'ROLE', 'Delete roles'),
+('ROLE_MANAGEMENT.ASSIGN_USERS', 'ROLE_MANAGEMENT', 'ASSIGN_USERS', 'ROLE', 'Assign roles to users'),
 
 -- PERMISSION_MANAGEMENT MODULE
-('PERMISSION_MANAGEMENT.LIST', 'PERMISSION_MANAGEMENT', 'LIST', 'View capabilities and policies'),
-('PERMISSION_MANAGEMENT.READ', 'PERMISSION_MANAGEMENT', 'READ', 'View capability/policy details'),
-('PERMISSION_MANAGEMENT.CREATE', 'PERMISSION_MANAGEMENT', 'CREATE', 'Create capabilities/policies'),
-('PERMISSION_MANAGEMENT.UPDATE', 'PERMISSION_MANAGEMENT', 'UPDATE', 'Update capabilities/policies'),
-('PERMISSION_MANAGEMENT.DELETE', 'PERMISSION_MANAGEMENT', 'DELETE', 'Delete capabilities/policies'),
+('PERMISSION_MANAGEMENT.LIST', 'PERMISSION_MANAGEMENT', 'LIST', 'PERMISSION', 'View capabilities and policies'),
+('PERMISSION_MANAGEMENT.READ', 'PERMISSION_MANAGEMENT', 'READ', 'PERMISSION', 'View capability/policy details'),
+('PERMISSION_MANAGEMENT.CREATE', 'PERMISSION_MANAGEMENT', 'CREATE', 'PERMISSION', 'Create capabilities/policies'),
+('PERMISSION_MANAGEMENT.UPDATE', 'PERMISSION_MANAGEMENT', 'UPDATE', 'PERMISSION', 'Update capabilities/policies'),
+('PERMISSION_MANAGEMENT.DELETE', 'PERMISSION_MANAGEMENT', 'DELETE', 'PERMISSION', 'Delete capabilities/policies'),
 
 -- WORKER MODULE
-('WORKER.LIST', 'WORKER', 'LIST', 'View list of worker data'),
-('WORKER.READ', 'WORKER', 'READ', 'View worker details'),
-('WORKER.CREATE', 'WORKER', 'CREATE', 'Upload/create worker data'),
-('WORKER.UPDATE', 'WORKER', 'UPDATE', 'Update worker information'),
-('WORKER.DELETE', 'WORKER', 'DELETE', 'Delete worker data'),
-('WORKER.VALIDATE', 'WORKER', 'VALIDATE', 'Validate worker data entries'),
-('WORKER.GENERATE_PAYMENTS', 'WORKER', 'GENERATE_PAYMENTS', 'Generate payment requests'),
-('WORKER.DOWNLOAD', 'WORKER', 'DOWNLOAD', 'Download worker data'),
+('WORKER.LIST', 'WORKER', 'LIST', 'WORKER', 'View list of worker data'),
+('WORKER.READ', 'WORKER', 'READ', 'WORKER', 'View worker details'),
+('WORKER.CREATE', 'WORKER', 'CREATE', 'WORKER', 'Upload/create worker data'),
+('WORKER.UPDATE', 'WORKER', 'UPDATE', 'WORKER', 'Update worker information'),
+('WORKER.DELETE', 'WORKER', 'DELETE', 'WORKER', 'Delete worker data'),
+('WORKER.VALIDATE', 'WORKER', 'VALIDATE', 'WORKER', 'Validate worker data entries'),
+('WORKER.GENERATE_PAYMENTS', 'WORKER', 'GENERATE_PAYMENTS', 'WORKER', 'Generate payment requests'),
+('WORKER.DOWNLOAD', 'WORKER', 'DOWNLOAD', 'WORKER', 'Download worker data'),
 
 -- PAYMENT MODULE
-('PAYMENT.LIST', 'PAYMENT', 'LIST', 'View list of payments'),
-('PAYMENT.READ', 'PAYMENT', 'READ', 'View payment details'),
-('PAYMENT.CREATE', 'PAYMENT', 'CREATE', 'Create payment requests'),
-('PAYMENT.UPDATE', 'PAYMENT', 'UPDATE', 'Update payment information'),
-('PAYMENT.DELETE', 'PAYMENT', 'DELETE', 'Delete payments'),
-('PAYMENT.PROCESS', 'PAYMENT', 'PROCESS', 'Process payment requests'),
-('PAYMENT.APPROVE', 'PAYMENT', 'APPROVE', 'Approve payment requests'),
-('PAYMENT.REJECT', 'PAYMENT', 'REJECT', 'Reject payment requests'),
-('PAYMENT.GENERATE_REPORTS', 'PAYMENT', 'GENERATE_REPORTS', 'Generate payment reports'),
+('PAYMENT.LIST', 'PAYMENT', 'LIST', 'PAYMENT', 'View list of payments'),
+('PAYMENT.READ', 'PAYMENT', 'READ', 'PAYMENT', 'View payment details'),
+('PAYMENT.CREATE', 'PAYMENT', 'CREATE', 'PAYMENT', 'Create payment requests'),
+('PAYMENT.UPDATE', 'PAYMENT', 'UPDATE', 'PAYMENT', 'Update payment information'),
+('PAYMENT.DELETE', 'PAYMENT', 'DELETE', 'PAYMENT', 'Delete payments'),
+('PAYMENT.PROCESS', 'PAYMENT', 'PROCESS', 'PAYMENT', 'Process payment requests'),
+('PAYMENT.APPROVE', 'PAYMENT', 'APPROVE', 'PAYMENT', 'Approve payment requests'),
+('PAYMENT.REJECT', 'PAYMENT', 'REJECT', 'PAYMENT', 'Reject payment requests'),
+('PAYMENT.GENERATE_REPORTS', 'PAYMENT', 'GENERATE_REPORTS', 'PAYMENT', 'Generate payment reports'),
 
 -- EMPLOYER MODULE
-('EMPLOYER.LIST', 'EMPLOYER', 'LIST', 'View list of employers'),
-('EMPLOYER.READ', 'EMPLOYER', 'READ', 'View employer details'),
-('EMPLOYER.CREATE', 'EMPLOYER', 'CREATE', 'Create employer records'),
-('EMPLOYER.UPDATE', 'EMPLOYER', 'UPDATE', 'Update employer information'),
-('EMPLOYER.DELETE', 'EMPLOYER', 'DELETE', 'Delete employer records'),
-('EMPLOYER.VIEW_RECEIPTS', 'EMPLOYER', 'VIEW_RECEIPTS', 'View employer payment receipts'),
-('EMPLOYER.VALIDATE_RECEIPTS', 'EMPLOYER', 'VALIDATE_RECEIPTS', 'Validate employer receipts'),
-('EMPLOYER.SEND_TO_BOARD', 'EMPLOYER', 'SEND_TO_BOARD', 'Send receipts to board'),
+('EMPLOYER.LIST', 'EMPLOYER', 'LIST', 'EMPLOYER', 'View list of employers'),
+('EMPLOYER.READ', 'EMPLOYER', 'READ', 'EMPLOYER', 'View employer details'),
+('EMPLOYER.CREATE', 'EMPLOYER', 'CREATE', 'EMPLOYER', 'Create employer records'),
+('EMPLOYER.UPDATE', 'EMPLOYER', 'UPDATE', 'EMPLOYER', 'Update employer information'),
+('EMPLOYER.DELETE', 'EMPLOYER', 'DELETE', 'EMPLOYER', 'Delete employer records'),
+('EMPLOYER.VIEW_RECEIPTS', 'EMPLOYER', 'VIEW_RECEIPTS', 'EMPLOYER', 'View employer payment receipts'),
+('EMPLOYER.VALIDATE_RECEIPTS', 'EMPLOYER', 'VALIDATE_RECEIPTS', 'EMPLOYER', 'Validate employer receipts'),
+('EMPLOYER.SEND_TO_BOARD', 'EMPLOYER', 'SEND_TO_BOARD', 'EMPLOYER', 'Send receipts to board'),
 
 -- BOARD MODULE
-('BOARD.LIST', 'BOARD', 'LIST', 'View list of board items'),
-('BOARD.READ', 'BOARD', 'READ', 'View board item details'),
-('BOARD.VIEW_RECEIPTS', 'BOARD', 'VIEW_RECEIPTS', 'View board receipts'),
-('BOARD.APPROVE', 'BOARD', 'APPROVE', 'Approve board receipts'),
-('BOARD.REJECT', 'BOARD', 'REJECT', 'Reject board receipts'),
-('BOARD.GENERATE_REPORTS', 'BOARD', 'GENERATE_REPORTS', 'Generate board reports'),
+('BOARD.LIST', 'BOARD', 'LIST', 'BOARD', 'View list of board items'),
+('BOARD.READ', 'BOARD', 'READ', 'BOARD', 'View board item details'),
+('BOARD.VIEW_RECEIPTS', 'BOARD', 'VIEW_RECEIPTS', 'BOARD', 'View board receipts'),
+('BOARD.APPROVE', 'BOARD', 'APPROVE', 'BOARD', 'Approve board receipts'),
+('BOARD.REJECT', 'BOARD', 'REJECT', 'BOARD', 'Reject board receipts'),
+('BOARD.GENERATE_REPORTS', 'BOARD', 'GENERATE_REPORTS', 'BOARD', 'Generate board reports'),
 
 -- RECONCILIATION MODULE
-('RECONCILIATION.LIST', 'RECONCILIATION', 'LIST', 'View reconciliation data'),
-('RECONCILIATION.READ', 'RECONCILIATION', 'READ', 'View reconciliation details'),
-('RECONCILIATION.PERFORM', 'RECONCILIATION', 'PERFORM', 'Perform payment reconciliation'),
-('RECONCILIATION.GENERATE_REPORTS', 'RECONCILIATION', 'GENERATE_REPORTS', 'Generate reconciliation reports'),
+('RECONCILIATION.LIST', 'RECONCILIATION', 'LIST', 'RECONCILIATION', 'View reconciliation data'),
+('RECONCILIATION.READ', 'RECONCILIATION', 'READ', 'RECONCILIATION', 'View reconciliation details'),
+('RECONCILIATION.PERFORM', 'RECONCILIATION', 'PERFORM', 'RECONCILIATION', 'Perform payment reconciliation'),
+('RECONCILIATION.GENERATE_REPORTS', 'RECONCILIATION', 'GENERATE_REPORTS', 'RECONCILIATION', 'Generate reconciliation reports'),
 
 -- DASHBOARD MODULE
-('DASHBOARD.VIEW', 'DASHBOARD', 'VIEW', 'View dashboard'),
-('DASHBOARD.VIEW_STATS', 'DASHBOARD', 'VIEW_STATS', 'View dashboard statistics'),
+('DASHBOARD.VIEW', 'DASHBOARD', 'VIEW', 'DASHBOARD', 'View dashboard'),
+('DASHBOARD.VIEW_STATS', 'DASHBOARD', 'VIEW_STATS', 'DASHBOARD', 'View dashboard statistics'),
 
 -- AUDIT MODULE
-('AUDIT.VIEW_LOGS', 'AUDIT', 'VIEW_LOGS', 'View system audit logs'),
-('AUDIT.VIEW_AUTH_LOGS', 'AUDIT', 'VIEW_AUTH_LOGS', 'View authorization audit logs'),
-('AUDIT.EXPORT', 'AUDIT', 'EXPORT', 'Export audit logs'),
+('AUDIT.VIEW_LOGS', 'AUDIT', 'VIEW_LOGS', 'AUDIT', 'View system audit logs'),
+('AUDIT.VIEW_AUTH_LOGS', 'AUDIT', 'VIEW_AUTH_LOGS', 'AUDIT', 'View authorization audit logs'),
+('AUDIT.EXPORT', 'AUDIT', 'EXPORT', 'AUDIT', 'Export audit logs'),
 
 -- SYSTEM MODULE
-('SYSTEM.MAINTENANCE', 'SYSTEM', 'MAINTENANCE', 'Perform system maintenance'),
-('SYSTEM.DATABASE_CLEANUP', 'SYSTEM', 'DATABASE_CLEANUP', 'Perform database cleanup'),
-('SYSTEM.VIEW_CONFIG', 'SYSTEM', 'VIEW_CONFIG', 'View system configuration'),
-('SYSTEM.UPDATE_CONFIG', 'SYSTEM', 'UPDATE_CONFIG', 'Update system configuration');
+('SYSTEM.MAINTENANCE', 'SYSTEM', 'MAINTENANCE', 'SYSTEM', 'Perform system maintenance'),
+('SYSTEM.DATABASE_CLEANUP', 'SYSTEM', 'DATABASE_CLEANUP', 'SYSTEM', 'Perform database cleanup'),
+('SYSTEM.VIEW_CONFIG', 'SYSTEM', 'VIEW_CONFIG', 'SYSTEM', 'View system configuration'),
+('SYSTEM.UPDATE_CONFIG', 'SYSTEM', 'UPDATE_CONFIG', 'SYSTEM', 'Update system configuration');
 
 -- =============================================================================
 -- PART 2: SEED POLICIES

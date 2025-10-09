@@ -10,6 +10,13 @@ export const API_ENDPOINTS = {
     ME: '/api/auth/me',
     UI_CONFIG: '/api/auth/ui-config',
     USERS: '/api/auth/users', // Admin only
+    AUTHORIZATIONS: '/api/me/authorizations', // New capability-based endpoint
+    REFRESH_AUTHORIZATIONS: '/api/me/authorizations/refresh', // Force refresh
+  },
+
+  // Service Catalog endpoints - Capability system
+  META: {
+    SERVICE_CATALOG: '/api/meta/service-catalog',
   },
 
   // Component-based Permission endpoints - ComponentPermissionController (/api/components)
@@ -88,10 +95,11 @@ export const API_ENDPOINTS = {
 export class ApiClient {
   constructor(baseUrl = API_BASE_URL) {
     this.baseUrl = baseUrl;
+    this.etagCache = new Map(); // Cache for ETags
   }
 
-  // Create headers with authentication
-  createHeaders(token = null, contentType = 'application/json') {
+  // Create headers with authentication and ETag support
+  createHeaders(token = null, contentType = 'application/json', etag = null) {
     const headers = {
       'Accept': 'application/json',
     };
@@ -103,12 +111,17 @@ export class ApiClient {
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
+    
+    // Add If-None-Match header for ETag caching
+    if (etag) {
+      headers['If-None-Match'] = etag;
+    }
 
     return headers;
   }
 
-  // Generic GET request
-  async get(endpoint, token = null, params = null) {
+  // Generic GET request with ETag caching support
+  async get(endpoint, token = null, params = null, useCache = false) {
     let url = `${this.baseUrl}${endpoint}`;
     
     if (params) {
@@ -116,12 +129,30 @@ export class ApiClient {
       url += `?${searchParams}`;
     }
 
+    // Get cached ETag if caching is enabled
+    const cachedEtag = useCache ? this.etagCache.get(endpoint) : null;
+    
     const response = await fetch(url, {
       method: 'GET',
-      headers: this.createHeaders(token),
+      headers: this.createHeaders(token, 'application/json', cachedEtag?.etag),
     });
 
-    return this.handleResponse(response);
+    // Handle 304 Not Modified - return cached data
+    if (response.status === 304 && cachedEtag) {
+      console.log(`✅ Using cached data for ${endpoint} (304 Not Modified)`);
+      return cachedEtag.data;
+    }
+
+    const data = await this.handleResponse(response);
+    
+    // Cache the ETag if present
+    if (useCache && response.headers.has('ETag')) {
+      const etag = response.headers.get('ETag');
+      this.etagCache.set(endpoint, { etag, data });
+      console.log(`✅ Cached ETag for ${endpoint}: ${etag}`);
+    }
+    
+    return data;
   }
 
   // Generic POST request
@@ -161,6 +192,17 @@ export class ApiClient {
     });
 
     return this.handleResponse(response);
+  }
+  
+  // Clear ETag cache for a specific endpoint or all endpoints
+  clearCache(endpoint = null) {
+    if (endpoint) {
+      this.etagCache.delete(endpoint);
+      console.log(`✅ Cleared cache for ${endpoint}`);
+    } else {
+      this.etagCache.clear();
+      console.log('✅ Cleared all cache');
+    }
   }
 
   // Handle response and errors consistently

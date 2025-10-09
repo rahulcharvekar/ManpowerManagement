@@ -56,20 +56,53 @@ export class AuthService {
   }
 
   /**
-   * Get current user information
-   * @returns {Promise<Object>} Current user data
+   * Get current user information with authorizations
+   * Uses ETag caching for better performance
+   * @param {boolean} useCache - Whether to use ETag caching (default: true)
+   * @returns {Promise<Object>} Current user data with capabilities and permissions
    */
-  static async getCurrentUser() {
+  static async getCurrentUser(useCache = true) {
     try {
       const token = localStorage.getItem('authToken');
       if (!token) {
         throw new Error('No authentication token found');
       }
 
-      const response = await apiClient.get(API_ENDPOINTS.AUTH.ME, token);
+      // Use /api/me/authorizations to get user info with capabilities
+      // Enable ETag caching for better performance
+      const response = await apiClient.get(API_ENDPOINTS.AUTH.AUTHORIZATIONS, token, null, useCache);
       return response;
     } catch (error) {
       throw new Error(error.message || 'Failed to get user information');
+    }
+  }
+
+  /**
+   * Refresh user authorizations (force refresh from backend, bypass cache)
+   * @returns {Promise<Object>} Updated user data with fresh capabilities and permissions
+   */
+  static async refreshAuthorizations() {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Try the dedicated refresh endpoint first
+      try {
+        const response = await apiClient.get(API_ENDPOINTS.AUTH.REFRESH_AUTHORIZATIONS, token, null, false);
+        // Clear cache after refresh
+        apiClient.clearCache(API_ENDPOINTS.AUTH.AUTHORIZATIONS);
+        return response;
+      } catch (refreshError) {
+        // Fallback: clear cache and call regular authorizations endpoint
+        console.warn('Refresh endpoint not available, using regular authorizations with cache bypass:', refreshError);
+        apiClient.clearCache(API_ENDPOINTS.AUTH.AUTHORIZATIONS);
+        const response = await apiClient.get(API_ENDPOINTS.AUTH.AUTHORIZATIONS, token, null, false);
+        return response;
+      }
+    } catch (error) {
+      throw new Error(error.message || 'Failed to refresh authorizations');
     }
   }
 
@@ -148,6 +181,30 @@ export class AuthService {
   static clearAuthData() {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userInfo');
+    // Clear API cache
+    apiClient.clearCache();
+  }
+
+  /**
+   * Get service catalog with endpoint mappings
+   * Uses ETag caching for better performance
+   * @param {boolean} useCache - Whether to use ETag caching (default: true)
+   * @returns {Promise<Object>} Service catalog with endpoint policies
+   */
+  static async getServiceCatalog(useCache = true) {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await apiClient.get(API_ENDPOINTS.META.SERVICE_CATALOG, token, null, useCache);
+      return response;
+    } catch (error) {
+      // Service catalog is optional, don't throw error
+      console.warn('Service catalog not available:', error);
+      return null;
+    }
   }
 
   /**

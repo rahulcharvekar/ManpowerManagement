@@ -17,19 +17,14 @@ import java.util.Optional;
 public interface EndpointRepository extends JpaRepository<Endpoint, Long> {
 
     /**
-     * Find an endpoint by its unique key
+     * Find an endpoint by service, version, method and path
      */
-    Optional<Endpoint> findByKey(String key);
+    Optional<Endpoint> findByServiceAndVersionAndMethodAndPath(String service, String version, String method, String path);
 
     /**
-     * Find an endpoint by HTTP method and path
+     * Find all endpoints for a given service
      */
-    Optional<Endpoint> findByMethodAndPath(String method, String path);
-
-    /**
-     * Find all endpoints for a given module
-     */
-    List<Endpoint> findByModule(String module);
+    List<Endpoint> findByService(String service);
 
     /**
      * Find all active endpoints
@@ -37,29 +32,9 @@ public interface EndpointRepository extends JpaRepository<Endpoint, Long> {
     List<Endpoint> findByIsActiveTrue();
 
     /**
-     * Find all public endpoints (no authentication required)
+     * Find all active endpoints for a service
      */
-    List<Endpoint> findByIsPublicTrue();
-
-    /**
-     * Find all active endpoints for a module
-     */
-    List<Endpoint> findByModuleAndIsActiveTrue(String module);
-
-    /**
-     * Find endpoints by required capability
-     */
-    List<Endpoint> findByRequiredCapability(String requiredCapability);
-
-    /**
-     * Check if an endpoint exists by key
-     */
-    boolean existsByKey(String key);
-
-    /**
-     * Check if an endpoint exists by method and path
-     */
-    boolean existsByMethodAndPath(String method, String path);
+    List<Endpoint> findByServiceAndIsActiveTrue(String service);
 
     /**
      * Find all endpoints protected by a specific policy
@@ -87,15 +62,9 @@ public interface EndpointRepository extends JpaRepository<Endpoint, Long> {
      * Find endpoints by HTTP method
      */
     List<Endpoint> findByMethod(String method);
-
-    /**
-     * Get all endpoint keys (for frontend catalog)
-     */
-    @Query("SELECT e.key FROM Endpoint e WHERE e.isActive = true")
-    List<String> findAllActiveEndpointKeys();
     
     /**
-     * Find all active endpoints ordered by module and key
+     * Find all active endpoints ordered by service and version
      */
-    List<Endpoint> findByIsActiveTrueOrderByModuleAscKeyAsc();
+    List<Endpoint> findByIsActiveTrueOrderByServiceAscVersionAsc();
 }

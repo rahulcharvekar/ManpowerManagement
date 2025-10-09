@@ -1,462 +1,494 @@
-import React, { useState } from 'react';
-import { usePermissions } from '../../contexts/PermissionContext';
-import { API_ENDPOINTS, apiClient } from '../../api/apiConfig';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import WorkerApi from '../../api/workerApi';
+import { ActionGate, ModulePermissionGate } from '../core';
 
 const WorkerUpload = () => {
-  const { canPerformAction } = usePermissions();
-  const [dragActive, setDragActive] = useState(false);
-  const [files, setFiles] = useState([]);
-  const [uploadProgress, setUploadProgress] = useState({});
+  const { user, capabilities } = useAuth();
+  const can = capabilities?.can || {};
+  
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
+  // Load uploaded files history on component mount
+  useEffect(() => {
+    if (can['WORKER.LIST']) {
+      loadFilesHistory();
+    }
+  }, [can]);
 
-  const handleDrag = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
+  const loadFilesHistory = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await WorkerApi.getFilesSummaries({ page: 0, size: 10 });
+      if (response.success) {
+        setUploadedFiles(response.data);
+      }
+    } catch (err) {
+      console.error('Error loading files history:', err);
+      setError('Failed to load upload history');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    
-    const droppedFiles = Array.from(e.dataTransfer.files);
-    handleFiles(droppedFiles);
-  };
-
-  const handleFileInput = (e) => {
-    const selectedFiles = Array.from(e.target.files);
-    handleFiles(selectedFiles);
-  };
-
-  const handleFiles = (newFiles) => {
-    const validFiles = newFiles.filter(file => {
-      // Check file type (CSV, Excel)
-      const validTypes = ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
-      const isValidType = validTypes.includes(file.type) || 
-                         file.name.endsWith('.csv') || 
-                         file.name.endsWith('.xlsx') || 
-                         file.name.endsWith('.xls');
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Validate file type
+      const validTypes = ['.csv', '.xlsx', '.xls'];
+      const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
       
-      // Check file size (50MB limit)
-      const isValidSize = file.size <= 50 * 1024 * 1024;
+      if (!validTypes.includes(fileExtension)) {
+        setError(`Invalid file type. Please upload ${validTypes.join(', ')} files only.`);
+        return;
+      }
       
-      return isValidType && isValidSize;
-    });
-
-    const invalidFiles = newFiles.filter(file => {
-      const validTypes = ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
-      const isValidType = validTypes.includes(file.type) || 
-                         file.name.endsWith('.csv') || 
-                         file.name.endsWith('.xlsx') || 
-                         file.name.endsWith('.xls');
-      const isValidSize = file.size <= 50 * 1024 * 1024;
-      return !isValidType || !isValidSize;
-    });
-
-    if (invalidFiles.length > 0) {
-      alert(`Some files were rejected:\n${invalidFiles.map(f => `${f.name} - ${!f.type.includes('csv') && !f.type.includes('excel') && !f.name.match(/\.(csv|xlsx|xls)$/) ? 'Invalid format' : 'File too large'}`).join('\n')}`);
+      // Validate file size (10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+      if (file.size > maxSize) {
+        setError('File size exceeds 10MB limit.');
+        return;
+      }
+      
+      setSelectedFile(file);
+      setError(null);
     }
-
-    setFiles(prev => [...prev, ...validFiles.map(file => ({
-      file,
-      id: Date.now() + Math.random(),
-      status: 'ready',
-      error: null,
-      uploadedData: null
-    }))]);
   };
 
-  const uploadFile = async (fileItem) => {
-    if (!canPerformAction('worker-upload', 'UPLOAD')) {
-      alert('You do not have permission to upload files.');
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      setError('Please select a file to upload');
       return;
     }
 
-    setFiles(prev => prev.map(f => 
-      f.id === fileItem.id ? { ...f, status: 'uploading', error: null } : f
-    ));
-
     try {
-      const formData = new FormData();
-      formData.append('file', fileItem.file);
+      setUploading(true);
+      setError(null);
+      setUploadProgress(0);
 
-      const token = localStorage.getItem('authToken');
-      
-      // Use the API client for consistent handling
-      const response = await apiClient.post(
-        API_ENDPOINTS.WORKER_UPLOADED_DATA.UPLOAD,
-        formData,
-        token,
-        null // Let FormData set the content type
-      );
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 200);
 
-      setFiles(prev => prev.map(f => 
-        f.id === fileItem.id ? { 
-          ...f, 
-          status: 'completed', 
-          uploadedData: response 
-        } : f
-      ));
+      const response = await WorkerApi.uploadWorkerFile(selectedFile, {
+        description: `Worker data upload - ${new Date().toLocaleDateString()}`,
+        uploadType: 'WORKER_DATA'
+      });
 
-      // Show success message
-      console.log('File uploaded successfully:', response);
+      clearInterval(progressInterval);
+      setUploadProgress(100);
 
-    } catch (error) {
-      console.error('Upload error:', error);
-      setFiles(prev => prev.map(f => 
-        f.id === fileItem.id ? { 
-          ...f, 
-          status: 'error', 
-          error: error.message || 'Upload failed'
-        } : f
-      ));
-    }
-  };
-
-  const uploadAllFiles = async () => {
-    const readyFiles = files.filter(f => f.status === 'ready');
-    setUploading(true);
-    
-    try {
-      for (const file of readyFiles) {
-        await uploadFile(file);
+      if (response.success) {
+        console.log('✅ Upload successful:', response.data);
+        
+        // Add to uploaded files list
+        setUploadedFiles(prev => [
+          {
+            ...response.data,
+            uploadedBy: user?.username || 'Unknown',
+            isValidated: false
+          },
+          ...prev
+        ]);
+        
+        // Reset form
+        setSelectedFile(null);
+        setUploadProgress(0);
+        
+        // Auto-validate the file if permission exists
+        if (can['WORKER.VALIDATE']) {
+          await handleValidate(response.data.fileId);
+        }
       }
+    } catch (err) {
+      console.error('❌ Upload error:', err);
+      setError(err.message || 'Failed to upload file. Please try again.');
+      setUploadProgress(0);
     } finally {
       setUploading(false);
     }
   };
 
-  const removeFile = (fileId) => {
-    setFiles(prev => prev.filter(f => f.id !== fileId));
-    setUploadProgress(prev => {
-      const newProgress = { ...prev };
-      delete newProgress[fileId];
-      return newProgress;
-    });
-  };
-
-  const clearCompletedFiles = () => {
-    setFiles(prev => prev.filter(f => f.status !== 'completed'));
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'ready': return 'text-primary-600';
-      case 'uploading': return 'text-warning-600';
-      case 'completed': return 'text-success-600';
-      case 'error': return 'text-error-600';
-      default: return 'text-gray-600';
+  const handleValidate = async (fileId) => {
+    try {
+      setLoading(true);
+      const response = await WorkerApi.validateWorkerFile(fileId);
+      
+      if (response.success) {
+        console.log('✅ Validation successful:', response.data);
+        
+        // Update file in the list
+        setUploadedFiles(prev =>
+          prev.map(file =>
+            file.fileId === fileId
+              ? {
+                  ...file,
+                  isValidated: true,
+                  validRecords: response.data.validRecords,
+                  invalidRecords: response.data.invalidRecords,
+                  validationErrors: response.data.errors
+                }
+              : file
+          )
+        );
+      }
+    } catch (err) {
+      console.error('❌ Validation error:', err);
+      setError(`Validation failed: ${err.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'ready': return '📄';
-      case 'uploading': return '⏳';
-      case 'completed': return '✅';
-      case 'error': return '❌';
-      default: return '📄';
+  const handleDelete = async (fileId) => {
+    if (!window.confirm('Are you sure you want to delete this file?')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await WorkerApi.deleteUploadedFile(fileId);
+      
+      if (response.success) {
+        console.log('✅ File deleted successfully');
+        setUploadedFiles(prev => prev.filter(file => file.fileId !== fileId));
+      }
+    } catch (err) {
+      console.error('❌ Delete error:', err);
+      setError(`Failed to delete file: ${err.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'ready': return 'badge badge-info';
-      case 'uploading': return 'badge badge-warning';
-      case 'completed': return 'badge badge-success';
-      case 'error': return 'badge badge-error';
-      default: return 'badge';
+  const handleDownloadTemplate = async () => {
+    try {
+      setLoading(true);
+      await WorkerApi.downloadTemplate('xlsx');
+      console.log('✅ Template downloaded successfully');
+    } catch (err) {
+      console.error('❌ Template download error:', err);
+      setError('Failed to download template');
+    } finally {
+      setLoading(false);
     }
   };
-
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const canUpload = canPerformAction('worker-upload', 'UPLOAD');
-  const readyFilesCount = files.filter(f => f.status === 'ready').length;
-  const completedFilesCount = files.filter(f => f.status === 'completed').length;
-    const errorFilesCount = files.filter(f => f.status === 'error').length;
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Page Header */}
-      <div className="dashboard-header">
-        <div className="flex items-center justify-between">
+    <ModulePermissionGate 
+      module="WORKER"
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="text-6xl text-gray-400 mb-4">🚫</div>
+            <h1 className="text-2xl font-bold text-gray-700 mb-2">Access Denied</h1>
+            <p className="text-gray-500">You don't have permission to upload worker data.</p>
+          </div>
+        </div>
+      }
+    >
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-              📁 <span className="ml-3">Worker Payment Upload</span>
-            </h1>
-            <p className="text-gray-600 mt-2">Upload worker payment data files for processing</p>
+            <h1 className="text-3xl font-bold text-gray-900">Upload Worker Data</h1>
+            <p className="text-gray-600 mt-1">Upload and manage worker attendance and payment data</p>
           </div>
           
-          {files.filter(f => f.status === 'completed').length > 0 && (
-            <button 
-              onClick={clearCompletedFiles}
-              className="btn-secondary"
-            >
-              Clear Completed
-            </button>
-          )}
+          <div className="flex gap-3">
+            <ActionGate permission="WORKER.DOWNLOAD">
+              <button
+                onClick={handleDownloadTemplate}
+                disabled={loading}
+                className="btn-outline flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Download Template
+              </button>
+            </ActionGate>
+            
+            <ActionGate permission="WORKER.LIST">
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className="btn-outline"
+              >
+                {showHistory ? 'Hide History' : 'View History'}
+              </button>
+            </ActionGate>
+          </div>
         </div>
-        
-        {/* Upload Statistics */}
-        {files.length > 0 && (
-          <div className="mt-4 flex space-x-6">
-            <div className="flex items-center">
-              <span className="text-sm text-gray-500">Ready:</span>
-              <span className="ml-1 text-sm font-medium text-primary-600">{files.filter(f => f.status === 'ready').length}</span>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <p className="text-red-800 font-medium">{error}</p>
             </div>
-            <div className="flex items-center">
-              <span className="text-sm text-gray-500">Completed:</span>
-              <span className="ml-1 text-sm font-medium text-success-600">{files.filter(f => f.status === 'completed').length}</span>
+            <button 
+              onClick={() => setError(null)}
+              className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Upload Instructions */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 className="text-blue-900 font-semibold mb-2">📋 Upload Instructions</h3>
+          <ul className="text-blue-800 text-sm space-y-1 list-disc list-inside">
+            <li>Supported file formats: CSV, Excel (.xlsx, .xls)</li>
+            <li>Maximum file size: 10MB</li>
+            <li>Ensure your file contains required columns: Worker ID, Name, Hours, Rate</li>
+            <li>Files will be validated automatically after upload</li>
+            <li>Download the template for the correct format</li>
+          </ul>
+        </div>
+
+        {/* File Upload Component */}
+        <ActionGate 
+          permission="WORKER.CREATE"
+          fallback={
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+              <p className="text-yellow-800">You need WORKER.CREATE permission to upload files</p>
             </div>
-            {files.filter(f => f.status === 'error').length > 0 && (
-              <div className="flex items-center">
-                <span className="text-sm text-gray-500">Errors:</span>
-                <span className="ml-1 text-sm font-medium text-error-600">{files.filter(f => f.status === 'error').length}</span>
+          }
+        >
+          <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Upload File</h2>
+            
+            {/* File Input */}
+            <div className="space-y-4">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors">
+                <input
+                  type="file"
+                  id="file-upload"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={handleFileSelect}
+                  disabled={uploading}
+                  className="hidden"
+                />
+                <label 
+                  htmlFor="file-upload" 
+                  className="cursor-pointer flex flex-col items-center"
+                >
+                  <svg className="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                  </svg>
+                  <span className="text-lg font-medium text-gray-700">
+                    {selectedFile ? selectedFile.name : 'Click to select file'}
+                  </span>
+                  <span className="text-sm text-gray-500 mt-1">
+                    or drag and drop
+                  </span>
+                  <span className="text-xs text-gray-400 mt-2">
+                    CSV, XLSX, XLS up to 10MB
+                  </span>
+                </label>
+              </div>
+
+              {/* Upload Progress */}
+              {uploading && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span>Uploading...</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+
+              {/* Upload Button */}
+              {selectedFile && !uploading && (
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleUpload}
+                    disabled={uploading || loading}
+                    className="btn-primary flex-1"
+                  >
+                    {uploading ? 'Uploading...' : 'Upload File'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedFile(null);
+                      setError(null);
+                    }}
+                    disabled={uploading}
+                    className="btn-outline"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </ActionGate>
+
+        {/* Recent Uploads */}
+        {showHistory && (
+          <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Uploads</h2>
+            
+            {loading && uploadedFiles.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="text-gray-500 mt-4">Loading upload history...</p>
+              </div>
+            ) : uploadedFiles.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No uploads yet</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {uploadedFiles.map((file, index) => (
+                  <div 
+                    key={file.fileId || index}
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="text-2xl">
+                        {file.isValidated ? '✅' : '📄'}
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-gray-900">{file.fileName || 'Uploaded File'}</h3>
+                        <p className="text-sm text-gray-500">
+                          Uploaded by {file.uploadedBy} on {new Date(file.uploadedAt).toLocaleString()}
+                        </p>
+                        {file.totalRecords && (
+                          <p className="text-sm text-gray-600">
+                            {file.totalRecords} records
+                            {file.isValidated && (
+                              <span className="ml-2">
+                                (✓ {file.validRecords} valid, ✗ {file.invalidRecords} invalid)
+                              </span>
+                            )}
+                          </p>
+                        )}
+                        {file.status && (
+                          <span className={`inline-block px-2 py-1 text-xs font-medium rounded mt-1 ${
+                            file.status === 'VALIDATED' ? 'bg-green-100 text-green-800' :
+                            file.status === 'UPLOADED' ? 'bg-blue-100 text-blue-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {file.status}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex space-x-2">
+                      {!file.isValidated && can['WORKER.VALIDATE'] && (
+                        <button 
+                          onClick={() => handleValidate(file.fileId)}
+                          disabled={loading}
+                          className="btn-sm btn-primary"
+                        >
+                          Validate
+                        </button>
+                      )}
+                      
+                      <ActionGate permission="WORKER.READ">
+                        <button 
+                          onClick={() => window.location.href = `/workers/file/${file.fileId}`}
+                          className="btn-sm btn-outline"
+                        >
+                          View
+                        </button>
+                      </ActionGate>
+                      
+                      <ActionGate permission="WORKER.DELETE">
+                        <button 
+                          onClick={() => handleDelete(file.fileId)}
+                          disabled={loading}
+                          className="btn-sm btn-danger"
+                        >
+                          Delete
+                        </button>
+                      </ActionGate>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
         )}
-      </div>
 
-      {/* File Upload Area */}
-      <div className="card shadow-modern-lg">
-        <div className="card-body">
-          {canPerformAction('worker-upload', 'UPLOAD') ? (
-            <div 
-              className={`border-2 border-dashed rounded-xl p-12 text-center transition-all duration-300 ${
-                dragActive 
-                  ? 'border-primary-400 bg-primary-50 scale-105 shadow-lg' 
-                  : 'border-gray-300 hover:border-primary-300 hover:bg-gray-50 hover:shadow-md'
-              }`}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-            >
-              <input
-                id="file-input"
-                type="file"
-                multiple
-                accept=".csv,.xlsx,.xls"
-                onChange={handleFileInput}
-                className="hidden"
-              />
-              
-              <div className="text-gray-600">
-                <div className="text-6xl mb-6 animate-bounce">📁</div>
-                <div className="text-xl font-semibold mb-3">
-                  {dragActive ? 'Drop files here!' : 'Drag and drop files here, or click to browse'}
+        {/* Upload Statistics */}
+        <ActionGate permission="WORKER.READ">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+              <div className="flex items-center">
+                <div className="p-3 bg-blue-100 rounded-lg">
+                  <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                  </svg>
                 </div>
-                <div className="text-sm text-gray-500 mb-6">
-                  Supports CSV and Excel files (.csv, .xlsx, .xls)
-                </div>
-                <button 
-                  onClick={() => document.getElementById('file-input').click()}
-                  className="btn-primary text-lg px-8 py-3 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all"
-                  disabled={uploading}
-                >
-                  <span className="mr-2">📂</span>
-                  Choose Files
-                </button>
-                <div className="text-xs text-gray-400 mt-4">
-                  Maximum file size: 50MB per file | Maximum rows: 10,000 per file
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Total Uploads</p>
+                  <p className="text-2xl font-bold text-gray-900">{uploadedFiles.length}</p>
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center bg-gray-50">
-              <div className="text-gray-500 space-y-4">
-                <div className="text-4xl">🔒</div>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-700">Access Restricted</h3>
-                  <p>You do not have permission to upload files</p>
+
+            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+              <div className="flex items-center">
+                <div className="p-3 bg-green-100 rounded-lg">
+                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Validated</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {uploadedFiles.filter(f => f.isValidated).length}
+                  </p>
                 </div>
               </div>
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* File List */}
-      {files.length > 0 && (
-        <div className="card">
-          <div className="card-header">
-            <h3 className="text-lg font-semibold text-gray-900">Upload Queue</h3>
-          </div>
-          
-          <div className="divide-y divide-gray-200">
-            {files.map((fileItem) => (
-              <div key={fileItem.id} className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="text-3xl">{getStatusIcon(fileItem.status)}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-900 truncate">
-                        {fileItem.file.name}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {formatFileSize(fileItem.file.size)}
-                      </div>
-                      <div className="mt-1">
-                        <span className={getStatusBadge(fileItem.status)}>
-                          {fileItem.status.charAt(0).toUpperCase() + fileItem.status.slice(1)}
-                        </span>
-                      </div>
-                      {fileItem.error && (
-                        <div className="text-sm text-error-600 mt-1">
-                          Error: {fileItem.error}
-                        </div>
-                      )}
-                      {fileItem.result && (
-                        <div className="text-sm text-success-600 mt-1">
-                          ✅ Upload successful - File ID: {fileItem.result.fileId || 'Generated'}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-3">
-                    {fileItem.status === 'uploading' && (
-                      <div className="w-32">
-                        <div className="bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${uploadProgress[fileItem.id] || 0}%` }}
-                          ></div>
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1 text-center">
-                          {uploadProgress[fileItem.id] || 0}%
-                        </div>
-                      </div>
-                    )}
-                    
-                    {fileItem.status === 'ready' && canUpload && (
-                      <button 
-                        onClick={() => uploadFile(fileItem)}
-                        className="btn-primary btn-sm"
-                      >
-                        Upload
-                      </button>
-                    )}
-                    
-                    {fileItem.status === 'completed' && (
-                      <button 
-                        onClick={() => {
-                          // Navigate to results page
-                          console.log('View results for:', fileItem.result);
-                        }}
-                        className="btn-success btn-sm"
-                      >
-                        View Results
-                      </button>
-                    )}
-                    
-                    <button 
-                      onClick={() => removeFile(fileItem.id)}
-                      className="text-error-600 hover:text-error-800 text-sm font-medium"
-                    >
-                      Remove
-                    </button>
-                  </div>
+            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+              <div className="flex items-center">
+                <div className="p-3 bg-purple-100 rounded-lg">
+                  <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Total Records</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {uploadedFiles.reduce((sum, f) => sum + (f.totalRecords || 0), 0)}
+                  </p>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Upload Guidelines */}
-      <div className="card bg-primary-50 border-primary-200">
-        <div className="card-body">
-          <h3 className="text-lg font-semibold text-primary-900 mb-4 flex items-center">
-            📋 <span className="ml-2">Upload Guidelines</span>
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-primary-800">
-            <div>
-              <h4 className="font-semibold mb-3">📄 Supported Formats</h4>
-              <ul className="space-y-2">
-                <li className="flex items-center">
-                  <span className="w-2 h-2 bg-primary-600 rounded-full mr-3"></span>
-                  CSV files (.csv)
-                </li>
-                <li className="flex items-center">
-                  <span className="w-2 h-2 bg-primary-600 rounded-full mr-3"></span>
-                  Excel files (.xlsx, .xls)
-                </li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-3">📊 Required Columns</h4>
-              <ul className="space-y-2">
-                <li className="flex items-center">
-                  <span className="w-2 h-2 bg-primary-600 rounded-full mr-3"></span>
-                  Worker ID
-                </li>
-                <li className="flex items-center">
-                  <span className="w-2 h-2 bg-primary-600 rounded-full mr-3"></span>
-                  Worker Name
-                </li>
-                <li className="flex items-center">
-                  <span className="w-2 h-2 bg-primary-600 rounded-full mr-3"></span>
-                  Payment Amount
-                </li>
-                <li className="flex items-center">
-                  <span className="w-2 h-2 bg-primary-600 rounded-full mr-3"></span>
-                  Payment Date
-                </li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-3">⚠️ File Requirements</h4>
-              <ul className="space-y-2">
-                <li className="flex items-center">
-                  <span className="w-2 h-2 bg-primary-600 rounded-full mr-3"></span>
-                  Maximum size: 50MB
-                </li>
-                <li className="flex items-center">
-                  <span className="w-2 h-2 bg-primary-600 rounded-full mr-3"></span>
-                  Maximum rows: 10,000
-                </li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-3">✅ Data Validation</h4>
-              <ul className="space-y-2">
-                <li className="flex items-center">
-                  <span className="w-2 h-2 bg-primary-600 rounded-full mr-3"></span>
-                  Duplicate entries flagged
-                </li>
-                <li className="flex items-center">
-                  <span className="w-2 h-2 bg-primary-600 rounded-full mr-3"></span>
-                  Invalid dates rejected
-                </li>
-                <li className="flex items-center">
-                  <span className="w-2 h-2 bg-primary-600 rounded-full mr-3"></span>
-                  Missing fields cause errors
-                </li>
-              </ul>
             </div>
           </div>
-        </div>
+        </ActionGate>
       </div>
-    </div>
+    </ModulePermissionGate>
   );
 };
 

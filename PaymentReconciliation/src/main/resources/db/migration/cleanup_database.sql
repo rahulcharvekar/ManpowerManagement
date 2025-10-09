@@ -11,7 +11,6 @@ TRUNCATE TABLE board_receipts;
 TRUNCATE TABLE employer_payment_receipts;
 TRUNCATE TABLE worker_payment_receipts;
 TRUNCATE TABLE worker_uploaded_data;
-TRUNCATE TABLE 
 TRUNCATE TABLE uploaded_files;
 
 -- Reset auto-increment counters

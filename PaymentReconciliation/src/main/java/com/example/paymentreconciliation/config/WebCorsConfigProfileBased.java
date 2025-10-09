@@ -15,21 +15,12 @@ public class WebCorsConfigProfileBased {
     public CorsFilter corsFilterDev() {
         CorsConfiguration config = new CorsConfiguration();
         
-        // Development: Allow all origins with credentials
-        config.addAllowedOriginPattern("*");
+        // Use addAllowedOriginPattern instead of addAllowedOrigin when credentials are enabled
+        config.addAllowedOriginPattern("http://localhost:5173");
+        config.addAllowedOriginPattern("http://localhost:5174"); // backup port
         config.setAllowCredentials(true);
-        
-        // Set allowed headers
         config.addAllowedHeader("*");
-        
-        // Set allowed methods
-        config.addAllowedMethod("GET");
-        config.addAllowedMethod("POST");
-        config.addAllowedMethod("PUT");
-        config.addAllowedMethod("PATCH");
-        config.addAllowedMethod("DELETE");
-        config.addAllowedMethod("OPTIONS");
-        config.addAllowedMethod("HEAD");
+        config.addAllowedMethod("*");
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

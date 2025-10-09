@@ -586,7 +586,8 @@ public class WorkerUploadedDataService {
         payment.setPan(""); // Will need to be updated with actual data
         
         // Set status and other metadata
-        payment.setStatus("PENDING");
+        // Using VALIDATED since these records have already passed validation
+        payment.setStatus("VALIDATED");
         payment.setCreatedAt(LocalDateTime.now());
         
         return payment;

@@ -17,7 +17,7 @@ public class UIPage {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(name = "page_id", nullable = false, unique = true, length = 100)
     private String key; // e.g., "user.list"
 
     @Column(nullable = false, length = 100)
@@ -38,14 +38,14 @@ public class UIPage {
     @Column(name = "display_order", nullable = false)
     private Integer displayOrder = 0;
 
-    @Column(name = "required_capability", length = 100)
-    private String requiredCapability; // Capability needed to view this page
-
     @Column(name = "is_menu_item", nullable = false)
     private Boolean isMenuItem = true;
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+
+    @Column(name = "required_capability", length = 100)
+    private String requiredCapability; // The capability required to access this page
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -60,12 +60,11 @@ public class UIPage {
     public UIPage() {
     }
 
-    public UIPage(String key, String label, String route, String module, String requiredCapability) {
+    public UIPage(String key, String label, String route, String module) {
         this.key = key;
         this.label = label;
         this.route = route;
         this.module = module;
-        this.requiredCapability = requiredCapability;
         this.isMenuItem = true;
         this.isActive = true;
         this.displayOrder = 0;
@@ -147,14 +146,6 @@ public class UIPage {
         this.displayOrder = displayOrder;
     }
 
-    public String getRequiredCapability() {
-        return requiredCapability;
-    }
-
-    public void setRequiredCapability(String requiredCapability) {
-        this.requiredCapability = requiredCapability;
-    }
-
     public Boolean getIsMenuItem() {
         return isMenuItem;
     }
@@ -169,6 +160,14 @@ public class UIPage {
 
     public void setIsActive(Boolean isActive) {
         this.isActive = isActive;
+    }
+
+    public String getRequiredCapability() {
+        return requiredCapability;
+    }
+
+    public void setRequiredCapability(String requiredCapability) {
+        this.requiredCapability = requiredCapability;
     }
 
     public LocalDateTime getCreatedAt() {

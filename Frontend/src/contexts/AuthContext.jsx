@@ -31,30 +31,82 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      // Get current user data with permissions from /api/auth/me
+      // Get complete user data with permissions and UI config from /api/me/authorizations
+      // This single endpoint provides: can, endpoints, capabilities, pages, roles, userId, 
+      // version, menuTree, username, email, fullName
       const userData = await AuthService.getCurrentUser();
       if (userData) {
-        // Set user information from /api/auth/me response
-        setUser({
-          id: userData.id,
+        console.log('✅ User authorization data loaded from /api/me/authorizations:', userData);
+        console.log('📋 Raw backend data:', {
+          hasCan: !!userData.can,
+          canKeys: userData.can ? Object.keys(userData.can).length : 0,
+          hasCapabilities: !!userData.capabilities,
+          capabilitiesLength: userData.capabilities?.length,
+          hasMenuTree: !!userData.menuTree,
+          menuTreeType: typeof userData.menuTree,
+          hasPages: !!userData.pages,
+          pagesLength: userData.pages?.length
+        });
+        
+        // Set user with permissions from 'can' property
+        const userObject = {
+          id: userData.userId,
           username: userData.username,
           email: userData.email,
           fullName: userData.fullName,
           legacyRole: userData.legacyRole,
-          roles: userData.roles,
-          permissions: userData.permissions,
-          enabled: userData.enabled
+          roles: userData.roles || [],
+          permissions: userData.can || {}, // Capability permissions map
+          capabilities: userData.capabilities || [],
+          endpoints: userData.endpoints || {},
+          pages: userData.pages || [],
+          enabled: true
+        };
+        
+        console.log('👤 User object being set:', {
+          id: userObject.id,
+          username: userObject.username,
+          rolesCount: userObject.roles.length,
+          permissionsCount: Object.keys(userObject.permissions).length,
+          capabilitiesCount: userObject.capabilities.length,
+          samplePermissions: Object.entries(userObject.permissions).slice(0, 5)
         });
         
-        // Also get UI configuration for navigation
-        try {
-          const config = await AuthService.getUIConfig();
-          setUIConfig(config);
-        } catch (configError) {
-          console.warn('Failed to load UI config:', configError);
-          // Continue with user data even if UI config fails
-        }
+        setUser(userObject);
         
+        // Build UI config directly from authorizations response
+        // No need to call /api/auth/ui-config anymore!
+        // Backend sends menuTree as { items: [...] }, extract the items array
+        const menuItems = userData.menuTree?.items || userData.menuTree || [];
+        
+        console.log('🗂️ Menu processing:', {
+          rawMenuTree: userData.menuTree,
+          isObject: typeof userData.menuTree === 'object',
+          hasItems: !!userData.menuTree?.items,
+          menuItemsLength: Array.isArray(menuItems) ? menuItems.length : 'not array',
+          firstMenuItem: menuItems?.[0]
+        });
+        
+        const uiConfig = {
+          navigation: menuItems,
+          menuTree: menuItems,
+          pages: userData.pages || [],
+          version: userData.version,
+          capabilities: userData.capabilities || [],
+          endpoints: userData.endpoints || [],
+          etag: userData.etag // For caching support
+        };
+        
+        console.log('🎨 UI Config built:', {
+          navigationLength: uiConfig.navigation?.length,
+          menuTreeLength: uiConfig.menuTree?.length,
+          pagesLength: uiConfig.pages?.length,
+          navigationItems: uiConfig.navigation?.map(i => ({ id: i.id, name: i.name })),
+          pageItems: uiConfig.pages?.map(i => ({ id: i.id, name: i.name }))
+        });
+        
+        console.log('✅ UI Config built from authorizations:', uiConfig);
+        setUIConfig(uiConfig);
         setIsAuthenticated(true);
       } else {
         // Invalid token
@@ -83,38 +135,53 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
 
-      // Step 1: Login to get token
+      // Step 1: Login to get token and basic user info
       const loginResponse = await AuthService.login(credentials);
       
       // Store authentication token
       localStorage.setItem('authToken', loginResponse.token);
 
-      // Step 2: Get complete user data with permissions from /api/auth/me
-      const userData = await AuthService.getCurrentUser();
+      // Step 2: Get complete user data with authorizations from /api/me/authorizations
+      // This single call provides everything: permissions, capabilities, pages, menuTree
+      const authData = await AuthService.getCurrentUser();
       
-      // Update state with complete user information
+      console.log('✅ Authorization data loaded from /api/me/authorizations:', authData);
+      
+      // authData structure: { can, endpoints, capabilities, pages, roles, userId, version, menuTree, username, email, fullName }
       const completeUser = {
-        id: userData.id,
-        username: userData.username,
-        email: userData.email,
-        fullName: userData.fullName,
-        legacyRole: userData.legacyRole,
-        roles: userData.roles,
-        permissions: userData.permissions,
-        enabled: userData.enabled
+        id: authData.userId || loginResponse.user.id,
+        username: authData.username || loginResponse.user.username,
+        email: authData.email || loginResponse.user.email,
+        fullName: authData.fullName || loginResponse.user.fullName,
+        legacyRole: loginResponse.user.role, // from login response for backward compat
+        roles: authData.roles || [], // from authorizations
+        permissions: authData.can || {}, // capability permissions map
+        capabilities: authData.capabilities || [],
+        endpoints: authData.endpoints || [],
+        pages: authData.pages || [],
+        enabled: true
       };
       
       // Store user info
       localStorage.setItem('userInfo', JSON.stringify(completeUser));
       
-      // Step 3: Get UI configuration for navigation
-      let config = null;
-      try {
-        config = await AuthService.getUIConfig();
-        setUIConfig(config);
-      } catch (configError) {
-        console.warn('Failed to load UI config:', configError);
-      }
+      // Build UI configuration directly from authorizations
+      // No need to call /api/auth/ui-config anymore!
+      // Backend sends menuTree as { items: [...] }, extract the items array
+      const menuItems = authData.menuTree?.items || authData.menuTree || [];
+      
+      const config = {
+        navigation: menuItems,
+        menuTree: menuItems,
+        pages: authData.pages || [],
+        version: authData.version,
+        capabilities: authData.capabilities || [],
+        endpoints: authData.endpoints || [],
+        etag: authData.etag // For caching support
+      };
+      
+      console.log('✅ UI Config built from authorizations:', config);
+      setUIConfig(config);
       
       setUser(completeUser);
       setIsAuthenticated(true);
@@ -144,17 +211,38 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('authToken');
       if (!token) return;
 
-      const config = await AuthService.getUIConfig();
-      if (config) {
+      // Use /api/me/authorizations to get fresh data
+      const authData = await AuthService.getCurrentUser();
+      if (authData) {
         const updatedUser = {
-          id: config.userId,
-          username: config.username,
-          fullName: config.fullName,
-          roles: config.roles,
-          permissions: config.permissions
+          id: authData.userId,
+          username: authData.username,
+          email: authData.email,
+          fullName: authData.fullName,
+          legacyRole: authData.legacyRole,
+          roles: authData.roles || [],
+          permissions: authData.can || {},
+          capabilities: authData.capabilities || [],
+          endpoints: authData.endpoints || [],
+          pages: authData.pages || [],
+          enabled: true
         };
+        
+        // Backend sends menuTree as { items: [...] }, extract the items array
+        const menuItems = authData.menuTree?.items || authData.menuTree || [];
+        
+        const updatedConfig = {
+          navigation: menuItems,
+          menuTree: menuItems,
+          pages: authData.pages || [],
+          version: authData.version,
+          capabilities: authData.capabilities || [],
+          endpoints: authData.endpoints || [],
+          etag: authData.etag
+        };
+        
         setUser(updatedUser);
-        setUIConfig(config);
+        setUIConfig(updatedConfig);
         localStorage.setItem('userInfo', JSON.stringify(updatedUser));
       }
     } catch (error) {
@@ -162,9 +250,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Build capabilities object from uiConfig and user for easy access
+  const capabilities = {
+    can: user?.permissions || {},
+    pages: uiConfig?.pages || [],
+    endpoints: uiConfig?.endpoints || [],
+    roles: user?.roles || [],
+    menuTree: uiConfig?.menuTree || [],
+    version: uiConfig?.version
+  };
+
   const value = {
     user,
     uiConfig,
+    capabilities, // Expose capabilities for easy access
     isAuthenticated,
     loading,
     error,

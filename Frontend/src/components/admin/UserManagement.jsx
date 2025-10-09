@@ -23,6 +23,7 @@ const UserManagement = () => {
 
       const response = await apiClient.get(API_ENDPOINTS.AUTH.USERS, token);
       setUsers(response || []);
+      setLoading(false); // Set loading to false after successful fetch
     } catch (error) {
       console.error('Failed to fetch users:', error);
       setError(error.message || 'Failed to fetch users');

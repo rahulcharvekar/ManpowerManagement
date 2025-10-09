@@ -16,21 +16,29 @@ public class PageAction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 100)
-    private String key; // e.g., "user.list.create"
-
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 128)
     private String label; // Display name like "Create User"
 
-    @Column(nullable = false, length = 50)
+    @Column(name = "action", nullable = false, length = 64)
     private String action; // Action type: CREATE, EDIT, DELETE, APPROVE, etc.
 
-    @Column(name = "required_capability", nullable = false, length = 100)
-    private String requiredCapability; // Capability needed for this action
+    @Column(nullable = false, length = 64)
+    private String icon; // Icon name
+
+    @Column(nullable = false, length = 32)
+    private String variant = "default"; // UI variant: primary, secondary, danger
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "capability_id", nullable = false)
+    private Capability capability; // Required capability
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "page_id", nullable = false)
     private UIPage page;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "endpoint_id")
+    private Endpoint endpoint; // The backend endpoint to call for this action
 
     @Column(name = "display_order", nullable = false)
     private Integer displayOrder = 0;
@@ -47,14 +55,14 @@ public class PageAction {
     public PageAction() {
     }
 
-    public PageAction(String key, String label, String action, String requiredCapability, UIPage page) {
-        this.key = key;
+    public PageAction(String label, String action, Capability capability, UIPage page) {
         this.label = label;
         this.action = action;
-        this.requiredCapability = requiredCapability;
+        this.capability = capability;
         this.page = page;
         this.isActive = true;
         this.displayOrder = 0;
+        this.variant = "default";
     }
 
     @PrePersist
@@ -77,14 +85,6 @@ public class PageAction {
         this.id = id;
     }
 
-    public String getKey() {
-        return key;
-    }
-
-    public void setKey(String key) {
-        this.key = key;
-    }
-
     public String getLabel() {
         return label;
     }
@@ -101,12 +101,28 @@ public class PageAction {
         this.action = action;
     }
 
-    public String getRequiredCapability() {
-        return requiredCapability;
+    public String getIcon() {
+        return icon;
     }
 
-    public void setRequiredCapability(String requiredCapability) {
-        this.requiredCapability = requiredCapability;
+    public void setIcon(String icon) {
+        this.icon = icon;
+    }
+
+    public String getVariant() {
+        return variant;
+    }
+
+    public void setVariant(String variant) {
+        this.variant = variant;
+    }
+
+    public Capability getCapability() {
+        return capability;
+    }
+
+    public void setCapability(Capability capability) {
+        this.capability = capability;
     }
 
     public UIPage getPage() {
@@ -115,6 +131,14 @@ public class PageAction {
 
     public void setPage(UIPage page) {
         this.page = page;
+    }
+
+    public Endpoint getEndpoint() {
+        return endpoint;
+    }
+
+    public void setEndpoint(Endpoint endpoint) {
+        this.endpoint = endpoint;
     }
 
     public Integer getDisplayOrder() {
@@ -153,11 +177,11 @@ public class PageAction {
     public String toString() {
         return "PageAction{" +
                 "id=" + id +
-                ", key='" + key + '\'' +
                 ", label='" + label + '\'' +
                 ", action='" + action + '\'' +
-                ", requiredCapability='" + requiredCapability + '\'' +
+                ", capabilityId=" + (capability != null ? capability.getId() : null) +
                 ", pageId=" + (page != null ? page.getId() : null) +
+                ", endpointId=" + (endpoint != null ? endpoint.getId() : null) +
                 '}';
     }
 }

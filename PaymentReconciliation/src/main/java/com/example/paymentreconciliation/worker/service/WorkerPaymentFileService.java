@@ -120,7 +120,7 @@ public class WorkerPaymentFileService {
             UploadedFile uploadedFile = uploadedFileOpt.get();
             uploadedFile.setSuccessCount(passedCount);
             uploadedFile.setFailureCount(failedCount);
-            uploadedFile.setStatus("VALIDATED");
+            uploadedFile.setStatus("COMPLETED");
             uploadedFileRepository.save(uploadedFile);
             
             log.info("Validation complete for fileId={}: {} passed, {} failed", fileId, passedCount, failedCount);
@@ -128,7 +128,7 @@ public class WorkerPaymentFileService {
             Map<String, Object> response = new HashMap<>();
             response.put("passed", passedCount);
             response.put("failed", failedCount);
-            response.put("status", "VALIDATED");
+            response.put("status", "COMPLETED");
             response.put("nextAction", "GENERATE_REQUEST");
             response.put("message", "Validation completed. " + passedCount + " records passed validation. Ready to generate request.");
             

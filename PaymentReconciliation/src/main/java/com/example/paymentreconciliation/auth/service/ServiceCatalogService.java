@@ -55,24 +55,23 @@ public class ServiceCatalogService {
     public Map<String, List<Map<String, Object>>> getEndpointsCatalog() {
         List<Endpoint> endpoints = endpointRepository.findByIsActiveTrue();
 
-        Map<String, List<Map<String, Object>>> endpointsByModule = new HashMap<>();
+        Map<String, List<Map<String, Object>>> endpointsByService = new HashMap<>();
 
         for (Endpoint endpoint : endpoints) {
             Map<String, Object> endpointData = new HashMap<>();
-            endpointData.put("key", endpoint.getKey());
+            endpointData.put("service", endpoint.getService());
+            endpointData.put("version", endpoint.getVersion());
             endpointData.put("method", endpoint.getMethod());
             endpointData.put("path", endpoint.getPath());
             endpointData.put("description", endpoint.getDescription());
-            endpointData.put("requiredCapability", endpoint.getRequiredCapability());
-            endpointData.put("isPublic", endpoint.getIsPublic());
 
-            endpointsByModule
-                    .computeIfAbsent(endpoint.getModule(), k -> new ArrayList<>())
+            endpointsByService
+                    .computeIfAbsent(endpoint.getService(), k -> new ArrayList<>())
                     .add(endpointData);
         }
 
-        logger.debug("Cataloged {} endpoints across {} modules", endpoints.size(), endpointsByModule.size());
-        return endpointsByModule;
+        logger.debug("Cataloged {} endpoints across {} services", endpoints.size(), endpointsByService.size());
+        return endpointsByService;
     }
 
     /**
@@ -93,14 +92,14 @@ public class ServiceCatalogService {
     }
 
     /**
-     * Get all endpoints for a specific module
+     * Get all endpoints for a specific service
      * 
-     * @param module The module name
+     * @param service The service name
      * @return List of endpoints
      */
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> getEndpointsByModule(String module) {
-        List<Endpoint> endpoints = endpointRepository.findByModuleAndIsActiveTrue(module);
+    public List<Map<String, Object>> getEndpointsByService(String service) {
+        List<Endpoint> endpoints = endpointRepository.findByServiceAndIsActiveTrue(service);
 
         return endpoints.stream()
                 .map(this::mapEndpointToDto)
@@ -123,30 +122,15 @@ public class ServiceCatalogService {
     }
 
     /**
-     * Resolve endpoint by key
-     * Frontend can use this to get full endpoint URL by key
-     * 
-     * @param key The endpoint key
-     * @return Map with endpoint details
-     */
-    @Transactional(readOnly = true)
-    public Optional<Map<String, Object>> resolveEndpoint(String key) {
-        return endpointRepository.findByKey(key)
-                .map(this::mapEndpointToDto);
-    }
-
-    /**
      * Map Endpoint entity to DTO
      */
     private Map<String, Object> mapEndpointToDto(Endpoint endpoint) {
         Map<String, Object> dto = new HashMap<>();
-        dto.put("key", endpoint.getKey());
+        dto.put("service", endpoint.getService());
+        dto.put("version", endpoint.getVersion());
         dto.put("method", endpoint.getMethod());
         dto.put("path", endpoint.getPath());
         dto.put("description", endpoint.getDescription());
-        dto.put("module", endpoint.getModule());
-        dto.put("requiredCapability", endpoint.getRequiredCapability());
-        dto.put("isPublic", endpoint.getIsPublic());
         return dto;
     }
 
@@ -164,7 +148,6 @@ public class ServiceCatalogService {
         dto.put("parentId", page.getParentId());
         dto.put("displayOrder", page.getDisplayOrder());
         dto.put("isMenuItem", page.getIsMenuItem());
-        dto.put("requiredCapability", page.getRequiredCapability());
         return dto;
     }
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import Navigation from './Navigation';
+import DynamicMenu from './DynamicMenu';
 import { usePermissions } from '../../contexts/PermissionContext';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -72,7 +72,7 @@ const MainLayout = () => {
       <div className="flex flex-1">
         {/* Sidebar Navigation */}
         <aside className="sidebar flex-shrink-0">
-          <Navigation />
+          <DynamicMenu />
         </aside>
         
         {/* Main Content */}

@@ -1,4 +1,5 @@
 // Worker Management Components
+export { default as WorkerList } from './WorkerList';
 export { default as WorkerUpload } from './WorkerUpload';
 export { default as WorkerPayments } from './WorkerPayments';
 export { default as WorkerDashboard } from './WorkerDashboard';
@@ -12,3 +13,4 @@ export { default as WorkerProcessPaymentScreen } from './WorkerProcessPaymentScr
 export { default as WorkerUploadedFilesListScreen } from './WorkerUploadedFilesListScreen';
 export { default as WorkerUploadedFilesScreen } from './WorkerUploadedFilesScreen';
 export { default as WorkerUploadReceiptFlow } from './WorkerUploadReceiptFlow';
+

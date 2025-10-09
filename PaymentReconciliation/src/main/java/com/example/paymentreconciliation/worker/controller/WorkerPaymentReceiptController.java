@@ -60,7 +60,7 @@ public class WorkerPaymentReceiptController {
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Page size", example = "20") 
             @RequestParam(defaultValue = "20") int size,
-            @Parameter(description = "Receipt status filter", example = "GENERATED")
+            @Parameter(description = "Receipt status filter", example = "PROCESSED")
             @RequestParam(required = false) String status,
             @Parameter(description = "Single date filter (YYYY-MM-DD)", example = "2024-01-15")
             @RequestParam(required = false) String singleDate,

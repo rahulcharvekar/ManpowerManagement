@@ -10,8 +10,16 @@ const ProtectedRoute = ({
 }) => {
   const { canAccessComponent, loading, error } = usePermissions();
 
+  console.log('🛡️ ProtectedRoute rendering:', { 
+    componentKey, 
+    loading, 
+    error, 
+    redirectTo 
+  });
+
   // Show loading state
   if (loading) {
+    console.log('⏳ ProtectedRoute: Still loading permissions...');
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="loading-spinner">
@@ -24,6 +32,7 @@ const ProtectedRoute = ({
 
   // Show error state
   if (error) {
+    console.error('❌ ProtectedRoute: Error loading permissions:', error);
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -41,10 +50,20 @@ const ProtectedRoute = ({
   }
 
   // Check component access
-  if (!canAccessComponent(componentKey)) {
+  const hasAccess = canAccessComponent(componentKey);
+  console.log('🔐 ProtectedRoute access check:', { 
+    componentKey, 
+    hasAccess,
+    willRedirect: !hasAccess,
+    redirectTo: !hasAccess ? redirectTo : 'none'
+  });
+
+  if (!hasAccess) {
+    console.warn(`❌ Access denied to component: ${componentKey}, redirecting to ${redirectTo}`);
     return fallback || <Navigate to={redirectTo} replace />;
   }
 
+  console.log(`✅ Access granted to component: ${componentKey}`);
   return children;
 };
 

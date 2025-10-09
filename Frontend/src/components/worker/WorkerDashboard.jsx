@@ -21,7 +21,8 @@ const WorkerDashboard = () => {
 
   useEffect(() => {
     // Load dashboard stats (only if user has read permissions)
-    if (hasPermission('READ_WORKER_DATA') || hasPermission('READ_PAYMENTS')) {
+    // Using actual backend permission names: WORKER.READ, PAYMENT.READ
+    if (hasPermission('WORKER.READ') || hasPermission('PAYMENT.READ')) {
       // Simulate loading stats
       setStats({
         totalUploads: 25,
@@ -56,7 +57,7 @@ const WorkerDashboard = () => {
           {/* Quick Actions */}
           <div className="flex space-x-3">
             <PermissionButton
-              permission="UPLOAD_WORKER_DATA"
+              permission="WORKER.CREATE"
               onClick={() => console.log('Navigate to upload')}
               variant="primary"
             >
@@ -64,7 +65,7 @@ const WorkerDashboard = () => {
             </PermissionButton>
             
             <PermissionButton
-              permission="READ_PAYMENTS"
+              permission="PAYMENT.READ"
               onClick={() => console.log('Navigate to payments')}
               variant="outline"
             >
@@ -75,7 +76,7 @@ const WorkerDashboard = () => {
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <ActionGate permission="READ_WORKER_DATA">
+          <ActionGate permission="WORKER.READ">
             <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
               <div className="flex items-center">
                 <div className="p-2 bg-blue-500 rounded-lg">
@@ -91,7 +92,7 @@ const WorkerDashboard = () => {
             </div>
           </ActionGate>
 
-          <ActionGate permission="READ_PAYMENTS">
+          <ActionGate permission="PAYMENT.READ">
             <div className="bg-yellow-50 p-6 rounded-lg border border-yellow-200">
               <div className="flex items-center">
                 <div className="p-2 bg-yellow-500 rounded-lg">
@@ -107,7 +108,7 @@ const WorkerDashboard = () => {
             </div>
           </ActionGate>
 
-          <ActionGate permission="READ_PAYMENTS">
+          <ActionGate permission="PAYMENT.READ">
             <div className="bg-green-50 p-6 rounded-lg border border-green-200">
               <div className="flex items-center">
                 <div className="p-2 bg-green-500 rounded-lg">
@@ -129,7 +130,7 @@ const WorkerDashboard = () => {
           
           {/* Data Upload Section */}
           <ActionGate 
-            permissions={["UPLOAD_WORKER_DATA", "READ_WORKER_DATA"]}
+            permissions={["WORKER.CREATE", "WORKER.READ"]}
             fallback={
               <div className="p-6 bg-gray-50 rounded-lg border border-gray-200">
                 <p className="text-gray-500 text-center">Worker data permissions required</p>
@@ -141,7 +142,7 @@ const WorkerDashboard = () => {
               
               <div className="space-y-3">
                 <PermissionButton
-                  permission="UPLOAD_WORKER_DATA"
+                  permission="WORKER.CREATE"
                   onClick={() => console.log('Upload new data')}
                   className="w-full"
                   variant="primary"
@@ -150,7 +151,7 @@ const WorkerDashboard = () => {
                 </PermissionButton>
 
                 <PermissionButton
-                  permission="READ_WORKER_DATA"
+                  permission="WORKER.READ"
                   onClick={() => console.log('View uploaded files')}
                   className="w-full"
                   variant="outline"
@@ -159,7 +160,7 @@ const WorkerDashboard = () => {
                 </PermissionButton>
 
                 <PermissionButton
-                  permission="DELETE_WORKER_DATA"
+                  permission="WORKER.DELETE"
                   onClick={() => console.log('Manage files')}
                   className="w-full"
                   variant="ghost"
@@ -170,10 +171,10 @@ const WorkerDashboard = () => {
               </div>
 
               {/* Show validation option for officers */}
-              <ActionGate permission="VALIDATE_WORKER_DATA">
+              <ActionGate permission="WORKER.VALIDATE">
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <PermissionButton
-                    permission="VALIDATE_WORKER_DATA"
+                    permission="WORKER.VALIDATE"
                     onClick={() => console.log('Validate data')}
                     className="w-full"
                     variant="warning"
@@ -187,7 +188,7 @@ const WorkerDashboard = () => {
 
           {/* Payment Section */}
           <ActionGate 
-            permission="READ_PAYMENTS"
+            permission="PAYMENT.READ"
             fallback={
               <div className="p-6 bg-gray-50 rounded-lg border border-gray-200">
                 <p className="text-gray-500 text-center">Payment viewing permissions required</p>
@@ -201,12 +202,12 @@ const WorkerDashboard = () => {
               <PermissionRenderer
                 rules={[
                   {
-                    permissions: ["GENERATE_WORKER_PAYMENTS", "PROCESS_PAYMENTS"],
+                    permissions: ["WORKER.GENERATE_PAYMENTS", "PAYMENT.PROCESS"],
                     component: (
                       <div className="space-y-3">
                         <p className="text-green-600 text-sm">✓ You can generate and process payments</p>
                         <PermissionButton
-                          permission="GENERATE_WORKER_PAYMENTS"
+                          permission="WORKER.GENERATE_PAYMENTS"
                           onClick={() => console.log('Generate payment request')}
                           className="w-full"
                           variant="success"
@@ -214,7 +215,7 @@ const WorkerDashboard = () => {
                           Generate Payment Request
                         </PermissionButton>
                         <PermissionButton
-                          permission="PROCESS_PAYMENTS"
+                          permission="PAYMENT.PROCESS"
                           onClick={() => console.log('Process payments')}
                           className="w-full"
                           variant="primary"
@@ -249,7 +250,7 @@ const WorkerDashboard = () => {
 
         {/* Recent Activity */}
         <ActionGate 
-          permissions={["READ_WORKER_DATA", "READ_PAYMENTS"]}
+          permissions={["WORKER.READ", "PAYMENT.READ"]}
           fallback={null}
         >
           <div className="bg-white p-6 rounded-lg border border-gray-200">

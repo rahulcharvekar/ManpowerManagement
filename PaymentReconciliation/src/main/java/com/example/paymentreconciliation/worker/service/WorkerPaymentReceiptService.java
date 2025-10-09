@@ -56,7 +56,7 @@ public class WorkerPaymentReceiptService {
         receipt.setCreatedAt(LocalDateTime.now());
         receipt.setTotalRecords(processedPayments.size());
         receipt.setTotalAmount(totalAmount);
-        receipt.setStatus("GENERATED");
+        receipt.setStatus("PROCESSED"); // Changed from GENERATED to match constraint
         
         // Save receipt first to get ID
         WorkerPaymentReceipt savedReceipt = repository.save(receipt);
