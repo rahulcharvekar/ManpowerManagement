@@ -351,18 +351,32 @@ CREATE TABLE IF NOT EXISTS users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
--- 12. PERMISSIONS TABLE (RBAC System)
+-- 12. PERMISSIONS TABLE (RBAC System - Enhanced for UI Component Management)
 -- =============================================================================
+-- This table serves dual purpose:
+-- 1. Backend API authorization (via permission_api_endpoints)
+-- 2. Frontend UI component/menu rendering (via module, route, display_order)
+-- 
+-- Module acts as UI component identifier (e.g., 'USER', 'PAYMENT', 'WORKER')
+-- Permission name defines action (e.g., 'USER_READ', 'USER_CREATE', 'USER_EDIT')
 CREATE TABLE IF NOT EXISTS permissions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    description VARCHAR(255),
-    module VARCHAR(50),
+    name VARCHAR(100) NOT NULL UNIQUE COMMENT 'Permission identifier (e.g., USER_READ, PAYMENT_CREATE)',
+    description VARCHAR(255) COMMENT 'Human-readable description of the permission',
+    module VARCHAR(50) NOT NULL COMMENT 'UI component/module identifier (e.g., USER, PAYMENT, WORKER)',
+    route VARCHAR(200) COMMENT 'Frontend route path for navigation (e.g., /admin/users)',
+    display_order INT DEFAULT 0 COMMENT 'Order for displaying in navigation menu',
+    is_menu_item BOOLEAN DEFAULT FALSE COMMENT 'Whether this permission represents a menu item',
+    is_active BOOLEAN DEFAULT TRUE COMMENT 'Whether this permission is active',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_permission_name (name),
-    INDEX idx_permission_module (module)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    INDEX idx_permission_module (module),
+    INDEX idx_module_order (module, display_order),
+    INDEX idx_menu_item (is_menu_item),
+    INDEX idx_active (is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Unified permission table for both API authorization and UI rendering';
 
 -- =============================================================================
 -- 13. ROLES TABLE (RBAC System)
@@ -428,12 +442,26 @@ CREATE TABLE IF NOT EXISTS permission_api_endpoints (
 -- DEMO/DEFAULT DATA
 -- =============================================================================
 
+-- Sample permissions with UI metadata (module serves as component identifier)
+-- Module grouping examples: USER, PAYMENT, WORKER, EMPLOYER, BOARD, RECONCILIATION, SYSTEM
+
 -- For demo data (users, roles, permissions, sample master data), run:
 -- SOURCE demo-data-insertion.sql;
 -- OR execute the demo-data-insertion.sql file separately
 
 -- For permission-API endpoint mappings, run:
 -- SOURCE sample-permission-api-endpoints.sql;
+
+-- Example permission structure:
+-- INSERT INTO permissions (name, description, module, route, display_order, is_menu_item, is_active) VALUES
+-- ('USER_READ', 'View user management', 'USER', '/admin/users', 10, TRUE, TRUE),
+-- ('USER_CREATE', 'Create new users', 'USER', NULL, 11, FALSE, TRUE),
+-- ('USER_EDIT', 'Edit user details', 'USER', NULL, 12, FALSE, TRUE),
+-- ('USER_DELETE', 'Delete users', 'USER', NULL, 13, FALSE, TRUE),
+-- ('PAYMENT_READ', 'View payment processing', 'PAYMENT', '/payments', 20, TRUE, TRUE),
+-- ('PAYMENT_CREATE', 'Process new payments', 'PAYMENT', NULL, 21, FALSE, TRUE),
+-- ('WORKER_READ', 'View worker data', 'WORKER', '/workers', 30, TRUE, TRUE),
+-- ('RECONCILIATION_READ', 'View reconciliation dashboard', 'RECONCILIATION', '/reconciliation', 40, TRUE, TRUE);
 
 -- =============================================================================
 -- VERIFICATION QUERIES
@@ -464,6 +492,11 @@ DROP TABLE IF EXISTS permission_api_endpoints;
 DROP TABLE IF EXISTS roles;
 DROP TABLE IF EXISTS permissions;
 DROP TABLE IF EXISTS users;
+
+-- Drop component-based permission tables (if they exist from old migrations)
+DROP TABLE IF EXISTS role_component_permissions;
+DROP TABLE IF EXISTS component_permissions;
+DROP TABLE IF EXISTS ui_components;
 
 -- Drop main application tables
 DROP TABLE IF EXISTS board_receipts;

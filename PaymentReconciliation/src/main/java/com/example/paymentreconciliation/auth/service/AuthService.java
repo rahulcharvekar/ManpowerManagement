@@ -66,8 +66,7 @@ public class AuthService {
         user.setLastLogin(LocalDateTime.now());
         userRepository.save(user);
         
-        logger.info("User {} logged in successfully with permission version {}", 
-                   user.getUsername(), user.getPermissionVersion());
+        logger.info("User {} logged in successfully", user.getUsername());
         
         return new AuthResponse(jwt, user.getId(), user.getUsername(), 
                                user.getEmail(), user.getFullName(), user.getRole());
@@ -95,8 +94,7 @@ public class AuthService {
         
         userRepository.save(user);
         
-        logger.info("User {} registered successfully with permission version {}", 
-                   user.getUsername(), user.getPermissionVersion());
+        logger.info("User {} registered successfully", user.getUsername());
         
         // Auto-login after registration
         Authentication authentication = authenticationManager.authenticate(
@@ -169,12 +167,10 @@ public class AuthService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found"));
         
-        // Increment permission version to invalidate existing tokens
-        user.incrementPermissionVersion();
+        // Save user to trigger update timestamp
         userRepository.save(user);
         
-        logger.info("User {} permissions updated. Permission version incremented to {}", 
-                   user.getUsername(), user.getPermissionVersion());
+        logger.info("User {} permissions updated", user.getUsername());
     }
     
     /**

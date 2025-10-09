@@ -48,16 +48,10 @@ public class User implements UserDetails {
     )
     private Set<Role> roles = new HashSet<>();
     
-    // Main role field for backward compatibility
+    // Main role field for backward compatibility with old permission system
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
     private UserRole role = UserRole.WORKER; // Default value
-    
-    // Keep the old role field for backward compatibility (deprecated)
-    @Enumerated(EnumType.STRING)
-    @Column(name = "legacy_role")
-    @Deprecated
-    private UserRole legacyRole;
     
     @Column(name = "is_enabled", nullable = false)
     private boolean enabled = true;
@@ -80,22 +74,18 @@ public class User implements UserDetails {
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
     
-    @Column(name = "permission_version", nullable = false)
-    private Integer permissionVersion = 1;
-    
     // Constructors
     public User() {
         this.createdAt = LocalDateTime.now();
-        this.permissionVersion = 1;
     }
     
-    public User(String username, String email, String password, String fullName, UserRole legacyRole) {
+    public User(String username, String email, String password, String fullName, UserRole role) {
         this();
         this.username = username;
         this.email = email;
         this.password = password;
         this.fullName = fullName;
-        this.legacyRole = legacyRole;
+        this.role = role;
     }
     
     // UserDetails implementation
@@ -103,19 +93,14 @@ public class User implements UserDetails {
     public Collection<? extends GrantedAuthority> getAuthorities() {
         Set<GrantedAuthority> authorities = new HashSet<>();
         
-        // Add role authorities
+        // Add role authorities from the new roles system
         for (Role role : roles) {
             authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getName()));
-            
-            // Add permission authorities
-            for (Permission permission : role.getPermissions()) {
-                authorities.add(new SimpleGrantedAuthority("PERM_" + permission.getName()));
-            }
         }
         
-        // Backward compatibility: if no new roles, use legacy role
-        if (authorities.isEmpty() && legacyRole != null) {
-            authorities.add(new SimpleGrantedAuthority("ROLE_" + legacyRole.name()));
+        // Fallback: if no new roles defined, use the enum role field
+        if (authorities.isEmpty() && this.role != null) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + this.role.name()));
         }
         
         return authorities;
@@ -199,17 +184,6 @@ public class User implements UserDetails {
         role.getUsers().remove(this);
     }
     
-    // Legacy role methods (deprecated)
-    @Deprecated
-    public UserRole getLegacyRole() {
-        return legacyRole;
-    }
-    
-    @Deprecated
-    public void setLegacyRole(UserRole legacyRole) {
-        this.legacyRole = legacyRole;
-    }
-    
     // Main role methods
     public UserRole getRole() {
         return role;
@@ -261,22 +235,6 @@ public class User implements UserDetails {
     
     public void setLastLogin(LocalDateTime lastLogin) {
         this.lastLogin = lastLogin;
-    }
-    
-    public Integer getPermissionVersion() {
-        return permissionVersion;
-    }
-    
-    public void setPermissionVersion(Integer permissionVersion) {
-        this.permissionVersion = permissionVersion;
-    }
-    
-    /**
-     * Increment permission version to invalidate existing JWT tokens
-     * Call this method whenever user roles or permissions are modified
-     */
-    public void incrementPermissionVersion() {
-        this.permissionVersion = (this.permissionVersion != null ? this.permissionVersion : 0) + 1;
     }
     
     @PreUpdate

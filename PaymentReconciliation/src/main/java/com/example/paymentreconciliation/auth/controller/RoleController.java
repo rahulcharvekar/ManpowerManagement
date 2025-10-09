@@ -88,29 +88,28 @@ public class RoleController {
         }
     }
     
-    @PostMapping("/{roleId}/permissions/{permissionId}")
-    @Operation(summary = "Add permission to role")
-    public ResponseEntity<Role> addPermissionToRole(@PathVariable Long roleId, 
-                                                     @PathVariable Long permissionId) {
-        try {
-            Role role = roleService.addPermissionToRole(roleId, permissionId);
-            return ResponseEntity.ok(role);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
+    /**
+     * DEPRECATED: Old permission system endpoints - replaced by Capability+Policy system
+     * Use PolicyEngineService and AuthorizationService instead
+     */
     
-    @DeleteMapping("/{roleId}/permissions/{permissionId}")
-    @Operation(summary = "Remove permission from role")
-    public ResponseEntity<Role> removePermissionFromRole(@PathVariable Long roleId, 
-                                                          @PathVariable Long permissionId) {
-        try {
-            Role role = roleService.removePermissionFromRole(roleId, permissionId);
-            return ResponseEntity.ok(role);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
+    // @PostMapping("/{roleId}/permissions/{permissionId}")
+    // @Operation(summary = "Add permission to role")
+    // public ResponseEntity<Role> addPermissionToRole(@PathVariable Long roleId, 
+    //                                                  @PathVariable Long permissionId) {
+    //     // OLD SYSTEM - use Capability+Policy assignment instead
+    //     return ResponseEntity.status(HttpStatus.GONE)
+    //             .body(null); // 410 Gone
+    // }
+    
+    // @DeleteMapping("/{roleId}/permissions/{permissionId}")
+    // @Operation(summary = "Remove permission from role")
+    // public ResponseEntity<Role> removePermissionFromRole(@PathVariable Long roleId, 
+    //                                                       @PathVariable Long permissionId) {
+    //     // OLD SYSTEM - use Capability+Policy assignment instead
+    //     return ResponseEntity.status(HttpStatus.GONE)
+    //             .body(null); // 410 Gone
+    // }
     
     @PostMapping("/assign")
     @Operation(summary = "Assign role to user")

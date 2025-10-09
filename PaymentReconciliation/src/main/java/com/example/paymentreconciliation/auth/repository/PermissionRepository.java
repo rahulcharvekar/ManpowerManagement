@@ -1,21 +1,16 @@
 package com.example.paymentreconciliation.auth.repository;
 
-import com.example.paymentreconciliation.auth.entity.Permission;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
-
-import java.util.List;
-
-@Repository
-public interface PermissionRepository extends JpaRepository<Permission, Long> {
-    
-    // Only keep methods needed for WRITE operations and entity lookups during writes
-    
-    @Query("SELECT p FROM Permission p WHERE p.name IN :names")
-    List<Permission> findByNames(@Param("names") List<String> names);
-    
-    // Keep for write operation validations
-    boolean existsByName(String name);
+/**
+ * DEPRECATED: Repository for old Permission system
+ * The new system uses CapabilityRepository and PolicyRepository
+ * This interface is disabled (not extending JpaRepository) to prevent Spring from creating a bean
+ * 
+ * @deprecated Use {@link CapabilityRepository} and {@link PolicyRepository} instead
+ */
+@Deprecated
+// @Repository - REMOVED to prevent Spring from creating bean
+// Stub interface to satisfy imports - does NOT extend JpaRepository
+public interface PermissionRepository {
+    // OLD INTERFACE - DO NOT USE
+    // This is just a stub to satisfy compilation, Spring will not create a bean for this
 }

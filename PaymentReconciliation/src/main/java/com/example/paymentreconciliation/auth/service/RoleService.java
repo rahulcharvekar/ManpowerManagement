@@ -1,9 +1,7 @@
 package com.example.paymentreconciliation.auth.service;
 
-import com.example.paymentreconciliation.auth.entity.Permission;
 import com.example.paymentreconciliation.auth.entity.Role;
 import com.example.paymentreconciliation.auth.entity.User;
-import com.example.paymentreconciliation.auth.repository.PermissionRepository;
 import com.example.paymentreconciliation.auth.repository.RoleRepository;
 import com.example.paymentreconciliation.auth.repository.UserRepository;
 import com.example.paymentreconciliation.auth.dao.RoleQueryDao;
@@ -25,8 +23,9 @@ public class RoleService {
     @Autowired
     private RoleRepository roleRepository;
     
-    @Autowired
-    private PermissionRepository permissionRepository;
+    // DEPRECATED: Old Permission system - replaced by Capability+Policy architecture
+    // @Autowired
+    // private PermissionRepository permissionRepository;
     
     @Autowired
     private UserRepository userRepository;
@@ -114,31 +113,18 @@ public class RoleService {
         roleRepository.delete(role);
     }
     
-    public Role addPermissionToRole(Long roleId, Long permissionId) {
-        logger.info("Adding permission {} to role {}", permissionId, roleId);
-        
-        Role role = roleRepository.findById(roleId)
-                .orElseThrow(() -> new IllegalArgumentException("Role not found with id: " + roleId));
-        
-        Permission permission = permissionRepository.findById(permissionId)
-                .orElseThrow(() -> new IllegalArgumentException("Permission not found with id: " + permissionId));
-        
-        role.addPermission(permission);
-        return roleRepository.save(role);
-    }
+    /**
+     * DEPRECATED: Old permission system methods - no longer used in new Capability+Policy system
+     * These methods are commented out as the new system uses Capabilities and Policies instead.
+     */
     
-    public Role removePermissionFromRole(Long roleId, Long permissionId) {
-        logger.info("Removing permission {} from role {}", permissionId, roleId);
-        
-        Role role = roleRepository.findById(roleId)
-                .orElseThrow(() -> new IllegalArgumentException("Role not found with id: " + roleId));
-        
-        Permission permission = permissionRepository.findById(permissionId)
-                .orElseThrow(() -> new IllegalArgumentException("Permission not found with id: " + permissionId));
-        
-        role.removePermission(permission);
-        return roleRepository.save(role);
-    }
+    // public Role addPermissionToRole(Long roleId, Long permissionId) {
+    //     // OLD SYSTEM - use PolicyEngineService and AuthorizationService instead
+    // }
+    
+    // public Role removePermissionFromRole(Long roleId, Long permissionId) {
+    //     // OLD SYSTEM - use PolicyEngineService and AuthorizationService instead
+    // }
     
     public User assignRoleToUser(Long userId, Long roleId) {
         logger.info("Assigning role {} to user {}", roleId, userId);

@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -49,12 +48,11 @@ public class JwtUtils {
                 .audience().add(jwtAudience).and()    // aud: intended recipient
                 .issuedAt(Date.from(now))             // iat: token creation time
                 .expiration(Date.from(now.plus(jwtExpirationMs, ChronoUnit.SECONDS))) // exp: expiration
-                .claim("pv", userPrincipal.getPermissionVersion()) // pv: permission version from User entity
                 .signWith(getSigningKey(), Jwts.SIG.HS256)
                 .compact();
     }
     
-    public String generateTokenFromUsername(String username, Integer permissionVersion) {
+    public String generateTokenFromUsername(String username) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .issuer(jwtIssuer)
@@ -62,13 +60,8 @@ public class JwtUtils {
                 .audience().add(jwtAudience).and()
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(jwtExpirationMs, ChronoUnit.SECONDS)))
-                .claim("pv", permissionVersion)
                 .signWith(getSigningKey(), Jwts.SIG.HS256)
                 .compact();
-    }
-    
-    public String generateTokenFromUsername(String username) {
-        return generateTokenFromUsername(username, 1);
     }
     
     private SecretKey getSigningKey() {

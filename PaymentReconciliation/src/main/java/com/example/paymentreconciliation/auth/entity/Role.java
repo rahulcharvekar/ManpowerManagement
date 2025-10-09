@@ -7,6 +7,11 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Role entity for the NEW Capability+Policy+Service Catalog authorization system.
+ * Roles are assigned to users and linked to policies that grant capabilities.
+ * This replaces the old role_permissions system.
+ */
 @Entity
 @Table(name = "roles")
 public class Role {
@@ -18,35 +23,29 @@ public class Role {
     @NotBlank(message = "Role name is required")
     @Size(max = 50, message = "Role name must not exceed 50 characters")
     @Column(name = "name", unique = true, nullable = false, length = 50)
-    private String name; // e.g., "ADMIN", "WORKER", "BOARD"
+    private String name; // e.g., "ADMIN", "RECONCILIATION_OFFICER", "WORKER", "EMPLOYER", "BOARD"
     
     @Size(max = 255, message = "Description must not exceed 255 characters")
     @Column(name = "description", length = 255)
     private String description;
     
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+    
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
     
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-        name = "role_permissions",
-        joinColumns = @JoinColumn(name = "role_id"),
-        inverseJoinColumns = @JoinColumn(name = "permission_id")
-    )
-    private Set<Permission> permissions = new HashSet<>();
-    
-    @ManyToMany(mappedBy = "roles")
+    // Many-to-Many relationship with User through user_roles table
+    @ManyToMany(mappedBy = "roles", fetch = FetchType.LAZY)
     private Set<User> users = new HashSet<>();
-    
-    @OneToMany(mappedBy = "role", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<RoleComponentPermission> roleComponentPermissions = new HashSet<>();
     
     // Constructors
     public Role() {
         this.createdAt = LocalDateTime.now();
+        this.isActive = true;
     }
     
     public Role(String name, String description) {
@@ -96,12 +95,12 @@ public class Role {
         this.updatedAt = updatedAt;
     }
     
-    public Set<Permission> getPermissions() {
-        return permissions;
+    public Boolean getIsActive() {
+        return isActive;
     }
     
-    public void setPermissions(Set<Permission> permissions) {
-        this.permissions = permissions;
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
     }
     
     public Set<User> getUsers() {
@@ -113,16 +112,6 @@ public class Role {
     }
     
     // Helper methods
-    public void addPermission(Permission permission) {
-        this.permissions.add(permission);
-        permission.getRoles().add(this);
-    }
-    
-    public void removePermission(Permission permission) {
-        this.permissions.remove(permission);
-        permission.getRoles().remove(this);
-    }
-    
     public void addUser(User user) {
         this.users.add(user);
         user.getRoles().add(this);
@@ -131,14 +120,6 @@ public class Role {
     public void removeUser(User user) {
         this.users.remove(user);
         user.getRoles().remove(this);
-    }
-    
-    public Set<RoleComponentPermission> getRoleComponentPermissions() {
-        return roleComponentPermissions;
-    }
-    
-    public void setRoleComponentPermissions(Set<RoleComponentPermission> roleComponentPermissions) {
-        this.roleComponentPermissions = roleComponentPermissions;
     }
     
     @PreUpdate

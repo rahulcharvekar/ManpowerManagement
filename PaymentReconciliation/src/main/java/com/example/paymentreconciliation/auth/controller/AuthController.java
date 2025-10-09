@@ -1,36 +1,31 @@
 package com.example.paymentreconciliation.auth.controller;
 
-import com.example.paymentreconciliation.auth.dto.AuthResponse;
-import com.example.paymentreconciliation.auth.dto.LoginRequest;
-import com.example.paymentreconciliation.auth.dto.PermissionResponse;
-import com.example.paymentreconciliation.auth.dto.RegisterRequest;
+import com.example.paymentreconciliation.auth.dto.*;
 import com.example.paymentreconciliation.auth.entity.User;
 import com.example.paymentreconciliation.auth.entity.UserRole;
 import com.example.paymentreconciliation.auth.service.AuthService;
-import com.example.paymentreconciliation.auth.service.PermissionApiEndpointService;
 import com.example.paymentreconciliation.auth.service.UIConfigService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+
 
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Authentication", description = "User authentication and registration APIs")
+@SecurityRequirement(name = "Bearer Authentication")
 public class AuthController {
     
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
@@ -38,11 +33,12 @@ public class AuthController {
     @Autowired
     private AuthService authService;
     
-    @Autowired
-    private UIConfigService uiConfigService;
+    // DEPRECATED: Old PermissionService - replaced by AuthorizationService with Capability+Policy system
+    // @Autowired
+    // private PermissionService permissionService;
     
     @Autowired
-    private PermissionApiEndpointService permissionApiEndpointService;
+    private UIConfigService uiConfigService;
     
     @PostMapping("/login")
     @Operation(summary = "User login", description = "Authenticate user and return JWT token")
@@ -81,50 +77,6 @@ public class AuthController {
         }
     }
     
-    @GetMapping("/me")
-    @Operation(summary = "Get current user", description = "Get current authenticated user information with roles, permissions, and menus from database")
-    @ApiResponse(responseCode = "200", description = "User information retrieved successfully")
-    @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<?> getCurrentUser(Authentication authentication) {
-        Optional<User> currentUser = authService.getCurrentUser();
-        if (currentUser.isPresent()) {
-            User user = currentUser.get();
-            
-            // Extract roles and permissions from database (via Spring Security authorities loaded by UserDetailsService)
-            // These authorities are loaded fresh from database on each request, not from JWT
-            java.util.Set<String> roles = new java.util.HashSet<>();
-            java.util.Set<String> permissions = new java.util.HashSet<>();
-            
-            if (authentication != null) {
-                for (org.springframework.security.core.GrantedAuthority authority : authentication.getAuthorities()) {
-                    String auth = authority.getAuthority();
-                    if (auth.startsWith("ROLE_")) {
-                        roles.add(auth.substring(5)); // Remove "ROLE_" prefix
-                    } else if (auth.startsWith("PERM_")) {
-                        permissions.add(auth.substring(5)); // Remove "PERM_" prefix
-                    }
-                }
-            }
-        
-            
-            // Get API endpoints for user's permissions (fetched from database)
-            Map<String, List<String>> apiPermissions = permissionApiEndpointService.getUserApiEndpoints();
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("id", user.getId());
-            response.put("username", user.getUsername());
-            response.put("email", user.getEmail());
-            response.put("fullName", user.getFullName());
-            response.put("roles", roles);
-            response.put("permissions", apiPermissions);
-            response.put("permissionVersion", user.getPermissionVersion());
-            response.put("enabled", user.isEnabled());
-            
-            return ResponseEntity.ok(response);
-        }
-        return ResponseEntity.badRequest()
-            .body(new HashMap<String, Object>() {{ put("error", "User not authenticated"); }});
-    }
     
     @GetMapping("/ui-config")
     @Operation(summary = "Get UI configuration", description = "Get complete UI configuration including navigation and permissions for current user")
