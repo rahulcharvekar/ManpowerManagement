@@ -40,6 +40,11 @@ public interface UIPageRepository extends JpaRepository<UIPage, Long> {
      * Find all child pages of a parent page
      */
     List<UIPage> findByParentIdAndIsActiveTrueOrderByDisplayOrder(Long parentId);
+    
+    /**
+     * Find all child pages of a parent (including inactive)
+     */
+    List<UIPage> findByParentId(Long parentId);
 
     /**
      * Find all root-level pages (no parent)

@@ -79,6 +79,16 @@ public interface PageActionRepository extends JpaRepository<PageAction, Long> {
     long countByPageIdAndIsActiveTrue(Long pageId);
     
     /**
+     * Count all actions for a page (including inactive)
+     */
+    long countByPageId(Long pageId);
+    
+    /**
+     * Delete all actions for a page
+     */
+    void deleteByPageId(Long pageId);
+    
+    /**
      * Find actions by page ID and active status
      */
     List<PageAction> findByPageIdAndIsActiveTrue(Long pageId);

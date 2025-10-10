@@ -1,0 +1,137 @@
+package com.example.paymentreconciliation.auth.controller;
+
+import com.example.paymentreconciliation.auth.entity.Capability;
+import com.example.paymentreconciliation.auth.repository.CapabilityRepository;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+/**
+ * Admin controller for managing capabilities
+ * Only accessible by ADMIN role
+ */
+@RestController
+@RequestMapping("/api/admin/capabilities")
+@PreAuthorize("hasRole('ADMIN')")
+public class CapabilityController {
+
+    private final CapabilityRepository capabilityRepository;
+
+    public CapabilityController(CapabilityRepository capabilityRepository) {
+        this.capabilityRepository = capabilityRepository;
+    }
+
+    /**
+     * Get all capabilities
+     */
+    @GetMapping
+    public ResponseEntity<List<Capability>> getAllCapabilities() {
+        List<Capability> capabilities = capabilityRepository.findAll();
+        return ResponseEntity.ok(capabilities);
+    }
+
+    /**
+     * Get capability by ID
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<Capability> getCapabilityById(@PathVariable Long id) {
+        return capabilityRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Create new capability
+     */
+    @PostMapping
+    public ResponseEntity<Capability> createCapability(@RequestBody CapabilityRequest request) {
+        Capability capability = new Capability(
+                request.getName(),
+                request.getDescription(),
+                request.getModule(),
+                request.getAction(),
+                request.getResource()
+        );
+        Capability saved = capabilityRepository.save(capability);
+        return ResponseEntity.ok(saved);
+    }
+
+    /**
+     * Update capability
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<Capability> updateCapability(
+            @PathVariable Long id,
+            @RequestBody CapabilityRequest request) {
+        
+        return capabilityRepository.findById(id)
+                .map(capability -> {
+                    capability.setName(request.getName());
+                    capability.setDescription(request.getDescription());
+                    capability.setModule(request.getModule());
+                    capability.setAction(request.getAction());
+                    capability.setResource(request.getResource());
+                    capability.setIsActive(request.getIsActive());
+                    Capability updated = capabilityRepository.save(capability);
+                    return ResponseEntity.ok(updated);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Delete capability
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCapability(@PathVariable Long id) {
+        if (capabilityRepository.existsById(id)) {
+            capabilityRepository.deleteById(id);
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    /**
+     * Activate/Deactivate capability
+     */
+    @PatchMapping("/{id}/toggle-active")
+    public ResponseEntity<Capability> toggleActive(@PathVariable Long id) {
+        return capabilityRepository.findById(id)
+                .map(capability -> {
+                    capability.setIsActive(!capability.getIsActive());
+                    Capability updated = capabilityRepository.save(capability);
+                    return ResponseEntity.ok(updated);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    // DTO classes
+    public static class CapabilityRequest {
+        private String name;
+        private String description;
+        private String module;
+        private String action;
+        private String resource;
+        private Boolean isActive = true;
+
+        // Getters and Setters
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+        
+        public String getModule() { return module; }
+        public void setModule(String module) { this.module = module; }
+        
+        public String getAction() { return action; }
+        public void setAction(String action) { this.action = action; }
+        
+        public String getResource() { return resource; }
+        public void setResource(String resource) { this.resource = resource; }
+        
+        public Boolean getIsActive() { return isActive; }
+        public void setIsActive(Boolean isActive) { this.isActive = isActive; }
+    }
+}
