@@ -725,6 +725,30 @@ export class WorkerApi {
       throw error;
     }
   }
+
+  /**
+   * Get paginated uploaded worker data (secure)
+   * Capability: WORKER.READ
+   * Endpoint: POST /api/worker/uploaded-data/secure-paginated
+   *
+   * @param {Object} params - { startDate, endDate, page, size, sortBy, sortDir, sessionToken }
+   * @returns {Promise<Object>} Paginated worker upload data
+   */
+  static async getUploadedDataPaginated(params = {}) {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) throw new Error('Authentication required');
+      const response = await apiClient.post(
+        API_ENDPOINTS.WORKER_UPLOADED_DATA.SECURE_PAGINATED,
+        params,
+        token
+      );
+      return response;
+    } catch (error) {
+      console.error('❌ Error fetching paginated uploaded worker data:', error);
+      throw error;
+    }
+  }
 }
 
 export default WorkerApi;

@@ -11,7 +11,16 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Authorization Service - Builds comprehensive authorization response
+ * Authorization Service - Unified authorization flow implementation
+ * 
+ * ARCHITECTURE:
+ * User → UserRoleAssignment → Role → Policy → {Capability, Endpoint}
+ * PageAction → Capability ↑ (linked via PolicyCapability)
+ * 
+ * PRINCIPLE: Policy is the single source of truth
+ * - If Policy grants Capability, it MUST grant required Endpoints
+ * - User access is determined by: Role → Policy → {Capabilities + Endpoints}
+ * 
  * Returns capabilities, policies, endpoints, and UI pages for authenticated users
  */
 @Service
@@ -65,27 +74,23 @@ public class AuthorizationService {
 
         logger.debug("User {} has roles: {}", userId, roleNames);
 
-        // Get capabilities for user's roles
-        Set<String> capabilities = getCapabilitiesForRoles(roleNames);
+    // Get capabilities for user's roles
+    Set<String> capabilities = getCapabilitiesForRoles(roleNames);
 
-        // Get accessible pages for user's roles
-        List<Map<String, Object>> pages = getAccessiblePages(roleNames);
+    // Get accessible pages for user's roles, filtered by capabilities
+    List<Map<String, Object>> pages = getAccessiblePagesFilteredByCapabilities(roleNames, capabilities);
 
-        // Get accessible endpoints
-        List<Map<String, Object>> endpoints = getAccessibleEndpoints(roleNames);
+    // Build response (without endpoints)
+    Map<String, Object> response = new HashMap<>();
+    response.put("userId", userId);
+    response.put("username", user.getUsername());
+    response.put("roles", roleNames);
+    response.put("can", buildCapabilityMap(capabilities)); // { "USER_CREATE": true, ...}
+    response.put("pages", pages);
+    response.put("version", System.currentTimeMillis()); // For client-side cache invalidation
 
-        // Build response
-        Map<String, Object> response = new HashMap<>();
-        response.put("userId", userId);
-        response.put("username", user.getUsername());
-        response.put("roles", roleNames);
-        response.put("can", buildCapabilityMap(capabilities)); // { "USER_CREATE": true, ...}
-        response.put("pages", pages);
-        response.put("endpoints", endpoints);
-        response.put("version", System.currentTimeMillis()); // For client-side cache invalidation
-
-        logger.debug("Authorization response built successfully for user: {}", userId);
-        return response;
+    logger.debug("Authorization response built successfully for user: {}", userId);
+    return response;
     }
 
     /**
@@ -106,22 +111,37 @@ public class AuthorizationService {
     /**
      * Get accessible pages for user's roles
      */
-    private List<Map<String, Object>> getAccessiblePages(Set<String> roleNames) {
+    private List<Map<String, Object>> getAccessiblePagesFilteredByCapabilities(Set<String> roleNames, Set<String> capabilities) {
         List<UIPage> allPages = uiPageRepository.findByIsActiveTrueOrderByDisplayOrderAsc();
         List<Map<String, Object>> accessiblePages = new ArrayList<>();
         Set<Long> accessiblePageIds = new HashSet<>();
 
         // First pass: collect pages with actions
         for (UIPage page : allPages) {
-            // Check if user has access to this page
             List<PageAction> actions = pageActionRepository.findByPageIdAndIsActiveTrue(page.getId());
-            
-            // Get actions user can perform on this page - return just the capability names
-            List<String> userActions = actions.stream()
-                    .filter(action -> action.getCapability() != null && 
-                                     hasCapability(action.getCapability().getName(), roleNames))
-                    .map(action -> action.getCapability().getName())
-                    .collect(Collectors.toList());
+            // Only include actions the user can perform (has capability)
+            List<Map<String, Object>> userActions = actions.stream()
+                .filter(action -> action.getCapability() != null && capabilities.contains(action.getCapability().getName()))
+                .map(action -> {
+                    Map<String, Object> actionData = new HashMap<>();
+                    actionData.put("name", action.getAction());
+                    actionData.put("label", action.getLabel());
+                    actionData.put("capability", action.getCapability().getName());
+                    actionData.put("icon", action.getIcon());
+                    actionData.put("variant", action.getVariant());
+                    // Add endpoint details if present
+                    if (action.getEndpoint() != null) {
+                        Map<String, Object> endpointData = new HashMap<>();
+                        endpointData.put("method", action.getEndpoint().getMethod());
+                        endpointData.put("path", action.getEndpoint().getPath());
+                        endpointData.put("service", action.getEndpoint().getService());
+                        endpointData.put("version", action.getEndpoint().getVersion());
+                        endpointData.put("description", action.getEndpoint().getDescription());
+                        actionData.put("endpoint", endpointData);
+                    }
+                    return actionData;
+                })
+                .collect(Collectors.toList());
 
             if (!userActions.isEmpty()) {
                 Map<String, Object> pageData = new HashMap<>();
@@ -256,37 +276,98 @@ public class AuthorizationService {
     }
 
     /**
-     * Check if user has access to an endpoint
+     * Check if user has access to an endpoint through unified authorization flow:
+     * 
+     * User → UserRoleAssignment → Role → Policy → Endpoint (via endpoint_policies)
+     *                                          ↓
+     *                                     Capability (via policy_capabilities)
+     * 
+     * This method checks BOTH paths:
+     * 1. Direct endpoint access via endpoint_policies (Role → Policy → Endpoint)
+     * 2. Capability-based access (Role → Policy → Capability, where Capability should have corresponding Endpoint)
+     * 
+     * The data synchronization script ensures that policies granting capabilities 
+     * also grant access to the endpoints needed for those capabilities.
+     * 
+     * @param endpointId The endpoint to check access for
+     * @param roleNames The roles the user has
+     * @return true if user has access via any path, false otherwise
      */
     private boolean hasEndpointAccess(Long endpointId, Set<String> roleNames) {
-        List<Policy> policies = policyRepository.findByEndpointId(endpointId);
+        // PATH 1: Check direct endpoint access via endpoint_policies
+        // User → Role → Policy (with role in expression) → EndpointPolicy → Endpoint
+        List<Policy> endpointPolicies = policyRepository.findByEndpointId(endpointId);
         
-        for (Policy policy : policies) {
+        for (Policy policy : endpointPolicies) {
             if (!policy.getIsActive()) {
                 continue;
             }
             
-            // Parse the policy expression JSON to check if user has required roles
-            // Expression format: {"roles": ["ADMIN", "WORKER"], "conditions": []}
-            try {
-                String expression = policy.getExpression();
-                if (expression != null && expression.contains("\"roles\"")) {
-                    // Simple JSON parsing - extract roles array
-                    // Check if any of the user's roles match the policy roles
-                    for (String roleName : roleNames) {
-                        if (expression.contains("\"" + roleName + "\"")) {
-                            logger.debug("User role '{}' matches policy '{}' for endpoint {}", 
-                                       roleName, policy.getName(), endpointId);
-                            return true;
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                logger.warn("Error parsing policy expression for policy: {}", policy.getName(), e);
+            // Check if user's role matches the policy expression
+            if (policyMatchesUserRoles(policy, roleNames)) {
+                logger.debug("Endpoint access GRANTED via direct policy '{}' for endpoint {}", 
+                           policy.getName(), endpointId);
+                return true;
             }
         }
         
+        // PATH 2: Check capability-based access via PageActions
+        // User → Role → Policy → Capability → PageAction → Endpoint
+        // If user has a capability that requires this endpoint, grant access
+        List<PageAction> pageActionsUsingEndpoint = pageActionRepository.findByEndpointId(endpointId);
+        
+        for (PageAction pageAction : pageActionsUsingEndpoint) {
+            if (!pageAction.getIsActive()) {
+                continue;
+            }
+            
+            Capability capability = pageAction.getCapability();
+            if (capability != null && capability.getIsActive()) {
+                // Check if user has this capability through their roles
+                if (hasCapability(capability.getName(), roleNames)) {
+                    logger.debug("Endpoint access GRANTED via capability '{}' for endpoint {}", 
+                               capability.getName(), endpointId);
+                    return true;
+                }
+            }
+        }
+        
+        logger.debug("Endpoint access DENIED for endpoint {} with roles: {}", endpointId, roleNames);
         return false;
+    }
+    
+    /**
+     * Check if a policy expression matches any of the user's roles
+     * 
+     * @param policy The policy to evaluate
+     * @param roleNames The user's role names
+     * @return true if policy grants access to user, false otherwise
+     */
+    private boolean policyMatchesUserRoles(Policy policy, Set<String> roleNames) {
+        // Parse the policy expression JSON to check if user has required roles
+        // Expression format: {"roles": ["ADMIN", "WORKER"], "conditions": []}
+        try {
+            String expression = policy.getExpression();
+            if (expression == null || !expression.contains("\"roles\"")) {
+                logger.debug("Policy '{}' has no roles defined in expression", policy.getName());
+                return false;
+            }
+            
+            // Simple JSON parsing - check if any of the user's roles match the policy roles
+            for (String roleName : roleNames) {
+                if (expression.contains("\"" + roleName + "\"")) {
+                    logger.debug("User role '{}' matches policy '{}'", roleName, policy.getName());
+                    return true;
+                }
+            }
+            
+            logger.debug("No user roles match policy '{}'", policy.getName());
+            return false;
+        } catch (Exception e) {
+            logger.warn("Error parsing policy expression for policy '{}': {}", 
+                       policy.getName(), e.getMessage());
+            return false;
+        }
     }
 
     /**

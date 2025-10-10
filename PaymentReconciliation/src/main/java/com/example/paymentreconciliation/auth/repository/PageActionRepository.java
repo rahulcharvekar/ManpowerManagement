@@ -92,4 +92,15 @@ public interface PageActionRepository extends JpaRepository<PageAction, Long> {
      * Find actions by page ID and active status
      */
     List<PageAction> findByPageIdAndIsActiveTrue(Long pageId);
+    
+    /**
+     * Find all actions that use a specific endpoint
+     * Used for capability-based endpoint access checking
+     */
+    List<PageAction> findByEndpointId(Long endpointId);
+    
+    /**
+     * Find all active actions that use a specific endpoint
+     */
+    List<PageAction> findByEndpointIdAndIsActiveTrue(Long endpointId);
 }

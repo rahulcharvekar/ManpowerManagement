@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useEnhancedAuth } from '../../contexts/EnhancedAuthContext';
+import { usePermissions } from '../../contexts/PermissionContext';
 
 /**
  * SidebarMenu - Enhanced navigation using capability-based menu tree
  * Renders menu items from the authorization menuTree
  */
 const SidebarMenu = () => {
-  const { getMenuTree, user, loading } = useEnhancedAuth();
+  const { getNavigationItems, user, loading } = usePermissions();
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState(new Set());
 
@@ -28,7 +28,7 @@ const SidebarMenu = () => {
     );
   }
 
-  const menuTree = getMenuTree();
+  const menuTree = getNavigationItems();
 
   const toggleExpand = (itemId) => {
     setExpandedItems(prev => {
@@ -96,12 +96,12 @@ const SidebarMenu = () => {
   };
 
   const renderMenuItem = (item, level = 0) => {
-    const isActive = location.pathname === item.route;
+    // Use 'path' for navigation, 'name' or 'label' for display, and support children
+    const isActive = location.pathname === item.path;
     const isExpanded = expandedItems.has(item.id);
     const hasChildren = item.children && item.children.length > 0;
-    
-    // If item has no route and has children, render as expandable group
-    if (!item.route && hasChildren) {
+
+    if (hasChildren) {
       return (
         <div key={item.id} className="mb-2">
           <button
@@ -110,12 +110,12 @@ const SidebarMenu = () => {
           >
             <div className="flex items-center gap-3">
               {item.icon && <span className="text-gray-500">{getMenuIcon(item.icon)}</span>}
-              <span className="uppercase tracking-wide">{item.label}</span>
+              <span className="uppercase tracking-wide">{item.label || item.name}</span>
             </div>
-            <svg 
+            <svg
               className={`w-4 h-4 transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-              fill="none" 
-              stroke="currentColor" 
+              fill="none"
+              stroke="currentColor"
               viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
@@ -130,17 +130,17 @@ const SidebarMenu = () => {
       );
     }
 
-    // Regular menu item with route
+    // Regular menu item with path
     return (
       <Link
         key={item.id}
-        to={item.route}
+        to={item.path}
         className={`
           flex items-center gap-3 px-4 py-3 rounded-lg
           transition-all duration-200
           ${level > 0 ? 'ml-2' : ''}
-          ${isActive 
-            ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md' 
+          ${isActive
+            ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md'
             : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
           }
         `}
@@ -150,7 +150,7 @@ const SidebarMenu = () => {
             {getMenuIcon(item.icon)}
           </span>
         )}
-        <span className="font-medium">{item.label}</span>
+        <span className="font-medium">{item.label || item.name}</span>
         {item.badge && (
           <span className="ml-auto px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-600">
             {item.badge}

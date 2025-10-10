@@ -157,13 +157,17 @@ export const PermissionProvider = ({ children }) => {
     
     // Check actions array (new backend structure)
     if (navItem.actions && Array.isArray(navItem.actions) && navItem.actions.length > 0) {
-      const permissionsCheck = navItem.actions.map(permission => ({
-        permission,
-        hasIt: hasPermission(permission)
-      }));
-      
-      const hasAccess = navItem.actions.some(permission => hasPermission(permission));
-      
+      const permissionsCheck = navItem.actions.map(permission => {
+        const permName = typeof permission === 'string' ? permission : permission.capability;
+        return {
+          permission: permName,
+          hasIt: hasPermission(permName)
+        };
+      });
+      const hasAccess = navItem.actions.some(permission => {
+        const permName = typeof permission === 'string' ? permission : permission.capability;
+        return hasPermission(permName);
+      });
       console.log('🔐 Permission check result (actions):', { 
         componentKey, 
         requiredActions: navItem.actions,
@@ -277,16 +281,35 @@ export const PermissionProvider = ({ children }) => {
       hasUIConfig: !!uiConfig, 
       hasNavigation: !!uiConfig?.navigation,
       hasMenuTree: !!uiConfig?.menuTree,
+      hasPages: !!uiConfig?.pages,
       hasUser: !!user,
       hasPermissions: !!user?.permissions,
       uiConfigKeys: uiConfig ? Object.keys(uiConfig) : [],
       navigationLength: uiConfig?.navigation?.length,
-      menuTreeLength: uiConfig?.menuTree?.length
+      menuTreeLength: uiConfig?.menuTree?.length,
+      pagesLength: uiConfig?.pages?.length
     });
 
-    // Try to get navigation from either 'navigation' or 'menuTree' property
-    const navigation = uiConfig?.navigation || uiConfig?.menuTree;
-    
+    // Prefer navigation/menuTree, else build from pages
+    let navigation = uiConfig?.navigation || uiConfig?.menuTree;
+    if ((!navigation || navigation.length === 0) && Array.isArray(uiConfig?.pages)) {
+      // Build tree from flat pages array
+      const pages = uiConfig.pages;
+      const pageMap = {};
+      pages.forEach(page => {
+        pageMap[page.id] = { ...page, children: [] };
+      });
+      const tree = [];
+      pages.forEach(page => {
+        if (page.parentId && pageMap[page.parentId]) {
+          pageMap[page.parentId].children.push(pageMap[page.id]);
+        } else if (page.isMenuItem) {
+          tree.push(pageMap[page.id]);
+        }
+      });
+      navigation = tree.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+    }
+
     if (!navigation || !user?.permissions) {
       console.warn('⚠️ No navigation or permissions available:', { 
         hasNavigation: !!navigation,
@@ -295,15 +318,15 @@ export const PermissionProvider = ({ children }) => {
       });
       return [];
     }
-    
+
     // Filter navigation items based on permissions
     const filterNavItems = (items) => {
       return items
         .map(item => {
-          // Process children first if they exist
+          // Always set children to an array (never null)
           const processedItem = {
             ...item,
-            children: item.children ? filterNavItems(item.children) : null
+            children: item.children ? filterNavItems(item.children) : []
           };
           return processedItem;
         })
@@ -318,7 +341,7 @@ export const PermissionProvider = ({ children }) => {
           // 2. For leaf items with actions array (new backend structure)
           if (item.actions && Array.isArray(item.actions) && item.actions.length > 0) {
             // User needs ANY of the action permissions to see this menu item
-            const hasAnyPermission = item.actions.some(permission => hasPermission(permission));
+            const hasAnyPermission = item.actions.some(permission => hasPermission(permission.capability || permission));
             console.log(`${hasAnyPermission ? '✅' : '❌'} ${item.name}:`, {
               required: item.actions,
               hasAny: hasAnyPermission
@@ -341,7 +364,7 @@ export const PermissionProvider = ({ children }) => {
           return true;
         });
     };
-    
+
     const filtered = filterNavItems(navigation);
     console.log('🎯 Final navigation result:', filtered.map(item => ({
       label: item.label,

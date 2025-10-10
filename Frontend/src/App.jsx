@@ -25,14 +25,16 @@ import ReconciliationDashboard from './components/reconciliation/ReconciliationD
 // Worker Components
 import WorkerDashboard from './components/worker/WorkerDashboard';
 import WorkerList from './components/worker/WorkerList';
-import WorkerUpload from './components/worker/WorkerUpload';
+import WorkerUploadFilesSummary from './components/worker/WorkerUploadFilesSummary';
 import WorkerPayments from './components/worker/WorkerPayments';
 
 // Employer Components
 import EmployerReceipts from './components/employer/EmployerReceipts';
+import EmployerList from './components/employer/EmployerList';
 
 // Board Components
 import BoardReceipts from './components/board/BoardReceipts';
+import BoardReceiptsPage from './components/board/BoardReceiptsPage';
 
 // Reports Components
 import Reports from './components/reports/Reports';
@@ -211,10 +213,10 @@ const AppContent = () => {
               </ProtectedRoute>
             } />
             
-            {/* Worker Upload */}
+            {/* Worker Upload Files Summary (for Upload Workers menu) */}
             <Route path="workers/upload" element={
               <ProtectedRoute componentKey="9">
-                <WorkerUpload />
+                <WorkerUploadFilesSummary />
               </ProtectedRoute>
             } />
             
@@ -230,19 +232,28 @@ const AppContent = () => {
             } />
             
             {/* Employer Routes */}
+            <Route path="employers/list" element={
+              <ProtectedRoute componentKey="58">
+                <EmployerList />
+              </ProtectedRoute>
+            } />
             <Route path="employer/receipts" element={
               <ProtectedRoute componentKey="employer-receipts">
                 <EmployerReceipts />
               </ProtectedRoute>
             } />
-            
+
             {/* Board Routes */}
+            <Route path="board-receipts" element={
+              <ProtectedRoute componentKey="65">
+                <BoardReceiptsPage />
+              </ProtectedRoute>
+            } />
             <Route path="board/receipts" element={
               <ProtectedRoute componentKey="board-receipts">
                 <BoardReceipts />
               </ProtectedRoute>
             } />
-            
             <Route path="board/approvals" element={
               <ProtectedRoute componentKey="board-approvals">
                 <BoardReceipts />
