@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import WorkerApi from '../../api/workerApi';
+import axios from 'axios';
 
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -9,6 +9,9 @@ const todayStr = new Date().toISOString().slice(0, 10);
 
 const WorkerUploadPaginatedTable = () => {
   const [data, setData] = useState([]);
+  // Removed fileId and status, only startDate and endDate remain
+  const [endpoint, setEndpoint] = useState(null);
+  const [endpointLoading, setEndpointLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(0);
@@ -20,27 +23,64 @@ const WorkerUploadPaginatedTable = () => {
   const [startDate, setStartDate] = useState(todayStr);
   const [endDate, setEndDate] = useState(todayStr);
 
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line
-  }, [page, pageSize, sortBy, sortDir, startDate, endDate]);
 
-  const fetchData = async () => {
+
+  // Fetch endpoint from /api/meta/endpoints for page_id=9
+  useEffect(() => {
+    setEndpointLoading(true);
+    const token = localStorage.getItem('authToken');
+    axios.get('/api/meta/endpoints?page_id=9', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    })
+      .then(res => {
+        const endpoints = res.data.endpoints || [];
+        setEndpoint(endpoints[0] || null);
+      })
+      .catch(() => setEndpoint(null))
+      .finally(() => setEndpointLoading(false));
+  }, []);
+
+  // Default startDate and endDate to today
+  useEffect(() => {
+    setStartDate(todayStr);
+    setEndDate(todayStr);
+  }, []);
+
+  useEffect(() => {
+    if (!endpoint) return;
+    fetchData(endpoint);
+    // eslint-disable-next-line
+  }, [endpoint, page, pageSize, sortBy, sortDir, startDate, endDate]);
+
+  const fetchData = async (endpoint) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await WorkerApi.getUploadedDataPaginated({
-        startDate,
-        endDate,
+      const token = localStorage.getItem('authToken');
+      const params = {
         page,
         size: pageSize,
+        startDate,
+        endDate,
         sortBy,
-        sortDir,
-        sessionToken: 'string', // Replace with real session token if needed
-      });
-      setData(response.content || []);
-      setTotalPages(response.totalPages || 0);
-      setTotalElements(response.totalElements || 0);
+        sortDir
+      };
+      let response;
+      if (endpoint.method === 'GET') {
+        response = await axios.get(endpoint.path, {
+          params,
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+      } else if (endpoint.method === 'POST') {
+        response = await axios.post(endpoint.path, params, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+      } else {
+        throw new Error('Unsupported endpoint method');
+      }
+  setData(response.data.data || []);
+  setTotalPages(response.data.totalPages || 0);
+  setTotalElements(response.data.totalElements || 0);
     } catch (err) {
       setError('Failed to load data');
     } finally {
@@ -61,6 +101,9 @@ const WorkerUploadPaginatedTable = () => {
     }
   };
 
+  if (endpointLoading) return <div>Loading endpoint...</div>;
+  if (!endpoint) return <div>No endpoint found for this page.</div>;
+
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-4">Uploaded Worker Data (Paginated)</h2>
@@ -79,34 +122,32 @@ const WorkerUploadPaginatedTable = () => {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-2 cursor-pointer" onClick={() => handleSort('rowNumber')}>Row #</th>
-              <th className="px-4 py-2 cursor-pointer" onClick={() => handleSort('workerId')}>Worker ID</th>
-              <th className="px-4 py-2 cursor-pointer" onClick={() => handleSort('workerName')}>Name</th>
-              <th className="px-4 py-2">Employer</th>
-              <th className="px-4 py-2">Toli</th>
-              <th className="px-4 py-2">Status</th>
-              <th className="px-4 py-2">Created At</th>
-              <th className="px-4 py-2">Uploaded At</th>
-              <th className="px-4 py-2">Rejection Reason</th>
+              <th className="px-4 py-2">File Name</th>
+              <th className="px-4 py-2">File ID</th>
+              <th className="px-4 py-2">Upload Date</th>
+              <th className="px-4 py-2">Total Records</th>
+              <th className="px-4 py-2">Validated</th>
+              <th className="px-4 py-2">Uploaded</th>
+              <th className="px-4 py-2">Rejected</th>
+              <th className="px-4 py-2">Overall Status</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {loading ? (
-              <tr><td colSpan={9} className="text-center py-8">Loading...</td></tr>
+              <tr><td colSpan={8} className="text-center py-8">Loading...</td></tr>
             ) : data.length === 0 ? (
-              <tr><td colSpan={9} className="text-center py-8">No data found</td></tr>
+              <tr><td colSpan={8} className="text-center py-8">No data found</td></tr>
             ) : (
-              data.map(row => (
-                <tr key={row.id}>
-                  <td className="px-4 py-2">{row.rowNumber}</td>
-                  <td className="px-4 py-2">{row.workerId || '-'}</td>
-                  <td className="px-4 py-2">{row.workerName || '-'}</td>
-                  <td className="px-4 py-2">{row.employerId}</td>
-                  <td className="px-4 py-2">{row.toliId}</td>
-                  <td className="px-4 py-2">{row.status}</td>
-                  <td className="px-4 py-2">{row.createdAt}</td>
-                  <td className="px-4 py-2">{row.uploadedAt}</td>
-                  <td className="px-4 py-2 text-red-600">{row.rejectionReason || '-'}</td>
+              data.map((row, idx) => (
+                <tr key={row.fileId || idx}>
+                  <td className="px-4 py-2">{row.fileName}</td>
+                  <td className="px-4 py-2">{row.fileId}</td>
+                  <td className="px-4 py-2">{row.uploadDate ? new Date(row.uploadDate).toLocaleString() : '-'}</td>
+                  <td className="px-4 py-2">{row.totalRecords}</td>
+                  <td className="px-4 py-2">{row.statusSummary?.VALIDATED ?? 0}</td>
+                  <td className="px-4 py-2">{row.statusSummary?.UPLOADED ?? 0}</td>
+                  <td className="px-4 py-2">{row.statusSummary?.REJECTED ?? 0}</td>
+                  <td className="px-4 py-2">{row.overallStatus}</td>
                 </tr>
               ))
             )}

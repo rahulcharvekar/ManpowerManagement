@@ -24,7 +24,8 @@ import ReconciliationDashboard from './components/reconciliation/ReconciliationD
 
 // Worker Components
 import WorkerDashboard from './components/worker/WorkerDashboard';
-import WorkerList from './components/worker/WorkerList';
+import DynamicPage from './pages/DynamicPage';
+import WorkerUploadPaginatedTable from './components/worker/WorkerUploadPaginatedTable';
 import WorkerUploadFilesSummary from './components/worker/WorkerUploadFilesSummary';
 import WorkerPayments from './components/worker/WorkerPayments';
 
@@ -206,17 +207,17 @@ const AppContent = () => {
               </ProtectedRoute>
             } />
             
-            {/* Worker List */}
+            {/* Worker List - backend-driven generic */}
             <Route path="workers/list" element={
               <ProtectedRoute componentKey="8">
-                <WorkerList />
+                <DynamicPage page={{ id: 8, name: 'Worker List' }} />
               </ProtectedRoute>
             } />
-            
-            {/* Worker Upload Files Summary (for Upload Workers menu) */}
+
+            {/* Worker Upload - custom advanced component */}
             <Route path="workers/upload" element={
               <ProtectedRoute componentKey="9">
-                <WorkerUploadFilesSummary />
+                <WorkerUploadPaginatedTable />
               </ProtectedRoute>
             } />
             

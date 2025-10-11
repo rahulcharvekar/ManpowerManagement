@@ -96,13 +96,19 @@ public class AuthorizationController {
             description = "Returns all available API endpoints grouped by module",
             security = @SecurityRequirement(name = "bearerAuth")
     )
-    public ResponseEntity<Map<String, Object>> getEndpointsCatalog() {
-        Map<String, Object> response = Map.of(
-                "endpoints", serviceCatalogService.getEndpointsCatalog()
-        );
-        
-        return ResponseEntity.ok(response);
-    }
+        public ResponseEntity<Map<String, Object>> getEndpointsCatalog(@RequestParam(value = "page_id", required = false) Long pageId) {
+                Map<String, Object> response;
+                if (pageId != null) {
+                        response = Map.of(
+                                "endpoints", authorizationService.getEndpointsForPage(pageId)
+                        );
+                } else {
+                        response = Map.of(
+                                "endpoints", serviceCatalogService.getEndpointsCatalog()
+                        );
+                }
+                return ResponseEntity.ok(response);
+        }
 
     /**
      * Get pages catalog in hierarchical structure

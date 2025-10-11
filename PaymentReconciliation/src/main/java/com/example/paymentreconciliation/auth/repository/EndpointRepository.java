@@ -16,6 +16,11 @@ import java.util.Optional;
 @Repository
 public interface EndpointRepository extends JpaRepository<Endpoint, Long> {
 
+       /**
+        * Find all endpoints by a list of IDs
+        */
+       List<Endpoint> findByIdIn(List<Long> ids);
+
     /**
      * Find an endpoint by service, version, method and path
      */

@@ -2,8 +2,12 @@ package com.example.paymentreconciliation.auth.service;
 
 import com.example.paymentreconciliation.auth.entity.Endpoint;
 import com.example.paymentreconciliation.auth.entity.UIPage;
+import com.example.paymentreconciliation.auth.entity.Policy;
+import com.example.paymentreconciliation.auth.entity.EndpointPolicy;
 import com.example.paymentreconciliation.auth.repository.EndpointRepository;
 import com.example.paymentreconciliation.auth.repository.UIPageRepository;
+import com.example.paymentreconciliation.auth.repository.PolicyRepository;
+import com.example.paymentreconciliation.auth.repository.EndpointPolicyRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -18,16 +22,71 @@ import java.util.stream.Collectors;
  */
 @Service
 public class ServiceCatalogService {
+    /**
+     * Get all endpoints for a given UI page id using capability-policy-endpoint linkage
+     *
+     * @param pageId the UI page id
+     * @return List of endpoints for the given page id
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getEndpointsByPageId(Long pageId) {
+        // 1. Get requiredCapability from UIPage
+        Optional<UIPage> pageOpt = uiPageRepository.findById(pageId);
+        if (pageOpt.isEmpty()) return List.of();
+        String capability = pageOpt.get().getRequiredCapability();
+        if (capability == null) return List.of();
+
+        // 2. Find all policies that grant this capability
+        List<Policy> policies = policyRepository.findPoliciesByCapabilityName(capability);
+        if (policies.isEmpty()) return List.of();
+        List<Long> policyIds = policies.stream().map(Policy::getId).toList();
+
+        // 3. Find all endpoint-policy associations for these policies
+        List<EndpointPolicy> endpointPolicies = endpointPolicyRepository.findByPolicyIdIn(policyIds);
+        if (endpointPolicies.isEmpty()) return List.of();
+        List<Long> endpointIds = endpointPolicies.stream().map(ep -> ep.getEndpoint().getId()).toList();
+
+        // 4. Fetch endpoints by these ids
+    List<Endpoint> endpoints = endpointRepository.findByIdIn(endpointIds);
+        return endpoints.stream().map(this::mapEndpointToDto).toList();
+    }
+    /**
+     * Get all endpoints for a given parent_id by traversing all lineage (descendants)
+     *
+     * @param parentId the parent ID to filter endpoints by lineage
+     * @return List of endpoints for the given parent_id lineage
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getEndpointsByParentLineage(Long parentId) {
+        // This assumes Endpoint has a parentId field, which it currently does not.
+        // If Endpoint is not hierarchical, this will just return all endpoints (or none).
+        // Placeholder for actual implementation if hierarchy is added later.
+        // For now, return all endpoints (or filter by parentId if such a field is added).
+        // TODO: Implement actual lineage traversal if Endpoint supports hierarchy.
+        List<Endpoint> endpoints = endpointRepository.findByIsActiveTrue();
+        // If Endpoint had getParentId(), you would filter and traverse here.
+        // Returning all for now.
+        return endpoints.stream()
+                .map(this::mapEndpointToDto)
+                .collect(Collectors.toList());
+    }
 
     private static final Logger logger = LoggerFactory.getLogger(ServiceCatalogService.class);
 
     private final EndpointRepository endpointRepository;
     private final UIPageRepository uiPageRepository;
+    private final PolicyRepository policyRepository;
+    private final EndpointPolicyRepository endpointPolicyRepository;
 
-    public ServiceCatalogService(EndpointRepository endpointRepository, UIPageRepository uiPageRepository) {
+    public ServiceCatalogService(EndpointRepository endpointRepository, UIPageRepository uiPageRepository, PolicyRepository policyRepository, EndpointPolicyRepository endpointPolicyRepository) {
         this.endpointRepository = endpointRepository;
         this.uiPageRepository = uiPageRepository;
+        this.policyRepository = policyRepository;
+        this.endpointPolicyRepository = endpointPolicyRepository;
     }
+    // ...existing code...
+    // Helper method for endpoint policies by multiple policy ids
+    // (Assumes you have a method in EndpointPolicyRepository: List<EndpointPolicy> findByPolicyIdIn(List<Long> policyIds))
 
     /**
      * Get complete service catalog (all endpoints and pages)

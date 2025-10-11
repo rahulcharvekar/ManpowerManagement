@@ -25,6 +25,29 @@ import java.util.stream.Collectors;
  */
 @Service
 public class AuthorizationService {
+    /**
+     * Get all endpoints for a given UI page id (regardless of user)
+     *
+     * @param pageId the UI page id
+     * @return List of endpoint details for the page
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getEndpointsForPage(Long pageId) {
+        List<PageAction> actions = pageActionRepository.findByPageIdAndIsActiveTrue(pageId);
+        List<Map<String, Object>> endpoints = new ArrayList<>();
+        for (PageAction action : actions) {
+            if (action.getEndpoint() != null) {
+                Map<String, Object> endpointData = new HashMap<>();
+                endpointData.put("method", action.getEndpoint().getMethod());
+                endpointData.put("path", action.getEndpoint().getPath());
+                endpointData.put("service", action.getEndpoint().getService());
+                endpointData.put("version", action.getEndpoint().getVersion());
+                endpointData.put("description", action.getEndpoint().getDescription());
+                endpoints.add(endpointData);
+            }
+        }
+        return endpoints;
+    }
 
     private static final Logger logger = LoggerFactory.getLogger(AuthorizationService.class);
 
@@ -129,16 +152,6 @@ public class AuthorizationService {
                     actionData.put("capability", action.getCapability().getName());
                     actionData.put("icon", action.getIcon());
                     actionData.put("variant", action.getVariant());
-                    // Add endpoint details if present
-                    if (action.getEndpoint() != null) {
-                        Map<String, Object> endpointData = new HashMap<>();
-                        endpointData.put("method", action.getEndpoint().getMethod());
-                        endpointData.put("path", action.getEndpoint().getPath());
-                        endpointData.put("service", action.getEndpoint().getService());
-                        endpointData.put("version", action.getEndpoint().getVersion());
-                        endpointData.put("description", action.getEndpoint().getDescription());
-                        actionData.put("endpoint", endpointData);
-                    }
                     return actionData;
                 })
                 .collect(Collectors.toList());

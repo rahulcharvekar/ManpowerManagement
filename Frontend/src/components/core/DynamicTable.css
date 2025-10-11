@@ -1,0 +1,15 @@
+.dynamic-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.dynamic-table th, .dynamic-table td {
+  border: 1px solid #e5e7eb;
+  padding: 8px;
+  text-align: left;
+}
+.dynamic-table thead {
+  background: #f3f4f6;
+}
+.dynamic-table tbody tr:nth-child(even) {
+  background: #f9fafb;
+}

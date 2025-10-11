@@ -15,6 +15,10 @@ import java.util.List;
  */
 @Repository
 public interface EndpointPolicyRepository extends JpaRepository<EndpointPolicy, Long> {
+    /**
+     * Find all endpoint-policy associations for a list of policy IDs
+     */
+    List<EndpointPolicy> findByPolicyIdIn(List<Long> policyIds);
 
     /**
      * Find all endpoint-policy associations for an endpoint
