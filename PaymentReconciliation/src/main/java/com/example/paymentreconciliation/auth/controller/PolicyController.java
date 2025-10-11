@@ -7,6 +7,9 @@ import com.example.paymentreconciliation.auth.repository.CapabilityRepository;
 import com.example.paymentreconciliation.auth.repository.PolicyCapabilityRepository;
 import com.example.paymentreconciliation.auth.repository.PolicyRepository;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import jakarta.servlet.http.HttpServletRequest;
+import com.example.paymentreconciliation.common.util.ETagUtil;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -43,21 +46,45 @@ public class PolicyController {
      * Get all policies with their capabilities
      */
     @GetMapping
-    public ResponseEntity<List<Map<String, Object>>> getAllPolicies() {
+    public ResponseEntity<List<Map<String, Object>>> getAllPolicies(HttpServletRequest request) {
         List<Policy> policies = policyRepository.findAll();
         List<Map<String, Object>> response = policies.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(response);
+        try {
+            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(response);
+            String eTag = ETagUtil.generateETag(responseJson);
+            String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+            if (eTag.equals(ifNoneMatch)) {
+                return ResponseEntity.status(304).eTag(eTag).build();
+            }
+            return ResponseEntity.ok().eTag(eTag).body(response);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     /**
      * Get policy by ID with capabilities
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> getPolicyById(@PathVariable Long id) {
+    @SuppressWarnings("unchecked")
+    public ResponseEntity<Map<String, Object>> getPolicyById(@PathVariable Long id, HttpServletRequest request) {
         return policyRepository.findById(id)
-                .map(policy -> ResponseEntity.ok(convertToResponse(policy)))
+                .map(policy -> {
+                    Map<String, Object> response = convertToResponse(policy);
+                    try {
+                        String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(response);
+                        String eTag = ETagUtil.generateETag(responseJson);
+                        String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+                        if (eTag.equals(ifNoneMatch)) {
+                            return (ResponseEntity<Map<String, Object>>) (ResponseEntity<?>) ResponseEntity.status(304).eTag(eTag).build();
+                        }
+                        return (ResponseEntity<Map<String, Object>>) (ResponseEntity<?>) ResponseEntity.ok().eTag(eTag).body(response);
+                    } catch (Exception e) {
+                        return (ResponseEntity<Map<String, Object>>) (ResponseEntity<?>) ResponseEntity.internalServerError().build();
+                    }
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -153,12 +180,22 @@ public class PolicyController {
      * Get capabilities assigned to a policy
      */
     @GetMapping("/{id}/capabilities")
-    public ResponseEntity<List<Capability>> getPolicyCapabilities(@PathVariable Long id) {
+    public ResponseEntity<List<Capability>> getPolicyCapabilities(@PathVariable Long id, HttpServletRequest request) {
         List<PolicyCapability> policyCapabilities = policyCapabilityRepository.findByPolicyId(id);
         List<Capability> capabilities = policyCapabilities.stream()
                 .map(PolicyCapability::getCapability)
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(capabilities);
+        try {
+            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(capabilities);
+            String eTag = ETagUtil.generateETag(responseJson);
+            String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+            if (eTag.equals(ifNoneMatch)) {
+                return ResponseEntity.status(304).eTag(eTag).build();
+            }
+            return ResponseEntity.ok().eTag(eTag).body(capabilities);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     /**

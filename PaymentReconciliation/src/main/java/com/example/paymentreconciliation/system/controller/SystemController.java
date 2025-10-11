@@ -4,6 +4,9 @@ import com.example.paymentreconciliation.utilities.database.DatabaseCleanupUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import jakarta.servlet.http.HttpServletRequest;
+import com.example.paymentreconciliation.common.util.ETagUtil;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -45,13 +48,20 @@ public class SystemController {
 
     @GetMapping("/verify-cleanup")
     @Operation(summary = "Verify database cleanup", description = "Check row counts in all tables")
-    public ResponseEntity<?> verifyCleanup() {
+    public ResponseEntity<?> verifyCleanup(HttpServletRequest request) {
         try {
             databaseCleanupUtil.verifyCleanup();
-            return ResponseEntity.ok(Map.of(
+            Map<String, Object> response = Map.of(
                 "message", "Check server logs for row counts",
                 "status", "success"
-            ));
+            );
+            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(response);
+            String eTag = ETagUtil.generateETag(responseJson);
+            String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+            if (eTag.equals(ifNoneMatch)) {
+                return ResponseEntity.status(304).eTag(eTag).build();
+            }
+            return ResponseEntity.ok().eTag(eTag).body(response);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of(
                 "error", "Verification failed: " + e.getMessage(),
@@ -79,13 +89,20 @@ public class SystemController {
 
     @GetMapping("/schema/worker-payments")
     @Operation(summary = "Show worker payments schema", description = "Display the worker_payments table structure")
-    public ResponseEntity<?> showWorkerPaymentsSchema() {
+    public ResponseEntity<?> showWorkerPaymentsSchema(HttpServletRequest request) {
         try {
             databaseCleanupUtil.showWorkerPaymentsSchema();
-            return ResponseEntity.ok(Map.of(
+            Map<String, Object> response = Map.of(
                 "message", "Check server logs for schema details",
                 "status", "success"
-            ));
+            );
+            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(response);
+            String eTag = ETagUtil.generateETag(responseJson);
+            String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+            if (eTag.equals(ifNoneMatch)) {
+                return ResponseEntity.status(304).eTag(eTag).build();
+            }
+            return ResponseEntity.ok().eTag(eTag).body(response);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of(
                 "error", "Schema display failed: " + e.getMessage(),

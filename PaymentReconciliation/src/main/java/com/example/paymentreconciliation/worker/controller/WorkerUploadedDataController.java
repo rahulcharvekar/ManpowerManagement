@@ -9,9 +9,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import jakarta.servlet.http.HttpServletRequest;
+import com.example.paymentreconciliation.common.util.ETagUtil;
 import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import com.example.paymentreconciliation.audit.annotation.Audited;
 import org.springframework.web.multipart.MultipartFile;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -90,6 +94,7 @@ public class WorkerUploadedDataController {
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Audited(action = "UPLOAD_WORKER_PAYMENT_FILE", resourceType = "WORKER_UPLOADED_DATA")
     @Operation(summary = "Upload worker payment file", 
                description = "Upload CSV, XLS, or XLSX file containing worker payment data. Returns fileId for subsequent operations.")
     public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file) {
@@ -162,7 +167,8 @@ public class WorkerUploadedDataController {
             @Parameter(description = "Sort field", example = "uploadDate")
             @RequestParam(defaultValue = "uploadDate") String sortBy,
             @Parameter(description = "Sort direction", example = "desc")
-            @RequestParam(defaultValue = "desc") String sortDir) {
+            @RequestParam(defaultValue = "desc") String sortDir,
+            HttpServletRequest request) {
         
         log.info("Getting paginated file summaries - page: {}, size: {}, fileId: {}, status: {}, dateRange: {} to {}", 
                 page, size, fileId, status, startDate, endDate);
@@ -175,7 +181,13 @@ public class WorkerUploadedDataController {
                 return ResponseEntity.badRequest().body(result);
             }
             
-            return ResponseEntity.ok(result);
+            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(result);
+            String eTag = ETagUtil.generateETag(responseJson);
+            String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+            if (eTag.equals(ifNoneMatch)) {
+                return ResponseEntity.status(304).eTag(eTag).build();
+            }
+            return ResponseEntity.ok().eTag(eTag).body(result);
             
         } catch (Exception e) {
             log.error("Error getting paginated file summaries", e);
@@ -186,6 +198,7 @@ public class WorkerUploadedDataController {
     }
 
     @PostMapping("/file/{fileId}/validate")
+    @Audited(action = "VALIDATE_UPLOADED_DATA", resourceType = "WORKER_UPLOADED_DATA")
     @Operation(summary = "Validate uploaded data", 
                description = "Validates all uploaded data for a specific file and updates uploaded file status")
     public ResponseEntity<?> validateUploadedData(
@@ -229,7 +242,8 @@ public class WorkerUploadedDataController {
             @Parameter(description = "Sort field", example = "rowNumber")
             @RequestParam(defaultValue = "rowNumber") String sortBy,
             @Parameter(description = "Sort direction", example = "asc")
-            @RequestParam(defaultValue = "asc") String sortDir) {
+            @RequestParam(defaultValue = "asc") String sortDir,
+            HttpServletRequest request) {
         
         try {
             Map<String, Object> result = fileService.getValidationResultsPaginated(
@@ -239,7 +253,13 @@ public class WorkerUploadedDataController {
                 return ResponseEntity.badRequest().body(result);
             }
             
-            return ResponseEntity.ok(result);
+            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(result);
+            String eTag = ETagUtil.generateETag(responseJson);
+            String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+            if (eTag.equals(ifNoneMatch)) {
+                return ResponseEntity.status(304).eTag(eTag).build();
+            }
+            return ResponseEntity.ok().eTag(eTag).body(result);
             
         } catch (Exception e) {
             log.error("Error fetching validation results for fileId: {}", fileId, e);
@@ -251,6 +271,7 @@ public class WorkerUploadedDataController {
     }
 
     @PostMapping("/file/{fileId}/generate-request")
+    @Audited(action = "GENERATE_REQUEST_FOR_VALIDATED_DATA", resourceType = "WORKER_UPLOADED_DATA")
     @Operation(summary = "Generate request for validated data", 
                description = "Generates request numbers for validated data (keeps data in same table)")
     public ResponseEntity<?> generateRequestForValidatedData(
@@ -282,6 +303,7 @@ public class WorkerUploadedDataController {
     }
 
     @DeleteMapping("/file/{fileId}")
+    @Audited(action = "DELETE_UPLOADED_DATA", resourceType = "WORKER_UPLOADED_DATA")
     @Operation(summary = "Delete uploaded data", 
                description = "Deletes all uploaded data for a specific file")
     public ResponseEntity<?> deleteUploadedData(
@@ -312,7 +334,8 @@ public class WorkerUploadedDataController {
             @Parameter(description = "Page number (0-based)", example = "0")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Page size", example = "20") 
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            HttpServletRequest request) {
         log.info("Fetching request details for receiptNumber: {}", receiptNumber);
         
         try {
@@ -329,7 +352,13 @@ public class WorkerUploadedDataController {
             response.put("hasPrevious", requestPage.hasPrevious());
             response.put("receiptNumber", receiptNumber);
             
-            return ResponseEntity.ok(response);
+            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(response);
+            String eTag = ETagUtil.generateETag(responseJson);
+            String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+            if (eTag.equals(ifNoneMatch)) {
+                return ResponseEntity.status(304).eTag(eTag).build();
+            }
+            return ResponseEntity.ok().eTag(eTag).body(response);
             
         } catch (Exception e) {
             log.error("Error fetching request details for receiptNumber: {}", receiptNumber, e);

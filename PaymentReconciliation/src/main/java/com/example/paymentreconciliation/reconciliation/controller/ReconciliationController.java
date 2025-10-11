@@ -1,5 +1,10 @@
 package com.example.paymentreconciliation.reconciliation.controller;
 
+
+import com.example.paymentreconciliation.audit.annotation.Audited;
+
+import com.example.paymentreconciliation.audit.annotation.Audited;
+
 import com.example.paymentreconciliation.reconciliation.service.ReconciliationService;
 import com.example.paymentreconciliation.reconciliation.service.MT940ReconciliationService;
 import com.example.paymentreconciliation.reconciliation.service.MT940ReconciliationService.ReconciliationResponse;
@@ -33,6 +38,7 @@ public class ReconciliationController {
     }
 
     @PostMapping
+    @Audited(action = "RECONCILE_PAYMENTS", resourceType = "RECONCILIATION")
     public ResponseEntity<String> reconcile() {
         log.info("Received reconcile request");
         String result = reconciliationService.reconcilePayments();
@@ -41,6 +47,7 @@ public class ReconciliationController {
     }
     
     @PostMapping("/mt940")
+    @Audited(action = "RECONCILE_MT940", resourceType = "RECONCILIATION")
     @Operation(summary = "Reconcile transaction against MT940 statements", 
                description = "Matches transaction reference and amount against MT940 bank statements. Returns detailed match status.")
     public ResponseEntity<?> reconcileWithMt940(

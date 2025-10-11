@@ -9,6 +9,9 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import jakarta.servlet.http.HttpServletRequest;
+import com.example.paymentreconciliation.common.util.ETagUtil;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,31 +27,77 @@ public class RoleController {
     
     @GetMapping
     @Operation(summary = "Get all roles")
-    public ResponseEntity<List<Role>> getAllRoles() {
+    public ResponseEntity<List<Role>> getAllRoles(HttpServletRequest request) {
         List<Role> roles = roleService.getAllRoles();
-        return ResponseEntity.ok(roles);
+        try {
+            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(roles);
+            String eTag = ETagUtil.generateETag(responseJson);
+            String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+            if (eTag.equals(ifNoneMatch)) {
+                return ResponseEntity.status(304).eTag(eTag).build();
+            }
+            return ResponseEntity.ok().eTag(eTag).body(roles);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
     
     @GetMapping("/with-permissions")
     @Operation(summary = "Get all roles with permissions")
-    public ResponseEntity<List<RoleWithPermissionCount>> getAllRolesWithPermissions() {
+    public ResponseEntity<List<RoleWithPermissionCount>> getAllRolesWithPermissions(HttpServletRequest request) {
         List<RoleWithPermissionCount> roles = roleService.getAllRolesWithPermissionCounts();
-        return ResponseEntity.ok(roles);
+        try {
+            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(roles);
+            String eTag = ETagUtil.generateETag(responseJson);
+            String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+            if (eTag.equals(ifNoneMatch)) {
+                return ResponseEntity.status(304).eTag(eTag).build();
+            }
+            return ResponseEntity.ok().eTag(eTag).body(roles);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
     
     @GetMapping("/{id}")
     @Operation(summary = "Get role by ID")
-    public ResponseEntity<Role> getRoleById(@PathVariable Long id) {
+    @SuppressWarnings("unchecked")
+    public ResponseEntity<Role> getRoleById(@PathVariable Long id, HttpServletRequest request) {
         return roleService.getRoleById(id)
-                .map(ResponseEntity::ok)
+                .map(role -> {
+                    try {
+                        String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(role);
+                        String eTag = ETagUtil.generateETag(responseJson);
+                        String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+                        if (eTag.equals(ifNoneMatch)) {
+                            return (ResponseEntity<Role>) (ResponseEntity<?>) ResponseEntity.status(304).eTag(eTag).build();
+                        }
+                        return (ResponseEntity<Role>) (ResponseEntity<?>) ResponseEntity.ok().eTag(eTag).body(role);
+                    } catch (Exception e) {
+                        return (ResponseEntity<Role>) (ResponseEntity<?>) ResponseEntity.internalServerError().build();
+                    }
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
     
     @GetMapping("/by-name/{name}")
     @Operation(summary = "Get role by name with permissions")
-    public ResponseEntity<Role> getRoleByName(@PathVariable String name) {
+    @SuppressWarnings("unchecked")
+    public ResponseEntity<Role> getRoleByName(@PathVariable String name, HttpServletRequest request) {
         return roleService.getRoleByNameWithPermissions(name)
-                .map(ResponseEntity::ok)
+                .map(role -> {
+                    try {
+                        String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(role);
+                        String eTag = ETagUtil.generateETag(responseJson);
+                        String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+                        if (eTag.equals(ifNoneMatch)) {
+                            return (ResponseEntity<Role>) (ResponseEntity<?>) ResponseEntity.status(304).eTag(eTag).build();
+                        }
+                        return (ResponseEntity<Role>) (ResponseEntity<?>) ResponseEntity.ok().eTag(eTag).body(role);
+                    } catch (Exception e) {
+                        return (ResponseEntity<Role>) (ResponseEntity<?>) ResponseEntity.internalServerError().build();
+                    }
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
     

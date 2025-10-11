@@ -6,6 +6,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import jakarta.servlet.http.HttpServletRequest;
+import com.example.paymentreconciliation.common.util.ETagUtil;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -47,19 +50,15 @@ public class AuthorizationController {
             description = "Returns comprehensive authorization data including roles, permissions (can), accessible pages, menu tree, and endpoints for the authenticated user",
             security = @SecurityRequirement(name = "bearerAuth")
     )
-    public ResponseEntity<Map<String, Object>> getUserAuthorizations(Authentication authentication) {
-        // Extract user ID from authentication
-        // Assuming authentication principal contains user ID
-        Long userId = extractUserIdFromAuthentication(authentication);
-        
-        Map<String, Object> authorizations = authorizationService.getUserAuthorizations(userId);
-        
-        // Add ETag header for client-side caching
-        String etag = String.valueOf(authorizations.get("version"));
-        
-        return ResponseEntity.ok()
-                .eTag(etag)
-                .body(authorizations);
+        public ResponseEntity<Map<String, Object>> getUserAuthorizations(Authentication authentication, HttpServletRequest request) {
+                Long userId = extractUserIdFromAuthentication(authentication);
+                Map<String, Object> authorizations = authorizationService.getUserAuthorizations(userId);
+                        String etag = authorizations.get("version") != null ? String.valueOf(authorizations.get("version")) : ETagUtil.generateETag(authorizations.toString());
+                        String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+                        if (etag.equals(ifNoneMatch)) {
+                                return ResponseEntity.status(304).eTag(etag).build();
+                        }
+                        return ResponseEntity.ok().eTag(etag).body(authorizations);
     }
 
     /**
@@ -75,14 +74,14 @@ public class AuthorizationController {
             description = "Returns metadata about all available endpoints and UI pages in the system",
             security = @SecurityRequirement(name = "bearerAuth")
     )
-    public ResponseEntity<Map<String, Object>> getServiceCatalog() {
-        Map<String, Object> catalog = serviceCatalogService.getServiceCatalog();
-        
-        String etag = String.valueOf(catalog.get("version"));
-        
-        return ResponseEntity.ok()
-                .eTag(etag)
-                .body(catalog);
+        public ResponseEntity<Map<String, Object>> getServiceCatalog(HttpServletRequest request) {
+                Map<String, Object> catalog = serviceCatalogService.getServiceCatalog();
+                String etag = catalog.get("version") != null ? String.valueOf(catalog.get("version")) : ETagUtil.generateETag(catalog.toString());
+                String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+                if (etag.equals(ifNoneMatch)) {
+                        return ResponseEntity.status(304).eTag(etag).build();
+                }
+                return ResponseEntity.ok().eTag(etag).body(catalog);
     }
 
     /**
@@ -96,19 +95,29 @@ public class AuthorizationController {
             description = "Returns all available API endpoints grouped by module",
             security = @SecurityRequirement(name = "bearerAuth")
     )
-        public ResponseEntity<Map<String, Object>> getEndpointsCatalog(@RequestParam(value = "page_id", required = false) Long pageId) {
-                Map<String, Object> response;
-                if (pageId != null) {
-                        response = Map.of(
-                                "endpoints", authorizationService.getEndpointsForPage(pageId)
-                        );
-                } else {
-                        response = Map.of(
-                                "endpoints", serviceCatalogService.getEndpointsCatalog()
-                        );
+                public ResponseEntity<Map<String, Object>> getEndpointsCatalog(@RequestParam(value = "page_id", required = false) Long pageId, HttpServletRequest request) {
+                        Map<String, Object> response;
+                        if (pageId != null) {
+                                response = Map.of(
+                                        "endpoints", authorizationService.getEndpointsForPage(pageId)
+                                );
+                        } else {
+                                response = Map.of(
+                                        "endpoints", serviceCatalogService.getEndpointsCatalog()
+                                );
+                        }
+                        try {
+                                String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(response);
+                                String eTag = ETagUtil.generateETag(responseJson);
+                                String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+                                if (eTag.equals(ifNoneMatch)) {
+                                        return ResponseEntity.status(304).eTag(eTag).build();
+                                }
+                                return ResponseEntity.ok().eTag(eTag).body(response);
+                        } catch (Exception e) {
+                                return ResponseEntity.internalServerError().build();
+                        }
                 }
-                return ResponseEntity.ok(response);
-        }
 
     /**
      * Get pages catalog in hierarchical structure
@@ -121,13 +130,22 @@ public class AuthorizationController {
             description = "Returns all available UI pages in hierarchical structure",
             security = @SecurityRequirement(name = "bearerAuth")
     )
-    public ResponseEntity<Map<String, Object>> getPagesCatalog() {
-        Map<String, Object> response = Map.of(
-                "pages", serviceCatalogService.getPagesCatalog()
-        );
-        
-        return ResponseEntity.ok(response);
-    }
+        public ResponseEntity<Map<String, Object>> getPagesCatalog(HttpServletRequest request) {
+                Map<String, Object> response = Map.of(
+                        "pages", serviceCatalogService.getPagesCatalog()
+                );
+                try {
+                        String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(response);
+                        String eTag = ETagUtil.generateETag(responseJson);
+                        String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+                        if (eTag.equals(ifNoneMatch)) {
+                                return ResponseEntity.status(304).eTag(eTag).build();
+                        }
+                        return ResponseEntity.ok().eTag(eTag).body(response);
+                } catch (Exception e) {
+                        return ResponseEntity.internalServerError().build();
+                }
+        }
 
     /**
      * Extract user ID from authentication object

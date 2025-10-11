@@ -3,6 +3,9 @@ package com.example.paymentreconciliation.auth.controller;
 import com.example.paymentreconciliation.auth.entity.Capability;
 import com.example.paymentreconciliation.auth.repository.CapabilityRepository;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import jakarta.servlet.http.HttpServletRequest;
+import com.example.paymentreconciliation.common.util.ETagUtil;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,18 +30,41 @@ public class CapabilityController {
      * Get all capabilities
      */
     @GetMapping
-    public ResponseEntity<List<Capability>> getAllCapabilities() {
+    public ResponseEntity<List<Capability>> getAllCapabilities(HttpServletRequest request) {
         List<Capability> capabilities = capabilityRepository.findAll();
-        return ResponseEntity.ok(capabilities);
+        try {
+            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(capabilities);
+            String eTag = ETagUtil.generateETag(responseJson);
+            String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+            if (eTag.equals(ifNoneMatch)) {
+                return ResponseEntity.status(304).eTag(eTag).build();
+            }
+            return ResponseEntity.ok().eTag(eTag).body(capabilities);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     /**
      * Get capability by ID
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Capability> getCapabilityById(@PathVariable Long id) {
+    @SuppressWarnings("unchecked")
+    public ResponseEntity<Capability> getCapabilityById(@PathVariable Long id, HttpServletRequest request) {
         return capabilityRepository.findById(id)
-                .map(ResponseEntity::ok)
+                .map(capability -> {
+                    try {
+                        String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(capability);
+                        String eTag = ETagUtil.generateETag(responseJson);
+                        String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+                        if (eTag.equals(ifNoneMatch)) {
+                            return (ResponseEntity<Capability>) (ResponseEntity<?>) ResponseEntity.status(304).eTag(eTag).build();
+                        }
+                        return (ResponseEntity<Capability>) (ResponseEntity<?>) ResponseEntity.ok().eTag(eTag).body(capability);
+                    } catch (Exception e) {
+                        return (ResponseEntity<Capability>) (ResponseEntity<?>) ResponseEntity.internalServerError().build();
+                    }
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 

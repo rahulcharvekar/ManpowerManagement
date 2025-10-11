@@ -2,6 +2,9 @@ package com.example.paymentreconciliation.system.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import jakarta.servlet.http.HttpServletRequest;
+import com.example.paymentreconciliation.common.util.ETagUtil;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
@@ -116,7 +119,7 @@ public class DatabaseCleanupController {
     @Operation(summary = "Check table row counts", 
                description = "Returns the current row count for all main tables")
     @GetMapping("/table-counts")
-    public ResponseEntity<?> getTableCounts() {
+    public ResponseEntity<?> getTableCounts(HttpServletRequest request) {
         log.info("Checking table row counts...");
         
         try (Connection connection = dataSource.getConnection();
@@ -149,7 +152,13 @@ public class DatabaseCleanupController {
             result.put("tableCounts", tableCounts);
             result.put("timestamp", java.time.LocalDateTime.now());
             
-            return ResponseEntity.ok(result);
+            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(result);
+            String eTag = ETagUtil.generateETag(responseJson);
+            String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+            if (eTag.equals(ifNoneMatch)) {
+                return ResponseEntity.status(304).eTag(eTag).build();
+            }
+            return ResponseEntity.ok().eTag(eTag).body(result);
             
         } catch (Exception e) {
             log.error("Failed to get table counts", e);

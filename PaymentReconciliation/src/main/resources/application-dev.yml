@@ -29,3 +29,7 @@ management:
     web:
       exposure:
         include: health,info,beans,env,metrics,loggers
+
+# Auditing toggle
+auditing:
+  enabled: true

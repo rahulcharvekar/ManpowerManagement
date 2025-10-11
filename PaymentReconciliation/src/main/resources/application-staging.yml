@@ -36,5 +36,9 @@ management:
       exposure:
         include: health,info,metrics,env
 
+# Auditing toggle
+auditing:
+  enabled: true
+
 server:
   port: ${SERVER_PORT:8080}

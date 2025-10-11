@@ -1,5 +1,9 @@
 package com.example.paymentreconciliation.utilities.file;
 
+import com.example.paymentreconciliation.audit.annotation.Audited;
+
+import com.example.paymentreconciliation.audit.annotation.Audited;
+
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -42,6 +46,7 @@ public class UploadedFileController {
         @ApiResponse(responseCode = "401", description = "Unauthorized access")
     })
     @PostMapping("/secure-paginated")
+    @Audited(action = "GET_SECURE_PAGINATED_FILES", resourceType = "UPLOADED_FILE")
     public ResponseEntity<?> getSecurePaginatedUploadedFiles(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                 description = "Secure pagination request with mandatory date range",
@@ -92,6 +97,7 @@ public class UploadedFileController {
         @ApiResponse(responseCode = "500", description = "Error reading file")
     })
     @GetMapping("/{id}/download")
+    @Audited(action = "DOWNLOAD_UPLOADED_FILE", resourceType = "UPLOADED_FILE")
     public ResponseEntity<Resource> downloadFile(
             @Parameter(description = "ID of the file to download", required = true)
             @PathVariable Long id) {

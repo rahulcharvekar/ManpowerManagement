@@ -1,5 +1,9 @@
 package com.example.paymentreconciliation.auth.controller;
 
+import com.example.paymentreconciliation.audit.annotation.Audited;
+import com.example.paymentreconciliation.audit.annotation.Audited;
+
+
 import com.example.paymentreconciliation.auth.entity.UIPage;
 import com.example.paymentreconciliation.auth.repository.UIPageRepository;
 import com.example.paymentreconciliation.auth.repository.PageActionRepository;
@@ -77,6 +81,7 @@ public class UIPageController {
      */
     @PostMapping
     @Transactional
+    @Audited(action = "CREATE_UI_PAGE", resourceType = "UI_PAGE")
     public ResponseEntity<Map<String, Object>> createPage(@RequestBody PageRequest request) {
         // Validate parent if provided
         if (request.getParentId() != null) {
@@ -103,6 +108,7 @@ public class UIPageController {
      */
     @PutMapping("/{id}")
     @Transactional
+    @Audited(action = "UPDATE_UI_PAGE", resourceType = "UI_PAGE")
     public ResponseEntity<Map<String, Object>> updatePage(
             @PathVariable Long id,
             @RequestBody PageRequest request) {
@@ -138,6 +144,7 @@ public class UIPageController {
      */
     @DeleteMapping("/{id}")
     @Transactional
+    @Audited(action = "DELETE_UI_PAGE", resourceType = "UI_PAGE")
     public ResponseEntity<Void> deletePage(@PathVariable Long id) {
         if (uiPageRepository.existsById(id)) {
             // Check if page has children
@@ -160,6 +167,7 @@ public class UIPageController {
      * Toggle page active status
      */
     @PatchMapping("/{id}/toggle-active")
+    @Audited(action = "TOGGLE_UI_PAGE_ACTIVE", resourceType = "UI_PAGE")
     public ResponseEntity<Map<String, Object>> toggleActive(@PathVariable Long id) {
         return uiPageRepository.findById(id)
                 .map(page -> {
@@ -175,6 +183,7 @@ public class UIPageController {
      */
     @PatchMapping("/{id}/reorder")
     @Transactional
+    @Audited(action = "REORDER_UI_PAGE", resourceType = "UI_PAGE")
     public ResponseEntity<Map<String, Object>> reorderPage(
             @PathVariable Long id,
             @RequestBody ReorderRequest request) {

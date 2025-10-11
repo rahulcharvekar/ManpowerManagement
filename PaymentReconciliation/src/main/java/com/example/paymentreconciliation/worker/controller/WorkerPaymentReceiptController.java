@@ -10,7 +10,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import jakarta.servlet.http.HttpServletRequest;
+import com.example.paymentreconciliation.common.util.ETagUtil;
 import org.springframework.web.bind.annotation.*;
+import com.example.paymentreconciliation.audit.annotation.Audited;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -72,7 +76,7 @@ public class WorkerPaymentReceiptController {
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @Parameter(description = "Sort direction", example = "desc")
             @RequestParam(defaultValue = "desc") String sortDir
-    ) {
+    , HttpServletRequest request) {
         log.info("Fetching worker receipts with filters - page: {}, size: {}, status: {}, singleDate: {}, startDate: {}, endDate: {}", 
                 page, size, status, singleDate, startDate, endDate);
         
@@ -125,7 +129,13 @@ public class WorkerPaymentReceiptController {
             response.put("hasNext", receiptsPage.hasNext());
             response.put("hasPrevious", receiptsPage.hasPrevious());
             
-            return ResponseEntity.ok(response);
+            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(response);
+            String eTag = ETagUtil.generateETag(responseJson);
+            String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+            if (eTag.equals(ifNoneMatch)) {
+                return ResponseEntity.status(304).eTag(eTag).build();
+            }
+            return ResponseEntity.ok().eTag(eTag).body(response);
             
         } catch (DateTimeParseException e) {
             log.error("Invalid date format provided", e);
@@ -143,12 +153,25 @@ public class WorkerPaymentReceiptController {
                description = "Returns worker receipt details for a specific receipt number")
     public ResponseEntity<?> getByReceiptNumber(
             @Parameter(description = "Worker receipt number") 
-            @PathVariable String receiptNumber) {
+            @PathVariable String receiptNumber,
+            HttpServletRequest request) {
         log.info("Fetching worker receipt: {}", receiptNumber);
         
         try {
             return service.findByReceiptNumber(receiptNumber)
-                    .map(receipt -> ResponseEntity.ok(receipt))
+                    .map(receipt -> {
+                        try {
+                            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(receipt);
+                            String eTag = ETagUtil.generateETag(responseJson);
+                            String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+                            if (eTag.equals(ifNoneMatch)) {
+                                return ResponseEntity.status(304).eTag(eTag).build();
+                            }
+                            return ResponseEntity.ok().eTag(eTag).body(receipt);
+                        } catch (Exception ex) {
+                            return ResponseEntity.internalServerError().body(Map.of("error", ex.getMessage()));
+                        }
+                    })
                     .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
             log.error("Error fetching receipt: {}", receiptNumber, e);
@@ -161,6 +184,7 @@ public class WorkerPaymentReceiptController {
 
 
     @PostMapping("/{receiptNumber}/send-to-employer")
+    @Audited(action = "SEND_RECEIPT_TO_EMPLOYER", resourceType = "WORKER_PAYMENT_RECEIPT")
     @Operation(summary = "Send worker receipt to employer for validation", 
                description = "Creates a pending employer receipt for manual review and validation")
     public ResponseEntity<?> sendReceiptToEmployer(

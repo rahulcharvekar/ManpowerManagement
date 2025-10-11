@@ -39,6 +39,10 @@ spring:
   lifecycle:
     timeout-per-shutdown-phase: 30s
 
+# Auditing toggle
+auditing:
+  enabled: true
+
 logging:
   level:
     "[com.example.paymentreconciliation]": INFO

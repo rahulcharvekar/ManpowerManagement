@@ -6,9 +6,13 @@ import com.example.paymentreconciliation.worker.service.WorkerPaymentService;
 import java.net.URI;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import jakarta.servlet.http.HttpServletRequest;
+import com.example.paymentreconciliation.common.util.ETagUtil;
 import org.slf4j.Logger;
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import com.example.paymentreconciliation.audit.annotation.Audited;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -44,6 +48,7 @@ public class WorkerPaymentController {
     }
 
     @PostMapping
+    @Audited(action = "CREATE_WORKER_PAYMENT", resourceType = "WORKER_PAYMENT")
     public ResponseEntity<WorkerPayment> create(@RequestBody WorkerPayment workerPayment) {
         log.info("Creating worker payment for workerRef={}", workerPayment.getWorkerRef());
         WorkerPayment created = service.create(workerPayment);
@@ -186,12 +191,14 @@ public class WorkerPaymentController {
     }
 
     @PutMapping("/{id}")
+    @Audited(action = "UPDATE_WORKER_PAYMENT", resourceType = "WORKER_PAYMENT")
     public ResponseEntity<WorkerPayment> update(@PathVariable("id") Long id, @RequestBody WorkerPayment workerPayment) {
         log.info("Updating worker payment id={}", id);
         return ResponseEntity.ok(service.update(id, workerPayment));
     }
 
     @DeleteMapping("/{id}")
+    @Audited(action = "DELETE_WORKER_PAYMENT", resourceType = "WORKER_PAYMENT")
     public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
         log.info("Deleting worker payment id={}", id);
         service.delete(id);
@@ -211,17 +218,14 @@ public class WorkerPaymentController {
             @Parameter(description = "Sort field", example = "id")
             @RequestParam(defaultValue = "id") String sortBy,
             @Parameter(description = "Sort direction", example = "asc")
-            @RequestParam(defaultValue = "asc") String sortDir) {
-        
+            @RequestParam(defaultValue = "asc") String sortDir,
+            HttpServletRequest request) {
         log.info("Fetching worker payments by uploadedFileRef={}", uploadedFileRef);
-        
         try {
             Sort sort = sortDir.equalsIgnoreCase("desc") ? 
                 Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
             Pageable pageable = PageRequest.of(page, size, sort);
-            
             Page<WorkerPayment> paymentsPage = service.findByUploadedFileRefPaginated(uploadedFileRef, pageable);
-            
             java.util.Map<String, Object> response = new java.util.HashMap<>();
             response.put("payments", paymentsPage.getContent());
             response.put("totalElements", paymentsPage.getTotalElements());
@@ -231,9 +235,15 @@ public class WorkerPaymentController {
             response.put("hasNext", paymentsPage.hasNext());
             response.put("hasPrevious", paymentsPage.hasPrevious());
             response.put("uploadedFileRef", uploadedFileRef);
-            
-            return ResponseEntity.ok(response);
-            
+
+            // Generate ETag from response content
+            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(response);
+            String eTag = ETagUtil.generateETag(responseJson);
+            String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+            if (eTag.equals(ifNoneMatch)) {
+                return ResponseEntity.status(304).eTag(eTag).build();
+            }
+            return ResponseEntity.ok().eTag(eTag).body(response);
         } catch (Exception e) {
             log.error("Error fetching payments by uploadedFileRef: {}", uploadedFileRef, e);
             return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));

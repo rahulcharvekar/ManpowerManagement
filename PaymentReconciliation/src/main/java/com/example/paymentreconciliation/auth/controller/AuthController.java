@@ -16,8 +16,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import jakarta.servlet.http.HttpServletRequest;
+import com.example.paymentreconciliation.common.util.ETagUtil;
 import org.springframework.web.bind.annotation.*;
 
+
+import com.example.paymentreconciliation.audit.annotation.Audited;
 import java.util.List;
 import java.util.Map;
 
@@ -41,6 +46,7 @@ public class AuthController {
     private UIConfigService uiConfigService;
     
     @PostMapping("/login")
+    @Audited(action = "LOGIN_ATTEMPT", resourceType = "USER")
     @Operation(summary = "User login", description = "Authenticate user and return JWT token")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Login successful"),
@@ -60,6 +66,7 @@ public class AuthController {
     }
     
     @PostMapping("/register")
+    @Audited(action = "REGISTER_ATTEMPT", resourceType = "USER")
     @Operation(summary = "User registration", description = "Register a new user account")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "201", description = "Registration successful"),
@@ -82,11 +89,17 @@ public class AuthController {
     @Operation(summary = "Get UI configuration", description = "Get complete UI configuration including navigation and permissions for current user")
     @ApiResponse(responseCode = "200", description = "UI configuration retrieved successfully")
     @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<?> getUserUIConfig() {
+    public ResponseEntity<?> getUserUIConfig(HttpServletRequest request) {
         try {
             PermissionResponse uiConfig = uiConfigService.getUserUIConfig();
             if (uiConfig != null) {
-                return ResponseEntity.ok(uiConfig);
+                String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(uiConfig);
+                String eTag = ETagUtil.generateETag(responseJson);
+                String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+                if (eTag.equals(ifNoneMatch)) {
+                    return ResponseEntity.status(304).eTag(eTag).build();
+                }
+                return ResponseEntity.ok().eTag(eTag).body(uiConfig);
             } else {
                 return ResponseEntity.badRequest()
                     .body(Map.of("error", "User not authenticated"));
@@ -102,18 +115,40 @@ public class AuthController {
     @Operation(summary = "Get all users", description = "Get list of all users (Requires authentication)")
     @ApiResponse(responseCode = "200", description = "Users retrieved successfully")
     @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<List<User>> getAllUsers() {
+    @Audited(action = "GET_ALL_USERS", resourceType = "USER")
+    public ResponseEntity<List<User>> getAllUsers(HttpServletRequest request) {
         List<User> users = authService.getAllUsers();
-        return ResponseEntity.ok(users);
+        try {
+            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(users);
+            String eTag = ETagUtil.generateETag(responseJson);
+            String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+            if (eTag.equals(ifNoneMatch)) {
+                return ResponseEntity.status(304).eTag(eTag).build();
+            }
+            return ResponseEntity.ok().eTag(eTag).body(users);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
     
     @GetMapping("/users/role/{role}")
     @Operation(summary = "Get users by role", description = "Get users filtered by role (Requires authentication)")
     @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<List<User>> getUsersByRole(
-        @Parameter(description = "User role") @PathVariable UserRole role) {
+        @Parameter(description = "User role") @PathVariable UserRole role,
+        HttpServletRequest request) {
         List<User> users = authService.getUsersByRole(role);
-        return ResponseEntity.ok(users);
+        try {
+            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(users);
+            String eTag = ETagUtil.generateETag(responseJson);
+            String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+            if (eTag.equals(ifNoneMatch)) {
+                return ResponseEntity.status(304).eTag(eTag).build();
+            }
+            return ResponseEntity.ok().eTag(eTag).body(users);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
     
     @PutMapping("/users/{userId}/status")
@@ -175,7 +210,18 @@ public class AuthController {
     
     @GetMapping("/roles")
     @Operation(summary = "Get available roles", description = "Get list of available user roles")
-    public ResponseEntity<UserRole[]> getAvailableRoles() {
-        return ResponseEntity.ok(UserRole.values());
+    public ResponseEntity<UserRole[]> getAvailableRoles(HttpServletRequest request) {
+        UserRole[] roles = UserRole.values();
+        try {
+            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(roles);
+            String eTag = ETagUtil.generateETag(responseJson);
+            String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+            if (eTag.equals(ifNoneMatch)) {
+                return ResponseEntity.status(304).eTag(eTag).build();
+            }
+            return ResponseEntity.ok().eTag(eTag).body(roles);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }

@@ -1,8 +1,13 @@
 package com.example.paymentreconciliation.employer.controller;
 
+import com.example.paymentreconciliation.audit.annotation.Audited;
+
 import com.example.paymentreconciliation.employer.entity.EmployerPaymentReceipt;
 import com.example.paymentreconciliation.employer.service.EmployerPaymentReceiptService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import jakarta.servlet.http.HttpServletRequest;
+import com.example.paymentreconciliation.common.util.ETagUtil;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -42,13 +47,21 @@ public class EmployerPaymentReceiptController {
             @Parameter(description = "Start date for range filter (YYYY-MM-DD) - MANDATORY", example = "2024-01-01")
             @RequestParam(required = true) String startDate,
             @Parameter(description = "End date for range filter (YYYY-MM-DD) - MANDATORY", example = "2024-01-31")
-            @RequestParam(required = true) String endDate
+        @RequestParam(required = true) String endDate,
+        HttpServletRequest request
     ) {
         log.info("Fetching available receipts with filters - page: {}, size: {}, status: {}, singleDate: {}, startDate: {}, endDate: {}", 
                 page, size, status, singleDate, startDate, endDate);
         
         try {
-            return ResponseEntity.ok(service.getAvailableReceiptsWithFilters(page, size, status, singleDate, startDate, endDate));
+            Object result = service.getAvailableReceiptsWithFilters(page, size, status, singleDate, startDate, endDate);
+            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(result);
+            String eTag = ETagUtil.generateETag(responseJson);
+            String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+            if (eTag.equals(ifNoneMatch)) {
+                return ResponseEntity.status(304).eTag(eTag).build();
+            }
+            return ResponseEntity.ok().eTag(eTag).body(result);
         } catch (Exception e) {
             log.error("Error fetching available receipts", e);
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -58,6 +71,7 @@ public class EmployerPaymentReceiptController {
     @PostMapping("/validate")
     @Operation(summary = "Validate worker receipt and create employer receipt", 
                description = "Validates a worker receipt with transaction reference and creates employer receipt")
+    @Audited(action = "VALIDATE_RECEIPT", resourceType = "EMPLOYER_PAYMENT_RECEIPT")
     public ResponseEntity<?> validateReceipt(@RequestBody ReceiptValidationRequest request) {
         log.info("Validating worker receipt: {} with transaction reference: {}", 
                 request.getWorkerReceiptNumber(), request.getTransactionReference());
