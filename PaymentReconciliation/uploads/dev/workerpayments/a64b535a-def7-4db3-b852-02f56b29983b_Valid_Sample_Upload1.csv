@@ -1,0 +1,6 @@
+worker_id,worker_name,worker_email,worker_phone,worker_status
+1001,John Doe,john.doe@example.com,555-1234,Active
+1002,Jane Smith,jane.smith@example.com,555-5678,Active
+1003,Ali Khan,ali.khan@example.com,555-8765,Inactive
+1004,Meera Patel,meera.patel@example.com,555-4321,Active
+1005,Wei Zhang,wei.zhang@example.com,555-6789,Active

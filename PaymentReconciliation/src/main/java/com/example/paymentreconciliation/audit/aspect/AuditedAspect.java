@@ -19,6 +19,8 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import jakarta.servlet.http.HttpServletRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.UUID;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 @Aspect
 @Component
@@ -57,19 +59,25 @@ public class AuditedAspect {
         }
 
         // Get HTTP request info
-        String clientIp = null;
-        String userAgent = null;
+        String clientIp = "unknown";
+        String userAgent = "unknown";
+        String referer = "unknown";
+        String clientSource = "unknown";
+        String requestedWith = "unknown";
         RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
         if (requestAttributes instanceof ServletRequestAttributes servletRequestAttributes) {
             HttpServletRequest request = servletRequestAttributes.getRequest();
-            clientIp = request.getRemoteAddr();
-            userAgent = request.getHeader("User-Agent");
+            clientIp = request.getRemoteAddr() != null ? request.getRemoteAddr() : "unknown";
+            userAgent = request.getHeader("User-Agent") != null ? request.getHeader("User-Agent") : "unknown";
+            referer = request.getHeader("Referer") != null ? request.getHeader("Referer") : "unknown";
+            clientSource = request.getHeader("X-Client-Source") != null ? request.getHeader("X-Client-Source") : "unknown";
+            requestedWith = request.getHeader("X-Requested-With") != null ? request.getHeader("X-Requested-With") : "unknown";
         }
 
         String outcome = "SUCCESS";
         String details = null;
         String oldValues = null;
-        String newValues = null;
+        String responseHash = null;
         Object result = null;
 
         // Serialize method arguments as oldValues (before)
@@ -80,11 +88,12 @@ public class AuditedAspect {
         }
         try {
             result = joinPoint.proceed();
-            // Serialize return value as newValues (after)
+            // Compute hash of return value as responseHash
             try {
-                newValues = objectMapper.writeValueAsString(result);
+                String responseString = objectMapper.writeValueAsString(result);
+                responseHash = sha256Hex(responseString);
             } catch (Exception e) {
-                newValues = "[unserializable result]";
+                responseHash = "[unserializable result]";
             }
             outcome = "SUCCESS";
             return result;
@@ -100,10 +109,30 @@ public class AuditedAspect {
             event.setOutcome(outcome);
             event.setDetails(details);
             event.setOldValues(oldValues);
-            event.setNewValues(newValues);
+            // Do not set newValues
+            event.setResponseHash(responseHash);
             event.setClientIp(clientIp);
             event.setUserAgent(userAgent);
+            event.setReferer(referer);
+            event.setClientSource(clientSource);
+            event.setRequestedWith(requestedWith);
             auditEventService.recordEvent(event, null);
+        }
+    }
+
+    private String sha256Hex(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input.getBytes());
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (NoSuchAlgorithmException e) {
+            return null;
         }
     }
 }

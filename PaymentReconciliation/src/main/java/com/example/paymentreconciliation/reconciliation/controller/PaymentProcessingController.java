@@ -1,11 +1,14 @@
 package com.example.paymentreconciliation.reconciliation.controller;
 
+import com.example.paymentreconciliation.common.dto.ErrorResponse;
 import com.example.paymentreconciliation.reconciliation.service.PaymentProcessingService;
 import com.example.paymentreconciliation.reconciliation.service.PaymentProcessingService.PaymentProcessingResult;
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -48,7 +51,7 @@ public class PaymentProcessingController {
         @ApiResponse(responseCode = "200", description = "Payment processed successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid transaction reference"),
         @ApiResponse(responseCode = "404", description = "Transaction not found"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
+        @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     public ResponseEntity<?> processReconciledPayment(
             @Parameter(description = "Transaction reference number from reconciliation", required = true)
@@ -92,7 +95,7 @@ public class PaymentProcessingController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Report generated successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid transaction reference"),
-        @ApiResponse(responseCode = "500", description = "Report generation failed")
+        @ApiResponse(responseCode = "500", description = "Report generation failed", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     public ResponseEntity<?> generatePaymentReport(
             @Parameter(description = "Transaction reference number", required = true)
@@ -151,7 +154,7 @@ public class PaymentProcessingController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Payment processed and report generated successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid transaction reference"),
-        @ApiResponse(responseCode = "500", description = "Processing or report generation failed")
+        @ApiResponse(responseCode = "500", description = "Processing or report generation failed", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     public ResponseEntity<?> processPaymentAndGenerateReport(
             @Parameter(description = "Transaction reference number", required = true)

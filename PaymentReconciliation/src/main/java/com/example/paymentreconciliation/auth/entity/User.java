@@ -1,3 +1,9 @@
+/**
+ * User entity for authentication and authorization.
+ *
+ * permissionVersion is incremented automatically whenever a role is added or removed.
+ * This is used to invalidate JWT tokens if user permissions change.
+ */
 package com.example.paymentreconciliation.auth.entity;
 
 import jakarta.persistence.*;
@@ -39,6 +45,9 @@ public class User implements UserDetails {
     @NotBlank(message = "Full name is required")
     @Column(name = "full_name", nullable = false)
     private String fullName;
+
+    @Column(name = "permission_version", nullable = false)
+    private Integer permissionVersion = 1;
     
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -177,11 +186,23 @@ public class User implements UserDetails {
     public void addRole(Role role) {
         this.roles.add(role);
         role.getUsers().add(this);
+        // Increment permissionVersion when roles change
+        if (this.permissionVersion == null) {
+            this.permissionVersion = 1;
+        } else {
+            this.permissionVersion++;
+        }
     }
     
     public void removeRole(Role role) {
         this.roles.remove(role);
         role.getUsers().remove(this);
+        // Increment permissionVersion when roles change
+        if (this.permissionVersion == null) {
+            this.permissionVersion = 1;
+        } else {
+            this.permissionVersion++;
+        }
     }
     
     // Main role methods
@@ -235,6 +256,14 @@ public class User implements UserDetails {
     
     public void setLastLogin(LocalDateTime lastLogin) {
         this.lastLogin = lastLogin;
+    }
+
+    public Integer getPermissionVersion() {
+        return permissionVersion;
+    }
+
+    public void setPermissionVersion(Integer permissionVersion) {
+        this.permissionVersion = permissionVersion;
     }
     
     @PreUpdate

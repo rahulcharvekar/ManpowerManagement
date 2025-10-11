@@ -29,6 +29,12 @@ public class AuditEvent {
     private String userAgent;
     @Column(name = "details", columnDefinition = "json")
     private String details;
+    @Column(name = "referer", length = 256)
+    private String referer;
+    @Column(name = "client_source", length = 64)
+    private String clientSource;
+    @Column(name = "requested_with", length = 64)
+    private String requestedWith;
     @Column(name = "old_values", columnDefinition = "json")
     private String oldValues;
     @Column(name = "new_values", columnDefinition = "json")
@@ -37,6 +43,8 @@ public class AuditEvent {
     private String prevHash;
     @Column(name = "hash", nullable = false, length = 64)
     private String hash;
+    @Column(name = "response_hash", length = 64)
+    private String responseHash;
     // Getters and setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -60,6 +68,12 @@ public class AuditEvent {
     public void setUserAgent(String userAgent) { this.userAgent = userAgent; }
     public String getDetails() { return details; }
     public void setDetails(String details) { this.details = details; }
+    public String getReferer() { return referer; }
+    public void setReferer(String referer) { this.referer = referer; }
+    public String getClientSource() { return clientSource; }
+    public void setClientSource(String clientSource) { this.clientSource = clientSource; }
+    public String getRequestedWith() { return requestedWith; }
+    public void setRequestedWith(String requestedWith) { this.requestedWith = requestedWith; }
     public String getOldValues() { return oldValues; }
     public void setOldValues(String oldValues) { this.oldValues = oldValues; }
     public String getNewValues() { return newValues; }
@@ -68,4 +82,6 @@ public class AuditEvent {
     public void setPrevHash(String prevHash) { this.prevHash = prevHash; }
     public String getHash() { return hash; }
     public void setHash(String hash) { this.hash = hash; }
+    public String getResponseHash() { return responseHash; }
+    public void setResponseHash(String responseHash) { this.responseHash = responseHash; }
 }
