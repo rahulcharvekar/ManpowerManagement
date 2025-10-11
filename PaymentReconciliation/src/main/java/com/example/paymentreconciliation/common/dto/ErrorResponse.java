@@ -2,7 +2,7 @@ package com.example.paymentreconciliation.common.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Map;
 
 @Schema(description = "Standard error response")
 public class ErrorResponse {
@@ -13,14 +13,14 @@ public class ErrorResponse {
     private String error;
 
     @Schema(description = "Error details")
-    private Object details;
+    private Map<String, Object> details;
 
     @Schema(description = "Timestamp of error")
     private LocalDateTime timestamp;
 
     public ErrorResponse() {}
 
-    public ErrorResponse(String error, Object details) {
+    public ErrorResponse(String error, Map<String, Object> details) {
         this.success = false;
         this.error = error;
         this.details = details;
@@ -32,7 +32,7 @@ public class ErrorResponse {
     public String getError() { return error; }
     public void setError(String error) { this.error = error; }
     public Object getDetails() { return details; }
-    public void setDetails(Object details) { this.details = details; }
+    public void setDetails(Map<String, Object> details) { this.details = details; }
     public LocalDateTime getTimestamp() { return timestamp; }
     public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
 }

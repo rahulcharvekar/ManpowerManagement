@@ -3,6 +3,7 @@ package com.example.paymentreconciliation;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.context.annotation.Bean;
 import com.example.paymentreconciliation.common.filter.RequestIdFilter;
 import com.example.paymentreconciliation.common.filter.SignatureVerificationFilter;
@@ -10,6 +11,7 @@ import org.slf4j.Logger;
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
 
 @SpringBootApplication
+@EnableAsync
 public class PaymentReconciliationApplication {
 
     private static final Logger log = LoggerFactoryProvider.getLogger(PaymentReconciliationApplication.class);

@@ -17,6 +17,34 @@ import java.util.List;
 @Service
 @Transactional
 public class WorkerPaymentReceiptService {
+    /**
+     * Cursor-based pagination for worker payment receipts (stub implementation).
+     * @param status Receipt status filter
+     * @param startDate Start date
+     * @param endDate End date
+     * @param nextPageToken Opaque cursor for next page
+     * @return Page of WorkerPaymentReceipt
+     */
+    public org.springframework.data.domain.Page<WorkerPaymentReceipt> findByStatusAndDateRangeWithToken(
+            String status, java.time.LocalDateTime startDate, java.time.LocalDateTime endDate, String nextPageToken) {
+        // TODO: Implement real cursor-based pagination logic
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 20, org.springframework.data.domain.Sort.by("validatedAt").descending());
+        return findByStatusAndDateRangePaginated(status, startDate, endDate, pageable);
+    }
+
+    /**
+     * Cursor-based pagination for worker payment receipts by date range (stub implementation).
+     * @param startDate Start date
+     * @param endDate End date
+     * @param nextPageToken Opaque cursor for next page
+     * @return Page of WorkerPaymentReceipt
+     */
+    public org.springframework.data.domain.Page<WorkerPaymentReceipt> findByDateRangeWithToken(
+            java.time.LocalDateTime startDate, java.time.LocalDateTime endDate, String nextPageToken) {
+        // TODO: Implement real cursor-based pagination logic
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 20, org.springframework.data.domain.Sort.by("validatedAt").descending());
+        return findByDateRangePaginated(startDate, endDate, pageable);
+    }
     
     private static final Logger log = LoggerFactoryProvider.getLogger(WorkerPaymentReceiptService.class);
     

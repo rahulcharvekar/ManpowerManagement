@@ -5,10 +5,6 @@ import com.example.paymentreconciliation.worker.service.WorkerPaymentReceiptServ
 import com.example.paymentreconciliation.worker.service.WorkerPaymentService;
 import com.example.paymentreconciliation.employer.service.EmployerPaymentReceiptService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpHeaders;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,10 +18,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeParseException;
-import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -56,92 +48,50 @@ public class WorkerPaymentReceiptController {
 
 
 
-    @GetMapping("/all")
-    @Operation(summary = "Get all worker receipts with pagination and filtering", 
-               description = "Returns paginated worker receipts with optional filters for status and date range")
-    public ResponseEntity<?> getAllWorkerReceipts(
-            @Parameter(description = "Page number (0-based)", example = "0")
-            @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Page size", example = "20") 
-            @RequestParam(defaultValue = "20") int size,
-            @Parameter(description = "Receipt status filter", example = "PROCESSED")
-            @RequestParam(required = false) String status,
-            @Parameter(description = "Single date filter (YYYY-MM-DD)", example = "2024-01-15")
-            @RequestParam(required = false) String singleDate,
-            @Parameter(description = "Start date for range filter (YYYY-MM-DD) - MANDATORY", example = "2024-01-01")
-            @RequestParam(required = true) String startDate,
-            @Parameter(description = "End date for range filter (YYYY-MM-DD) - MANDATORY", example = "2024-01-31")
-            @RequestParam(required = true) String endDate,
-            @Parameter(description = "Sort field", example = "createdAt")
-            @RequestParam(defaultValue = "createdAt") String sortBy,
-            @Parameter(description = "Sort direction", example = "desc")
-            @RequestParam(defaultValue = "desc") String sortDir
-    , HttpServletRequest request) {
-        log.info("Fetching worker receipts with filters - page: {}, size: {}, status: {}, singleDate: {}, startDate: {}, endDate: {}", 
-                page, size, status, singleDate, startDate, endDate);
-        
+    @PostMapping("/all/secure")
+    @Operation(summary = "Get all worker receipts with secure pagination and filtering", 
+               description = "Returns paginated worker receipts with optional status filter and secure pagination (mandatory date range, opaque tokens)")
+    @com.example.paymentreconciliation.common.annotation.SecurePagination
+    public ResponseEntity<?> getAllWorkerReceiptsSecure(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                description = "Secure pagination request with mandatory date range",
+                required = true
+            )
+            @jakarta.validation.Valid @RequestBody 
+            com.example.paymentreconciliation.common.dto.SecurePaginationRequest request,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+        log.info("Fetching worker receipts with secure pagination, status: {}, request: {}", request.getStatus(), request);
         try {
-            // Create pageable with sorting
-            Sort sort = sortDir.equalsIgnoreCase("desc") ? 
-                Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
-            Pageable pageable = PageRequest.of(page, size, sort);
-            
-            Page<WorkerPaymentReceipt> receiptsPage;
-            
-            // Handle date filtering - startDate is now mandatory
-            if (singleDate != null && !singleDate.trim().isEmpty()) {
-                LocalDate date = LocalDate.parse(singleDate);
-                LocalDateTime startDateTime = date.atStartOfDay();
-                LocalDateTime endDateTime = date.plusDays(1).atStartOfDay().minusNanos(1);
-                
-                if (status != null && !status.trim().isEmpty()) {
-                    receiptsPage = service.findByStatusAndDateRangePaginated(status.trim().toUpperCase(), 
-                            startDateTime, endDateTime, pageable);
-                } else {
-                    receiptsPage = service.findByDateRangePaginated(startDateTime, endDateTime, pageable);
-                }
-            } else {
-                // StartDate is mandatory, use it with optional endDate
-                LocalDateTime startDateTime = LocalDate.parse(startDate.trim()).atStartOfDay();
-                LocalDateTime endDateTime;
-                
-                if (endDate != null && !endDate.trim().isEmpty()) {
-                    endDateTime = LocalDate.parse(endDate.trim()).plusDays(1).atStartOfDay().minusNanos(1);
-                } else {
-                    // If no endDate provided, use current date as end
-                    endDateTime = LocalDate.now().plusDays(1).atStartOfDay().minusNanos(1);
-                }
-                
-                if (status != null && !status.trim().isEmpty()) {
-                    receiptsPage = service.findByStatusAndDateRangePaginated(status.trim().toUpperCase(), 
-                            startDateTime, endDateTime, pageable);
-                } else {
-                    receiptsPage = service.findByDateRangePaginated(startDateTime, endDateTime, pageable);
-                }
+            // Apply pageToken if present
+            com.example.paymentreconciliation.common.util.SecurePaginationUtil.applyPageToken(request);
+            com.example.paymentreconciliation.common.util.SecurePaginationUtil.ValidationResult validation = 
+                com.example.paymentreconciliation.common.util.SecurePaginationUtil.validatePaginationRequest(request);
+            if (!validation.isValid()) {
+                return ResponseEntity.badRequest().body(
+                    com.example.paymentreconciliation.common.util.SecurePaginationUtil.createErrorResponse(validation));
             }
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("receipts", receiptsPage.getContent());
-            response.put("totalElements", receiptsPage.getTotalElements());
-            response.put("totalPages", receiptsPage.getTotalPages());
-            response.put("currentPage", receiptsPage.getNumber());
-            response.put("pageSize", receiptsPage.getSize());
-            response.put("hasNext", receiptsPage.hasNext());
-            response.put("hasPrevious", receiptsPage.hasPrevious());
-            
-            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(response);
-            String eTag = ETagUtil.generateETag(responseJson);
-            String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+            // Use only nextPageToken and filters for cursor-based pagination
+            String nextPageToken = request.getPageToken();
+            org.springframework.data.domain.Page<WorkerPaymentReceipt> receiptsPage;
+            if (request.getStatus() != null && !request.getStatus().trim().isEmpty()) {
+                receiptsPage = service.findByStatusAndDateRangeWithToken(request.getStatus().trim().toUpperCase(), 
+                        validation.getStartDateTime(), validation.getEndDateTime(), nextPageToken);
+            } else {
+                receiptsPage = service.findByDateRangeWithToken(validation.getStartDateTime(), validation.getEndDateTime(), nextPageToken);
+            }
+            com.example.paymentreconciliation.common.dto.SecurePaginationResponse<WorkerPaymentReceipt> response = 
+                com.example.paymentreconciliation.common.util.SecurePaginationUtil.createSecureResponse(receiptsPage, request);
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+            String responseJson = objectMapper.writeValueAsString(response);
+            String eTag = com.example.paymentreconciliation.common.util.ETagUtil.generateETag(responseJson);
+            String ifNoneMatch = httpRequest.getHeader(org.springframework.http.HttpHeaders.IF_NONE_MATCH);
             if (eTag.equals(ifNoneMatch)) {
                 return ResponseEntity.status(304).eTag(eTag).build();
             }
             return ResponseEntity.ok().eTag(eTag).body(response);
-            
-        } catch (DateTimeParseException e) {
-            log.error("Invalid date format provided", e);
-            return ResponseEntity.badRequest().body(Map.of("error", "Invalid date format. Use YYYY-MM-DD"));
         } catch (Exception e) {
-            log.error("Error fetching worker receipts", e);
+            log.error("Error fetching worker receipts (secure)", e);
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
@@ -161,7 +111,9 @@ public class WorkerPaymentReceiptController {
             return service.findByReceiptNumber(receiptNumber)
                     .map(receipt -> {
                         try {
-                            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(receipt);
+                            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                            objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+                            String responseJson = objectMapper.writeValueAsString(receipt);
                             String eTag = ETagUtil.generateETag(responseJson);
                             String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
                             if (eTag.equals(ifNoneMatch)) {

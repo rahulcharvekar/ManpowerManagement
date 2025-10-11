@@ -215,6 +215,29 @@ public class WorkerPaymentService {
         return createPageFromPageResult(result, pageable);
     }
     
+    /**
+     * Cursor-based pagination for worker payments (stub implementation).
+     * @param status Payment status filter
+     * @param receiptNumber Receipt number filter
+     * @param startDate Start date
+     * @param endDate End date
+     * @param sort Sort order
+     * @param nextPageToken Opaque cursor for next page
+     * @return Page of WorkerPayment
+     */
+    public Page<WorkerPayment> findByStatusAndReceiptNumberAndDateRangeWithToken(
+            String status,
+            String receiptNumber,
+            java.time.LocalDateTime startDate,
+            java.time.LocalDateTime endDate,
+            org.springframework.data.domain.Sort sort,
+            String nextPageToken) {
+        // TODO: Implement real cursor-based pagination logic
+        // For now, fallback to first page of classic pagination
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 20, sort);
+        return findByStatusAndReceiptNumberAndDateRange(status, receiptNumber, startDate, endDate, pageable);
+    }
+    
     // Utility method to convert PageResult to Spring Page
     private Page<WorkerPayment> createPageFromPageResult(PageResult<WorkerPayment> pageResult, Pageable pageable) {
         return new PageImpl<>(pageResult.getContent(), pageable, pageResult.getTotalElements());

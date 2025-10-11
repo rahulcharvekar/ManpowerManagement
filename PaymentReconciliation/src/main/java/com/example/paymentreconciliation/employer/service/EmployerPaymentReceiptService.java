@@ -31,6 +31,36 @@ import java.util.Optional;
 @Service
 @Transactional
 public class EmployerPaymentReceiptService {
+    /**
+     * Cursor-based pagination for employer payment receipts (stub implementation).
+     * @param status Payment status filter
+     * @param start Start date
+     * @param end End date
+     * @param nextPageToken Opaque cursor for next page
+     * @return Page of EmployerPaymentReceipt
+     */
+    @Transactional(readOnly = true)
+    public Page<EmployerPaymentReceipt> findAvailableByStatusAndDateRangeWithToken(String status, java.time.LocalDateTime start, java.time.LocalDateTime end, String nextPageToken) {
+        // TODO: Implement real cursor-based pagination logic
+        // For now, fallback to first page of classic pagination
+        Pageable pageable = PageRequest.of(0, 20, Sort.by("validatedAt").descending());
+        return findAvailableByStatusAndDateRange(status, start, end, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<EmployerPaymentReceipt> findAvailableByStatusAndDateRange(String status, java.time.LocalDateTime start, java.time.LocalDateTime end, Pageable pageable) {
+        log.info("Finding available employer receipts with status: {} and date range: {} to {} (paginated)", status, start, end);
+        String filterStatus = (status != null && !status.trim().isEmpty()) ? status : "PAYMENT_INITIATED";
+        if (start != null && end != null && status != null && !status.trim().isEmpty()) {
+            return repository.findByStatusAndValidatedAtBetween(filterStatus, start, end, pageable);
+        } else if (start != null && end != null) {
+            return repository.findByValidatedAtBetween(start, end, pageable);
+        } else if (status != null && !status.trim().isEmpty()) {
+            return repository.findByStatus(filterStatus, pageable);
+        } else {
+            return repository.findAll(pageable);
+        }
+    }
     
     private static final Logger log = LoggerFactoryProvider.getLogger(EmployerPaymentReceiptService.class);
     

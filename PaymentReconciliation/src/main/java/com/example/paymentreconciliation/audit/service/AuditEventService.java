@@ -4,7 +4,6 @@ import com.example.paymentreconciliation.audit.entity.AuditEvent;
 import com.example.paymentreconciliation.audit.repository.AuditEventRepository;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -18,7 +17,6 @@ public class AuditEventService {
         this.auditEventRepository = auditEventRepository;
     }
     @Async
-    @Transactional
     public CompletableFuture<AuditEvent> recordEvent(AuditEvent event, String prevHash) {
         event.setOccurredAt(Instant.now());
         event.setPrevHash(prevHash != null ? prevHash : "0");

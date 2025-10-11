@@ -25,6 +25,35 @@ import java.util.Optional;
 @Service
 @Transactional
 public class BoardReceiptService {
+    /**
+     * Cursor-based pagination for board receipts (stub implementation).
+     * @param status Receipt status filter
+     * @param start Start date
+     * @param end End date
+     * @param nextPageToken Opaque cursor for next page
+     * @return Page of BoardReceipt
+     */
+    @Transactional(readOnly = true)
+    public Page<BoardReceipt> findByStatusAndDateRangeWithToken(String status, java.time.LocalDateTime start, java.time.LocalDateTime end, String nextPageToken) {
+        // TODO: Implement real cursor-based pagination logic
+        // For now, fallback to first page of classic pagination
+        Pageable pageable = PageRequest.of(0, 20, Sort.by("validatedAt").descending());
+        return findByStatusAndDateRange(status, start, end, pageable);
+    }
+    @Transactional(readOnly = true)
+    public Page<BoardReceipt> findByStatusAndDateRange(String status, java.time.LocalDateTime start, java.time.LocalDateTime end, Pageable pageable) {
+        log.info("Finding board receipts with status: {} and date range: {} to {} (paginated)", status, start, end);
+        String upperStatus = status != null && !status.trim().isEmpty() ? status.trim().toUpperCase() : null;
+        if (upperStatus != null && !upperStatus.equals("PENDING") && !upperStatus.equals("VERIFIED") &&
+            !upperStatus.equals("REJECTED") && !upperStatus.equals("PROCESSED")) {
+            throw new RuntimeException("Invalid status: " + status + ". Valid values are: PENDING, VERIFIED, REJECTED, PROCESSED");
+        }
+        List<BoardReceipt> allResults = queryDao.findByStatusAndDateRange(upperStatus, start, end);
+        int startIdx = (int) pageable.getOffset();
+        int endIdx = Math.min(startIdx + pageable.getPageSize(), allResults.size());
+        List<BoardReceipt> pageContent = (startIdx > endIdx) ? java.util.Collections.emptyList() : allResults.subList(startIdx, endIdx);
+        return new org.springframework.data.domain.PageImpl<>(pageContent, pageable, allResults.size());
+    }
 
     private static final Logger log = LoggerFactoryProvider.getLogger(BoardReceiptService.class);
 

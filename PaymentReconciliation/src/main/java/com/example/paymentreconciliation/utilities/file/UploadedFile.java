@@ -22,7 +22,7 @@ public class UploadedFile {
     @Column(nullable = false)
     private String fileType;
 
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime uploadDate;
 
     @Column(nullable = true)

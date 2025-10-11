@@ -2,8 +2,6 @@ package com.example.paymentreconciliation.utilities.file;
 
 import com.example.paymentreconciliation.audit.annotation.Audited;
 
-import com.example.paymentreconciliation.audit.annotation.Audited;
-
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -62,8 +60,7 @@ public class UploadedFileController {
             // Call service method with secure pagination (to be implemented)
             Map<String, Object> result = uploadedFileService.getSecurePaginatedFiles(
                 request.getStartDate(), request.getEndDate(), request.getPage(), 
-                request.getSize(), request.getSortBy(), request.getSortDir(), 
-                request.getSessionToken());
+                request.getSize(), request.getSortBy(), request.getSortDir());
                 
             return ResponseEntity.ok(result);
             

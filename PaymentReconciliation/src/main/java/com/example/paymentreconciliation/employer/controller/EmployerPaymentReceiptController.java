@@ -5,17 +5,14 @@ import com.example.paymentreconciliation.audit.annotation.Audited;
 import com.example.paymentreconciliation.employer.entity.EmployerPaymentReceipt;
 import com.example.paymentreconciliation.employer.service.EmployerPaymentReceiptService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpHeaders;
-import jakarta.servlet.http.HttpServletRequest;
-import com.example.paymentreconciliation.common.util.ETagUtil;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import com.example.paymentreconciliation.utilities.logger.LoggerFactoryProvider;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 
 @RestController
@@ -27,44 +24,51 @@ public class EmployerPaymentReceiptController {
     private static final Logger log = LoggerFactoryProvider.getLogger(EmployerPaymentReceiptController.class);
     
     private final EmployerPaymentReceiptService service;
+    private final ObjectMapper objectMapper;
 
-    public EmployerPaymentReceiptController(EmployerPaymentReceiptService service) {
+    public EmployerPaymentReceiptController(EmployerPaymentReceiptService service, ObjectMapper objectMapper) {
         this.service = service;
+        this.objectMapper = objectMapper;
     }
 
-    @GetMapping("/available")
-    @Operation(summary = "Get available worker receipts with pagination and filtering", 
-               description = "Returns paginated worker receipts with optional filters for status and date range")
-    public ResponseEntity<?> getAvailableReceipts(
-            @Parameter(description = "Page number (0-based)", example = "0")
-            @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Page size", example = "20") 
-            @RequestParam(defaultValue = "20") int size,
-            @Parameter(description = "Receipt status filter", example = "GENERATED")
-            @RequestParam(required = false) String status,
-            @Parameter(description = "Single date filter (YYYY-MM-DD)", example = "2024-01-15")
-            @RequestParam(required = false) String singleDate,
-            @Parameter(description = "Start date for range filter (YYYY-MM-DD) - MANDATORY", example = "2024-01-01")
-            @RequestParam(required = true) String startDate,
-            @Parameter(description = "End date for range filter (YYYY-MM-DD) - MANDATORY", example = "2024-01-31")
-        @RequestParam(required = true) String endDate,
-        HttpServletRequest request
-    ) {
-        log.info("Fetching available receipts with filters - page: {}, size: {}, status: {}, singleDate: {}, startDate: {}, endDate: {}", 
-                page, size, status, singleDate, startDate, endDate);
-        
+    @PostMapping("/available/secure")
+    @Operation(summary = "Get available worker receipts with secure pagination and filtering",
+               description = "Returns paginated worker receipts with optional status and date range filters, using secure pagination (mandatory date range, opaque tokens)")
+    @com.example.paymentreconciliation.common.annotation.SecurePagination
+    public ResponseEntity<?> getAvailableReceiptsSecure(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                description = "Secure pagination request with mandatory date range",
+                required = true
+            )
+            @jakarta.validation.Valid @RequestBody
+            com.example.paymentreconciliation.common.dto.SecurePaginationRequest request,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+        log.info("Fetching available receipts with secure pagination, status: {}, request: {}", request.getStatus(), request);
         try {
-            Object result = service.getAvailableReceiptsWithFilters(page, size, status, singleDate, startDate, endDate);
-            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(result);
-            String eTag = ETagUtil.generateETag(responseJson);
-            String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
+            // Apply pageToken if present
+            com.example.paymentreconciliation.common.util.SecurePaginationUtil.applyPageToken(request);
+            com.example.paymentreconciliation.common.util.SecurePaginationUtil.ValidationResult validation =
+                com.example.paymentreconciliation.common.util.SecurePaginationUtil.validatePaginationRequest(request);
+            if (!validation.isValid()) {
+                return ResponseEntity.badRequest().body(
+                    com.example.paymentreconciliation.common.util.SecurePaginationUtil.createErrorResponse(validation));
+            }
+            // Use only nextPageToken and filters for cursor-based pagination
+            String nextPageToken = request.getPageToken();
+            org.springframework.data.domain.Page<EmployerPaymentReceipt> receiptsPage =
+                service.findAvailableByStatusAndDateRangeWithToken(request.getStatus(), validation.getStartDateTime(), validation.getEndDateTime(), nextPageToken);
+            com.example.paymentreconciliation.common.dto.SecurePaginationResponse<EmployerPaymentReceipt> response =
+                com.example.paymentreconciliation.common.util.SecurePaginationUtil.createSecureResponse(receiptsPage, request);
+            String responseJson = objectMapper.writeValueAsString(response);
+            String eTag = com.example.paymentreconciliation.common.util.ETagUtil.generateETag(responseJson);
+            String ifNoneMatch = httpRequest.getHeader(org.springframework.http.HttpHeaders.IF_NONE_MATCH);
             if (eTag.equals(ifNoneMatch)) {
                 return ResponseEntity.status(304).eTag(eTag).build();
             }
-            return ResponseEntity.ok().eTag(eTag).body(result);
+            return ResponseEntity.ok().eTag(eTag).body(response);
         } catch (Exception e) {
-            log.error("Error fetching available receipts", e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            log.error("Error fetching available receipts (secure)", e);
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
         }
     }
 

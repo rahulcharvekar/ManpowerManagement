@@ -16,9 +16,7 @@ import java.util.UUID;
 @Component
 public class RequestAndSessionLoggingFilter implements Filter {
     private static final String REQUEST_ID_HEADER = "X-Request-ID";
-    private static final String SESSION_ID_HEADER = "X-Session-ID";
     private static final String SESSION_TOKEN_HEADER = "sessionToken";
-    private static final String SESSION_COOKIE = "JSESSIONID";
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)

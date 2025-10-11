@@ -56,34 +56,39 @@ public class WorkerUploadedDataController {
                 required = true
             )
             @jakarta.validation.Valid @RequestBody 
-            com.example.paymentreconciliation.common.dto.SecurePaginationRequest request) {
+            com.example.paymentreconciliation.common.dto.SecurePaginationRequest request,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
         
         log.info("Secure paginated request for uploaded data: {}", request);
-        
-        // Validate request using utility
-        com.example.paymentreconciliation.common.util.SecurePaginationUtil.ValidationResult validation = 
-            com.example.paymentreconciliation.common.util.SecurePaginationUtil.validatePaginationRequest(request);
-        
-        if (!validation.isValid()) {
-            return ResponseEntity.badRequest().body(
-                com.example.paymentreconciliation.common.util.SecurePaginationUtil.createErrorResponse(validation));
-        }
-        
         try {
-            // Create secure pageable
-            org.springframework.data.domain.Pageable pageable = 
-                com.example.paymentreconciliation.common.util.SecurePaginationUtil.createSecurePageable(request);
-            
+            // Apply pageToken if present
+            com.example.paymentreconciliation.common.util.SecurePaginationUtil.applyPageToken(request);
+            // Validate request using utility
+            com.example.paymentreconciliation.common.util.SecurePaginationUtil.ValidationResult validation = 
+                com.example.paymentreconciliation.common.util.SecurePaginationUtil.validatePaginationRequest(request);
+            if (!validation.isValid()) {
+                return ResponseEntity.badRequest().body(
+                    com.example.paymentreconciliation.common.util.SecurePaginationUtil.createErrorResponse(validation));
+            }
+            // Create pageable
+            org.springframework.data.domain.Sort sort = com.example.paymentreconciliation.common.util.SecurePaginationUtil.createSecureSort(request);
+            org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(
+                request.getPage(), Math.min(request.getSize(), 100), sort);
             // Get paginated data with date filtering
             org.springframework.data.domain.Page<WorkerUploadedData> dataPage = 
                 service.findByDateRangePaginated(validation.getStartDateTime(), validation.getEndDateTime(), pageable);
-            
             // Create secure response with opaque tokens
             com.example.paymentreconciliation.common.dto.SecurePaginationResponse<WorkerUploadedData> response = 
                 com.example.paymentreconciliation.common.util.SecurePaginationUtil.createSecureResponse(dataPage, request);
-            
-            return ResponseEntity.ok(response);
-            
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+            String responseJson = objectMapper.writeValueAsString(response);
+            String eTag = com.example.paymentreconciliation.common.util.ETagUtil.generateETag(responseJson);
+            String ifNoneMatch = httpRequest.getHeader(org.springframework.http.HttpHeaders.IF_NONE_MATCH);
+            if (eTag.equals(ifNoneMatch)) {
+                return ResponseEntity.status(304).eTag(eTag).build();
+            }
+            return ResponseEntity.ok().eTag(eTag).body(response);
         } catch (Exception e) {
             log.error("Error in secure paginated data retrieval", e);
             return ResponseEntity.badRequest().body(Map.of(
@@ -148,51 +153,42 @@ public class WorkerUploadedDataController {
         }
     }
 
-    @GetMapping("/files/summaries")
-    @Operation(summary = "Get paginated file summaries", 
-               description = "Returns paginated list of all uploaded files with comprehensive summaries including validation counts and total amounts")
-    public ResponseEntity<?> getPaginatedFileSummaries(
-            @Parameter(description = "Page number (0-based)", example = "0")
-            @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Page size", example = "20") 
-            @RequestParam(defaultValue = "20") int size,
-            @Parameter(description = "Filter by specific file ID", example = "123")
-            @RequestParam(required = false) String fileId,
-            @Parameter(description = "Filter by file status", example = "VALIDATED")
-            @RequestParam(required = false) String status,
-            @Parameter(description = "Start date for range filter (YYYY-MM-DD) - MANDATORY", example = "2024-01-01")
-            @RequestParam(required = true) String startDate,
-            @Parameter(description = "End date for range filter (YYYY-MM-DD) - MANDATORY", example = "2024-01-31")
-            @RequestParam(required = true) String endDate,
-            @Parameter(description = "Sort field", example = "uploadDate")
-            @RequestParam(defaultValue = "uploadDate") String sortBy,
-            @Parameter(description = "Sort direction", example = "desc")
-            @RequestParam(defaultValue = "desc") String sortDir,
-            HttpServletRequest request) {
-        
-        log.info("Getting paginated file summaries - page: {}, size: {}, fileId: {}, status: {}, dateRange: {} to {}", 
-                page, size, fileId, status, startDate, endDate);
-        
+    @PostMapping("/files/secure-summaries")
+    @Operation(summary = "Get secure paginated file summaries", 
+               description = "Returns paginated list of all uploaded files with comprehensive summaries, validation counts, and total amounts. Uses secure pagination with mandatory date range and opaque tokens.")
+    @com.example.paymentreconciliation.common.annotation.SecurePagination
+    public ResponseEntity<?> getSecurePaginatedFileSummaries(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                description = "Secure pagination request with mandatory date range",
+                required = true
+            )
+            @jakarta.validation.Valid @RequestBody 
+            com.example.paymentreconciliation.common.dto.SecurePaginationRequest request) {
+        log.info("Secure paginated file summaries request: {}", request);
+        com.example.paymentreconciliation.common.util.SecurePaginationUtil.ValidationResult validation = 
+            com.example.paymentreconciliation.common.util.SecurePaginationUtil.validatePaginationRequest(request);
+        if (!validation.isValid()) {
+            return ResponseEntity.badRequest().body(
+                com.example.paymentreconciliation.common.util.SecurePaginationUtil.createErrorResponse(validation));
+        }
         try {
-            Map<String, Object> result = service.getPaginatedFileSummaries(
-                page, size, fileId, status, startDate, endDate, sortBy, sortDir);
-            
-            if (result.containsKey("error")) {
-                return ResponseEntity.badRequest().body(result);
-            }
-            
-            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(result);
-            String eTag = ETagUtil.generateETag(responseJson);
-            String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
-            if (eTag.equals(ifNoneMatch)) {
-                return ResponseEntity.status(304).eTag(eTag).build();
-            }
-            return ResponseEntity.ok().eTag(eTag).body(result);
-            
+            // Only use nextPageToken and filters for cursor-based pagination
+            String status = request.getStatus();
+            String startDate = validation.getStartDateTime().toLocalDate().toString();
+            String endDate = validation.getEndDateTime().toLocalDate().toString();
+            String sortBy = request.getSortBy() != null ? request.getSortBy() : "uploadDate";
+            String sortDir = request.getSortDir() != null ? request.getSortDir() : "desc";
+            String nextPageToken = request.getPageToken();
+
+            // Use service to get paginated file summaries (one per file) using cursor
+            Map<String, Object> paginatedSummaries = service.getPaginatedFileSummariesWithToken(
+                nextPageToken, null, status, startDate, endDate, sortBy, sortDir);
+            return ResponseEntity.ok(paginatedSummaries);
         } catch (Exception e) {
-            log.error("Error getting paginated file summaries", e);
+            log.error("Error in secure paginated file summaries retrieval", e);
             return ResponseEntity.badRequest().body(Map.of(
-                "error", "Failed to get file summaries: " + e.getMessage()
+                "error", "Failed to get file summaries: " + e.getMessage(),
+                "timestamp", java.time.LocalDateTime.now()
             ));
         }
     }
@@ -253,7 +249,9 @@ public class WorkerUploadedDataController {
                 return ResponseEntity.badRequest().body(result);
             }
             
-            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(result);
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper2 = new com.fasterxml.jackson.databind.ObjectMapper();
+            objectMapper2.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+            String responseJson = objectMapper2.writeValueAsString(result);
             String eTag = ETagUtil.generateETag(responseJson);
             String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
             if (eTag.equals(ifNoneMatch)) {
@@ -352,7 +350,9 @@ public class WorkerUploadedDataController {
             response.put("hasPrevious", requestPage.hasPrevious());
             response.put("receiptNumber", receiptNumber);
             
-            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(response);
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper3 = new com.fasterxml.jackson.databind.ObjectMapper();
+            objectMapper3.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+            String responseJson = objectMapper3.writeValueAsString(response);
             String eTag = ETagUtil.generateETag(responseJson);
             String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
             if (eTag.equals(ifNoneMatch)) {

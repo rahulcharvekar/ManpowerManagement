@@ -19,6 +19,33 @@ import java.util.List;
  * Utility class for implementing secure pagination across all controllers
  */
 public class SecurePaginationUtil {
+
+    /**
+     * Applies pageToken to the request by decoding and setting page, size, sortBy, sortDir.
+     * Should be called before creating Pageable for cursor-based pagination.
+     */
+    public static void applyPageToken(SecurePaginationRequest request) {
+        if (request.getPageToken() != null && !request.getPageToken().isEmpty()) {
+            try {
+                String tokenData = new String(java.util.Base64.getDecoder().decode(request.getPageToken()));
+                // Format: startDate|endDate|page|size|sortBy|sortDir|timestamp
+                String[] parts = tokenData.split("\\|");
+                if (parts.length >= 6) {
+                    // Only update page, size, sortBy, sortDir if present in token
+                    int page = Integer.parseInt(parts[2]);
+                    int size = Integer.parseInt(parts[3]);
+                    String sortBy = parts[4];
+                    String sortDir = parts[5];
+                    request.setPage(page);
+                    request.setSize(size);
+                    request.setSortBy(sortBy);
+                    request.setSortDir(sortDir);
+                }
+            } catch (Exception e) {
+                // If token is invalid, ignore and fallback to defaults
+            }
+        }
+    }
     
     private static final int MAX_PAGE_SIZE = 100;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -92,19 +119,17 @@ public class SecurePaginationUtil {
     }
     
     /**
-     * Create secure pageable with validation
+     * Create secure sort from request
      */
-    public static Pageable createSecurePageable(SecurePaginationRequest request) {
-        int pageSize = Math.min(request.getSize(), MAX_PAGE_SIZE);
-        
-        Sort sort = Sort.by(request.getSortBy() != null ? request.getSortBy() : "createdAt");
+    public static Sort createSecureSort(SecurePaginationRequest request) {
+        String sortBy = request.getSortBy() != null ? request.getSortBy() : "createdAt";
+        Sort sort = Sort.by(sortBy);
         if ("desc".equalsIgnoreCase(request.getSortDir())) {
             sort = sort.descending();
         } else {
             sort = sort.ascending();
         }
-        
-        return PageRequest.of(request.getPage(), pageSize, sort);
+        return sort;
     }
 
     

@@ -53,9 +53,16 @@ public class BoardReceiptQueryDao {
     }
     
     public List<BoardReceipt> findByStatusAndDateRange(String status, LocalDateTime startDate, LocalDateTime endDate) {
-        String sql = BASE_SELECT + " WHERE br.status = ? AND br.receipt_date BETWEEN ? AND ? ORDER BY br.receipt_date DESC";
-        return jdbcTemplate.query(sql, new BoardReceiptRowMapper(), 
-                                 status, startDate.toLocalDate(), endDate.toLocalDate());
+        String sql;
+        Object[] params;
+        if (status != null && !status.isEmpty()) {
+            sql = BASE_SELECT + " WHERE br.status = ? AND br.receipt_date BETWEEN ? AND ? ORDER BY br.receipt_date DESC";
+            params = new Object[]{status, startDate.toLocalDate(), endDate.toLocalDate()};
+        } else {
+            sql = BASE_SELECT + " WHERE br.receipt_date BETWEEN ? AND ? ORDER BY br.receipt_date DESC";
+            params = new Object[]{startDate.toLocalDate(), endDate.toLocalDate()};
+        }
+        return jdbcTemplate.query(sql, new BoardReceiptRowMapper(), params);
     }
     
     public List<BoardReceipt> findByMaker(String maker) {

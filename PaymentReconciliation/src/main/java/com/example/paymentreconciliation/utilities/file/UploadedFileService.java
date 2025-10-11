@@ -74,31 +74,28 @@ public class UploadedFileService {
     
     public String getContentType(Long fileId) {
         UploadedFile uploadedFile = getUploadedFileById(fileId);
-        
+        String contentType = null;
+        String filename = uploadedFile.getFilename();
         try {
             Path filePath = Paths.get(uploadedFile.getStoredPath());
-            String contentType = Files.probeContentType(filePath);
-            String filename = uploadedFile.getFilename();
-            
-            if (contentType == null) {
-                // Fallback based on file extension
-                if (filename.endsWith(".csv")) {
-                    contentType = "text/csv";
-                } else if (filename.endsWith(".xlsx")) {
-                    contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-                } else if (filename.endsWith(".xls")) {
-                    contentType = "application/vnd.ms-excel";
-                } else {
-                    contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
-                }
-            }
-            
-            log.info("Content type for file {}: {}", filename, contentType);
-            return contentType;
+            contentType = Files.probeContentType(filePath);
         } catch (IOException e) {
             log.warn("Could not determine content type for file id: {}, using default", fileId);
-            return MediaType.APPLICATION_OCTET_STREAM_VALUE;
         }
+        if (contentType == null) {
+            // Fallback based on file extension
+            if (filename.endsWith(".csv")) {
+                contentType = "text/csv";
+            } else if (filename.endsWith(".xlsx")) {
+                contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            } else if (filename.endsWith(".xls")) {
+                contentType = "application/vnd.ms-excel";
+            } else {
+                contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+            }
+        }
+        log.info("Content type for file {}: {}", filename, contentType);
+        return contentType;
     }
 
     
@@ -132,7 +129,7 @@ public class UploadedFileService {
     @Transactional(readOnly = true)
     public Map<String, Object> getSecurePaginatedFiles(String startDate, String endDate, 
                                                       int page, int size, String sortBy, 
-                                                      String sortDir, String sessionToken) {
+                                                      String sortDir) {
         try {
             log.info("Secure paginated request: startDate={}, endDate={}, page={}, size={}", 
                     startDate, endDate, page, size);
@@ -147,11 +144,13 @@ public class UploadedFileService {
             }
             
             // Create sort object with validation
+            // Map createdAt to uploadDate for UploadedFile entity
+            String actualSortBy = "createdAt".equals(sortBy) ? "uploadDate" : sortBy;
             org.springframework.data.domain.Sort sort;
             if ("asc".equalsIgnoreCase(sortDir)) {
-                sort = org.springframework.data.domain.Sort.by(sortBy).ascending();
+                sort = org.springframework.data.domain.Sort.by(actualSortBy).ascending();
             } else {
-                sort = org.springframework.data.domain.Sort.by(sortBy).descending();
+                sort = org.springframework.data.domain.Sort.by(actualSortBy).descending();
             }
             
             // Create pageable with size limit
