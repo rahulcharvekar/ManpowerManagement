@@ -207,18 +207,19 @@ const AppContent = () => {
                 <Navigate to="/workers/list" replace />
               </ProtectedRoute>
             } />
-            
-            {/* Worker List - backend-driven generic */}
-            <Route path="workers/list" element={
-              <ProtectedRoute componentKey="8">
-                <DynamicPage page={{ id: 8, name: 'Worker List' }} />
-              </ProtectedRoute>
-            } />
+
 
             {/* Worker Upload - custom advanced component */}
             <Route path="workers/upload" element={
               <ProtectedRoute componentKey="9">
                 <WorkerUploadPaginatedTable />
+              </ProtectedRoute>
+            } />
+
+            {/* Worker Upload Files Summary */}
+            <Route path="worker/file-summary" element={
+              <ProtectedRoute componentKey="15">
+                <WorkerUploadFilesSummary />
               </ProtectedRoute>
             } />
             

@@ -32,6 +32,9 @@ public class Endpoint {
     @Column(columnDefinition = "TEXT")
     private String description; // Endpoint description
 
+    @Column(name = "ui_type", length = 32)
+    private String uiType; // UI usage type: ACTION, LIST, FORM, UPLOAD, etc.
+
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
@@ -54,6 +57,16 @@ public class Endpoint {
         this.method = method;
         this.path = path;
         this.description = description;
+        this.isActive = true;
+    }
+
+    public Endpoint(String service, String version, String method, String path, String description, String uiType) {
+        this.service = service;
+        this.version = version;
+        this.method = method;
+        this.path = path;
+        this.description = description;
+        this.uiType = uiType;
         this.isActive = true;
     }
 
@@ -115,6 +128,14 @@ public class Endpoint {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getUiType() {
+        return uiType;
+    }
+
+    public void setUiType(String uiType) {
+        this.uiType = uiType;
     }
 
     public Boolean getIsActive() {

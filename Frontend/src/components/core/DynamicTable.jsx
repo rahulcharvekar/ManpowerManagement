@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import './DynamicTable.css';
 
-const DynamicTable = ({ endpoint, startDate, endDate }) => {
+const DynamicTable = ({ endpoint, startDate, endDate, sortBy = 'createdAt', sortDir = 'desc', sortByColumn = 'string' }) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -34,10 +34,10 @@ const DynamicTable = ({ endpoint, startDate, endDate }) => {
             startDate: startDate || today,
             endDate: endDate || today,
             size: pageSize,
-            sortBy: 'createdAt',
-            sortDir: 'desc',
+            sortBy,
+            sortDir,
             status: "",
-            sortByColumn: "string"
+            sortByColumn
           };
           if (pageToken) body.pageToken = pageToken;
           response = await axios.post(endpoint.path, body, { headers });

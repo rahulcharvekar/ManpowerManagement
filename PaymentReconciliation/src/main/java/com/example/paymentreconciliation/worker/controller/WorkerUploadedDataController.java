@@ -3,6 +3,7 @@ package com.example.paymentreconciliation.worker.controller;
 import com.example.paymentreconciliation.worker.entity.WorkerUploadedData;
 import com.example.paymentreconciliation.worker.service.WorkerUploadedDataService;
 import com.example.paymentreconciliation.worker.service.WorkerPaymentFileService;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -50,6 +51,7 @@ public class WorkerUploadedDataController {
                description = "Retrieve paginated uploaded data with MANDATORY date range filtering for security. " +
                            "Prevents unrestricted data access and implements tamper-proof pagination tokens.")
     @com.example.paymentreconciliation.common.annotation.SecurePagination
+    @com.example.paymentreconciliation.common.annotation.UiType(value = com.example.paymentreconciliation.common.util.UiTypes.LIST, usage = "Display paginated list of uploaded data with sorting and filtering")
     public ResponseEntity<?> getSecurePaginatedUploadedData(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                 description = "Secure pagination request with mandatory date range",
@@ -70,8 +72,9 @@ public class WorkerUploadedDataController {
                 return ResponseEntity.badRequest().body(
                     com.example.paymentreconciliation.common.util.SecurePaginationUtil.createErrorResponse(validation));
             }
-            // Create pageable
-            org.springframework.data.domain.Sort sort = com.example.paymentreconciliation.common.util.SecurePaginationUtil.createSecureSort(request);
+            // Create pageable with secure field validation
+            List<String> allowedSortFields = List.of("id", "workerName", "employerId", "paymentAmount", "status", "createdAt", "workDate", "receiptNumber");
+            org.springframework.data.domain.Sort sort = com.example.paymentreconciliation.common.util.SecurePaginationUtil.createSecureSort(request, allowedSortFields);
             org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(
                 request.getPage(), Math.min(request.getSize(), 100), sort);
             // Get paginated data with date filtering
@@ -102,6 +105,7 @@ public class WorkerUploadedDataController {
     @Audited(action = "UPLOAD_WORKER_PAYMENT_FILE", resourceType = "WORKER_UPLOADED_DATA")
     @Operation(summary = "Upload worker payment file", 
                description = "Upload CSV, XLS, or XLSX file containing worker payment data. Returns fileId for subsequent operations.")
+    @com.example.paymentreconciliation.common.annotation.UiType(value = com.example.paymentreconciliation.common.util.UiTypes.UPLOAD, usage = "File upload button for worker payment data")
     public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file) {
         try {
             // File type check

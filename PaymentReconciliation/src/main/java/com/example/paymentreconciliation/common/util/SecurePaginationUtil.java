@@ -119,12 +119,41 @@ public class SecurePaginationUtil {
     }
     
     /**
-     * Create secure sort from request
+     * Create secure sort from request with field validation
      */
-    public static Sort createSecureSort(SecurePaginationRequest request) {
+    public static Sort createSecureSort(SecurePaginationRequest request, List<String> allowedSortFields) {
         String sortBy = request.getSortBy() != null ? request.getSortBy() : "createdAt";
+        
+        // Validate sortBy against allowed fields for security
+        validateSortField(sortBy, allowedSortFields);
+        
         Sort sort = Sort.by(sortBy);
         if ("desc".equalsIgnoreCase(request.getSortDir())) {
+            sort = sort.descending();
+        } else {
+            sort = sort.ascending();
+        }
+        return sort;
+    }
+
+    /**
+     * Validate sort field against allowed fields
+     */
+    public static void validateSortField(String sortBy, List<String> allowedSortFields) {
+        if (allowedSortFields != null && !allowedSortFields.isEmpty()) {
+            if (sortBy != null && !allowedSortFields.contains(sortBy)) {
+                throw new IllegalArgumentException("Invalid sort field: " + sortBy + ". Allowed fields: " + allowedSortFields);
+            }
+        }
+    }
+
+    /**
+     * Create sort from field and direction with validation
+     */
+    public static Sort createSort(String sortBy, String sortDir, List<String> allowedSortFields) {
+        validateSortField(sortBy, allowedSortFields);
+        Sort sort = Sort.by(sortBy != null ? sortBy : "id");
+        if ("desc".equalsIgnoreCase(sortDir)) {
             sort = sort.descending();
         } else {
             sort = sort.ascending();

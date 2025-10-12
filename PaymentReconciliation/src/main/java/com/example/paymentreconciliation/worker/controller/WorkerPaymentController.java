@@ -81,8 +81,9 @@ public class WorkerPaymentController {
             }
             // Use only pageToken and filters for cursor-based pagination
             String nextPageToken = request.getPageToken();
-            // Create sort object
-            org.springframework.data.domain.Sort sort = com.example.paymentreconciliation.common.util.SecurePaginationUtil.createSecureSort(request);
+            // Create sort object with secure field validation
+            List<String> allowedSortFields = List.of("id", "name", "workerRef", "employerId", "paymentAmount", "status", "createdAt", "receiptNumber");
+            org.springframework.data.domain.Sort sort = com.example.paymentreconciliation.common.util.SecurePaginationUtil.createSecureSort(request, allowedSortFields);
             
             org.springframework.data.domain.Page<WorkerPayment> paymentsPage =
                 service.findByStatusAndReceiptNumberAndDateRangeWithToken(
@@ -150,8 +151,9 @@ public class WorkerPaymentController {
             HttpServletRequest request) {
         log.info("Fetching worker payments by uploadedFileRef={}", uploadedFileRef);
         try {
-            Sort sort = sortDir.equalsIgnoreCase("desc") ? 
-                Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+            // Validate sortBy against allowed fields for security
+            List<String> allowedSortFields = List.of("id", "name", "workerRef", "employerId", "paymentAmount", "status", "createdAt", "receiptNumber");
+            Sort sort = com.example.paymentreconciliation.common.util.SecurePaginationUtil.createSort(sortBy, sortDir, allowedSortFields);
             Pageable pageable = PageRequest.of(page, size, sort);
             Page<WorkerPayment> paymentsPage = service.findByUploadedFileRefPaginated(uploadedFileRef, pageable);
             java.util.Map<String, Object> response = new java.util.HashMap<>();

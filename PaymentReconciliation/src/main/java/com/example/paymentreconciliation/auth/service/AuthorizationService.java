@@ -43,6 +43,7 @@ public class AuthorizationService {
                 endpointData.put("service", action.getEndpoint().getService());
                 endpointData.put("version", action.getEndpoint().getVersion());
                 endpointData.put("description", action.getEndpoint().getDescription());
+                endpointData.put("ui_type", action.getEndpoint().getUiType());
                 endpoints.add(endpointData);
             }
         }

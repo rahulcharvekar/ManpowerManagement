@@ -123,6 +123,7 @@ public class ServiceCatalogService {
             endpointData.put("method", endpoint.getMethod());
             endpointData.put("path", endpoint.getPath());
             endpointData.put("description", endpoint.getDescription());
+            endpointData.put("ui_type", endpoint.getUiType());
 
             endpointsByService
                     .computeIfAbsent(endpoint.getService(), k -> new ArrayList<>())
@@ -181,7 +182,7 @@ public class ServiceCatalogService {
     }
 
     /**
-     * Map Endpoint entity to DTO
+     * Map Endpoint entity to DTO with enhanced metadata from annotations
      */
     private Map<String, Object> mapEndpointToDto(Endpoint endpoint) {
         Map<String, Object> dto = new HashMap<>();
@@ -190,7 +191,39 @@ public class ServiceCatalogService {
         dto.put("method", endpoint.getMethod());
         dto.put("path", endpoint.getPath());
         dto.put("description", endpoint.getDescription());
+        dto.put("ui_type", endpoint.getUiType());
+
+        // Try to enhance with annotation data if available
+        Map<String, Object> annotationData = getAnnotationDataForEndpoint(endpoint);
+        if (annotationData != null) {
+            dto.putAll(annotationData);
+        }
+
         return dto;
+    }
+
+    /**
+     * Get annotation data for an endpoint by scanning controller methods
+     */
+    private Map<String, Object> getAnnotationDataForEndpoint(Endpoint endpoint) {
+        try {
+            // This is a simplified approach - in production you might want to cache this
+            // or store it in the database during application startup
+            String fullPath = "/api/" + endpoint.getService() + "/" + endpoint.getPath().substring(1);
+            return scanForUiTypeAnnotation(fullPath, endpoint.getMethod());
+        } catch (Exception e) {
+            // If annotation scanning fails, just return null
+            return null;
+        }
+    }
+
+    /**
+     * Scan for UiType annotation on controller methods
+     */
+    private Map<String, Object> scanForUiTypeAnnotation(String path, String method) {
+        // This is a placeholder - you'd need to implement classpath scanning
+        // For now, return null and rely on database uiType field
+        return null;
     }
 
     /**
