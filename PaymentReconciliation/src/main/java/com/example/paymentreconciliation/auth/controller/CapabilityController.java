@@ -6,9 +6,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpHeaders;
 import jakarta.servlet.http.HttpServletRequest;
 import com.example.paymentreconciliation.common.util.ETagUtil;
-import org.springframework.security.access.prepost.PreAuthorize;
+
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 import org.springframework.web.bind.annotation.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 
 /**
@@ -17,10 +23,15 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/admin/capabilities")
-@PreAuthorize("hasRole('ADMIN')")
+@SecurityRequirement(name = "Bearer Authentication")
 public class CapabilityController {
 
+    private static final Logger logger = LoggerFactory.getLogger(CapabilityController.class);
+
     private final CapabilityRepository capabilityRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     public CapabilityController(CapabilityRepository capabilityRepository) {
         this.capabilityRepository = capabilityRepository;
@@ -33,7 +44,7 @@ public class CapabilityController {
     public ResponseEntity<List<Capability>> getAllCapabilities(HttpServletRequest request) {
         List<Capability> capabilities = capabilityRepository.findAll();
         try {
-            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(capabilities);
+            String responseJson = objectMapper.writeValueAsString(capabilities);
             String eTag = ETagUtil.generateETag(responseJson);
             String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
             if (eTag.equals(ifNoneMatch)) {
@@ -41,6 +52,7 @@ public class CapabilityController {
             }
             return ResponseEntity.ok().eTag(eTag).body(capabilities);
         } catch (Exception e) {
+            logger.error("Error processing capabilities response", e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -48,13 +60,13 @@ public class CapabilityController {
     /**
      * Get capability by ID
      */
-    @GetMapping("/{id}")
+        @GetMapping("/{id}")
     @SuppressWarnings("unchecked")
     public ResponseEntity<Capability> getCapabilityById(@PathVariable Long id, HttpServletRequest request) {
         return capabilityRepository.findById(id)
                 .map(capability -> {
                     try {
-                        String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(capability);
+                        String responseJson = objectMapper.writeValueAsString(capability);
                         String eTag = ETagUtil.generateETag(responseJson);
                         String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
                         if (eTag.equals(ifNoneMatch)) {
@@ -62,6 +74,7 @@ public class CapabilityController {
                         }
                         return (ResponseEntity<Capability>) (ResponseEntity<?>) ResponseEntity.ok().eTag(eTag).body(capability);
                     } catch (Exception e) {
+                        logger.error("Error processing capability response", e);
                         return (ResponseEntity<Capability>) (ResponseEntity<?>) ResponseEntity.internalServerError().build();
                     }
                 })

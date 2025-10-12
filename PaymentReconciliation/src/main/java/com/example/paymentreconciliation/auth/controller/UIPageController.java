@@ -4,14 +4,20 @@ import com.example.paymentreconciliation.audit.annotation.Audited;
 
 import com.example.paymentreconciliation.auth.entity.UIPage;
 import com.example.paymentreconciliation.auth.repository.UIPageRepository;
+
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 import com.example.paymentreconciliation.auth.repository.PageActionRepository;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Admin controller for managing UI pages
@@ -19,8 +25,13 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/api/admin/ui-pages")
-@PreAuthorize("hasRole('ADMIN')")
+@SecurityRequirement(name = "Bearer Authentication")
 public class UIPageController {
+
+    private static final Logger logger = LoggerFactory.getLogger(UIPageController.class);
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private final UIPageRepository uiPageRepository;
     private final PageActionRepository pageActionRepository;
@@ -68,9 +79,19 @@ public class UIPageController {
      * Get page by ID
      */
     @GetMapping("/{id}")
+    @SuppressWarnings("unchecked")
     public ResponseEntity<Map<String, Object>> getPageById(@PathVariable Long id) {
         return uiPageRepository.findById(id)
-                .map(page -> ResponseEntity.ok(convertToResponse(page)))
+                .map(page -> {
+                    Map<String, Object> response = convertToResponse(page);
+                    try {
+                        objectMapper.writeValueAsString(response);
+                        return (ResponseEntity<Map<String, Object>>) (ResponseEntity<?>) ResponseEntity.ok(response);
+                    } catch (Exception e) {
+                        logger.error("Error processing page response", e);
+                        return (ResponseEntity<Map<String, Object>>) (ResponseEntity<?>) ResponseEntity.internalServerError().build();
+                    }
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -82,23 +103,33 @@ public class UIPageController {
     @Audited(action = "CREATE_UI_PAGE", resourceType = "UI_PAGE")
     public ResponseEntity<Map<String, Object>> createPage(@RequestBody PageRequest request) {
         // Validate parent if provided
-        if (request.getParentId() != null) {
+        if (request.getParentId() != null && request.getParentId() != 0) {
             if (!uiPageRepository.existsById(request.getParentId())) {
                 return ResponseEntity.badRequest().build();
             }
         }
         
-        UIPage page = new UIPage();
-        page.setLabel(request.getLabel());
-        page.setRoute(request.getRoute());
+        // Generate key from route if not provided
+        String key = request.getRoute().startsWith("/") ? 
+            request.getRoute().substring(1).replace("/", ".") : 
+            request.getRoute().replace("/", ".");
+        
+        UIPage page = new UIPage(key, request.getLabel(), request.getRoute(), "default");
         page.setIcon(request.getIcon());
-        page.setParentId(request.getParentId());
+        page.setParentId(request.getParentId() != null && request.getParentId() != 0 ? request.getParentId() : null);
         page.setDisplayOrder(request.getDisplayOrder() != null ? request.getDisplayOrder() : 0);
         page.setIsMenuItem(request.getIsMenuItem() != null ? request.getIsMenuItem() : true);
         page.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
         
         UIPage saved = uiPageRepository.save(page);
-        return ResponseEntity.ok(convertToResponse(saved));
+        Map<String, Object> response = convertToResponse(saved);
+        try {
+            objectMapper.writeValueAsString(response);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error processing page creation response", e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     /**
@@ -107,6 +138,7 @@ public class UIPageController {
     @PutMapping("/{id}")
     @Transactional
     @Audited(action = "UPDATE_UI_PAGE", resourceType = "UI_PAGE")
+    @SuppressWarnings("unchecked")
     public ResponseEntity<Map<String, Object>> updatePage(
             @PathVariable Long id,
             @RequestBody PageRequest request) {
@@ -114,7 +146,7 @@ public class UIPageController {
         return uiPageRepository.findById(id)
                 .map(page -> {
                     // Validate parent if provided
-                    if (request.getParentId() != null) {
+                    if (request.getParentId() != null && request.getParentId() != 0) {
                         if (request.getParentId().equals(id)) {
                             throw new RuntimeException("Page cannot be its own parent");
                         }
@@ -126,13 +158,20 @@ public class UIPageController {
                     page.setLabel(request.getLabel());
                     page.setRoute(request.getRoute());
                     page.setIcon(request.getIcon());
-                    page.setParentId(request.getParentId());
+                    page.setParentId(request.getParentId() != null && request.getParentId() != 0 ? request.getParentId() : null);
                     page.setDisplayOrder(request.getDisplayOrder() != null ? request.getDisplayOrder() : page.getDisplayOrder());
                     page.setIsMenuItem(request.getIsMenuItem() != null ? request.getIsMenuItem() : page.getIsMenuItem());
                     page.setIsActive(request.getIsActive() != null ? request.getIsActive() : page.getIsActive());
                     
                     UIPage updated = uiPageRepository.save(page);
-                    return ResponseEntity.ok(convertToResponse(updated));
+                    Map<String, Object> response = convertToResponse(updated);
+                    try {
+                        objectMapper.writeValueAsString(response);
+                        return (ResponseEntity<Map<String, Object>>) (ResponseEntity<?>) ResponseEntity.ok(response);
+                    } catch (Exception e) {
+                        logger.error("Error processing page update response", e);
+                        return (ResponseEntity<Map<String, Object>>) (ResponseEntity<?>) ResponseEntity.internalServerError().build();
+                    }
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -166,12 +205,20 @@ public class UIPageController {
      */
     @PatchMapping("/{id}/toggle-active")
     @Audited(action = "TOGGLE_UI_PAGE_ACTIVE", resourceType = "UI_PAGE")
+    @SuppressWarnings("unchecked")
     public ResponseEntity<Map<String, Object>> toggleActive(@PathVariable Long id) {
         return uiPageRepository.findById(id)
                 .map(page -> {
                     page.setIsActive(!page.getIsActive());
                     UIPage updated = uiPageRepository.save(page);
-                    return ResponseEntity.ok(convertToResponse(updated));
+                    Map<String, Object> response = convertToResponse(updated);
+                    try {
+                        objectMapper.writeValueAsString(response);
+                        return (ResponseEntity<Map<String, Object>>) (ResponseEntity<?>) ResponseEntity.ok(response);
+                    } catch (Exception e) {
+                        logger.error("Error processing page toggle response", e);
+                        return (ResponseEntity<Map<String, Object>>) (ResponseEntity<?>) ResponseEntity.internalServerError().build();
+                    }
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -182,6 +229,7 @@ public class UIPageController {
     @PatchMapping("/{id}/reorder")
     @Transactional
     @Audited(action = "REORDER_UI_PAGE", resourceType = "UI_PAGE")
+    @SuppressWarnings("unchecked")
     public ResponseEntity<Map<String, Object>> reorderPage(
             @PathVariable Long id,
             @RequestBody ReorderRequest request) {
@@ -190,7 +238,14 @@ public class UIPageController {
                 .map(page -> {
                     page.setDisplayOrder(request.getNewDisplayOrder());
                     UIPage updated = uiPageRepository.save(page);
-                    return ResponseEntity.ok(convertToResponse(updated));
+                    Map<String, Object> response = convertToResponse(updated);
+                    try {
+                        objectMapper.writeValueAsString(response);
+                        return (ResponseEntity<Map<String, Object>>) (ResponseEntity<?>) ResponseEntity.ok(response);
+                    } catch (Exception e) {
+                        logger.error("Error processing page reorder response", e);
+                        return (ResponseEntity<Map<String, Object>>) (ResponseEntity<?>) ResponseEntity.internalServerError().build();
+                    }
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -204,7 +259,13 @@ public class UIPageController {
         List<Map<String, Object>> response = children.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(response);
+        try {
+            objectMapper.writeValueAsString(response);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error processing child pages response", e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     // Helper methods

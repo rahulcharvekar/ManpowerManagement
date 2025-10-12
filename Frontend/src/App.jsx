@@ -25,6 +25,7 @@ import ReconciliationDashboard from './components/reconciliation/ReconciliationD
 // Worker Components
 import WorkerDashboard from './components/worker/WorkerDashboard';
 import DynamicPage from './pages/DynamicPage';
+import WorkerList from './components/worker/WorkerList';
 import WorkerUploadPaginatedTable from './components/worker/WorkerUploadPaginatedTable';
 import WorkerUploadFilesSummary from './components/worker/WorkerUploadFilesSummary';
 import WorkerPayments from './components/worker/WorkerPayments';
@@ -230,6 +231,12 @@ const AppContent = () => {
             
             <Route path="worker/upload" element={
               <Navigate to="/workers/upload" replace />
+            } />
+            
+            <Route path="worker/uploaded-data" element={
+              <ProtectedRoute componentKey="14">
+                <WorkerList />
+              </ProtectedRoute>
             } />
             
             {/* Employer Routes */}

@@ -47,9 +47,6 @@ public class SecurePaginationRequest {
         if (size > 100) {
             throw new IllegalArgumentException("Page size cannot exceed 100");
         }
-        if (!ALLOWED_SORT_BY.containsKey(sortBy)) {
-            throw new IllegalArgumentException("Unknown sortBy alias: " + sortBy);
-        }
         if (sortDir != null && !("asc".equalsIgnoreCase(sortDir) || "desc".equalsIgnoreCase(sortDir))) {
             throw new IllegalArgumentException("Sort direction must be 'asc' or 'desc'");
         }
@@ -59,6 +56,9 @@ public class SecurePaginationRequest {
     static {
         Map<String, String> map = new HashMap<>();
         map.put("createdAt", "created_at");
+        map.put("receiptDate", "receipt_date");
+        map.put("amount", "amount");
+        map.put("id", "id");
         // Add more aliases if needed
         ALLOWED_SORT_BY = Collections.unmodifiableMap(map);
     }
@@ -84,8 +84,8 @@ public class SecurePaginationRequest {
     @Schema(description = "Page size (max 100)", example = "20", defaultValue = "20")
     private int size = 20;
     
-    @Schema(description = "Sort field", example = "createdAt")
-    private String sortBy = "createdAt";
+    @Schema(description = "Sort field", example = "receiptDate")
+    private String sortBy = "receiptDate";
     
     @Pattern(regexp = "^(asc|desc)$", message = "Sort direction must be 'asc' or 'desc'")
     @Schema(description = "Sort direction", example = "desc", allowableValues = {"asc", "desc"})

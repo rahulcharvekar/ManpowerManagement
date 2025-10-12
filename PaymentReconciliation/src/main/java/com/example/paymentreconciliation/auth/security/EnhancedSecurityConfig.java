@@ -33,6 +33,9 @@ public class EnhancedSecurityConfig {
     @Autowired
     private AuthTokenFilter authTokenFilter;
 
+    @Autowired
+    private SecurityHeadersFilter securityHeadersFilter;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -73,6 +76,9 @@ public class EnhancedSecurityConfig {
 
         // Add JWT token filter before UsernamePasswordAuthenticationFilter
         http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
+
+        // Add security headers filter
+        http.addFilterBefore(securityHeadersFilter, AuthTokenFilter.class);
 
         return http.build();
     }

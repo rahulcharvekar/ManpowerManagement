@@ -18,7 +18,7 @@ public class EndpointPolicy {
     @JoinColumn(name = "endpoint_id", nullable = false)
     private Endpoint endpoint;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "policy_id", nullable = false)
     private Policy policy;
 

@@ -37,8 +37,20 @@ public class BoardReceiptService {
     public Page<BoardReceipt> findByStatusAndDateRangeWithToken(String status, java.time.LocalDateTime start, java.time.LocalDateTime end, String nextPageToken) {
         // TODO: Implement real cursor-based pagination logic
         // For now, fallback to first page of classic pagination
-        Pageable pageable = PageRequest.of(0, 20, Sort.by("validatedAt").descending());
+        Pageable pageable = PageRequest.of(0, 20, Sort.by("receipt_date").descending());
         return findByStatusAndDateRange(status, start, end, pageable);
+    }
+    
+    @Transactional(readOnly = true)
+    public Page<BoardReceipt> findByStatusAndDateRangeWithToken(String status, java.time.LocalDateTime start, java.time.LocalDateTime end, String nextPageToken, String sortBy, String sortDir) {
+        // TODO: Implement real cursor-based pagination logic
+        // For now, fallback to first page of classic pagination
+        Sort sort = Sort.by("receipt_date").descending();
+        if ("asc".equalsIgnoreCase(sortDir)) {
+            sort = Sort.by("receipt_date").ascending();
+        }
+        Pageable pageable = PageRequest.of(0, 20, sort);
+        return findByStatusAndDateRange(status, start, end, pageable, sortBy, sortDir);
     }
     @Transactional(readOnly = true)
     public Page<BoardReceipt> findByStatusAndDateRange(String status, java.time.LocalDateTime start, java.time.LocalDateTime end, Pageable pageable) {
@@ -49,6 +61,24 @@ public class BoardReceiptService {
             throw new RuntimeException("Invalid status: " + status + ". Valid values are: PENDING, VERIFIED, REJECTED, PROCESSED");
         }
         List<BoardReceipt> allResults = queryDao.findByStatusAndDateRange(upperStatus, start, end);
+        int startIdx = (int) pageable.getOffset();
+        int endIdx = Math.min(startIdx + pageable.getPageSize(), allResults.size());
+        List<BoardReceipt> pageContent = (startIdx > endIdx) ? java.util.Collections.emptyList() : allResults.subList(startIdx, endIdx);
+        return new org.springframework.data.domain.PageImpl<>(pageContent, pageable, allResults.size());
+    }
+    
+    @Transactional(readOnly = true)
+    public Page<BoardReceipt> findByStatusAndDateRange(String status, java.time.LocalDateTime start, java.time.LocalDateTime end, Pageable pageable, String sortBy, String sortDir) {
+        log.info("Finding board receipts with status: {} and date range: {} to {} (paginated) sortBy: {} sortDir: {}", status, start, end, sortBy, sortDir);
+        String upperStatus = status != null && !status.trim().isEmpty() ? status.trim().toUpperCase() : null;
+        if (upperStatus != null && !upperStatus.equals("PENDING") && !upperStatus.equals("VERIFIED") &&
+            !upperStatus.equals("REJECTED") && !upperStatus.equals("PROCESSED")) {
+            throw new RuntimeException("Invalid status: " + status + ". Valid values are: PENDING, VERIFIED, REJECTED, PROCESSED");
+        }
+        // Allowed sort columns for security
+        java.util.Set<String> allowedSortColumns = java.util.Set.of("id", "board_id", "board_reference", "employer_reference", "employer_id", "toli_id", "amount", "utr_number", "status", "maker", "checker", "receipt_date");
+        String dbSortBy = allowedSortColumns.contains(sortBy) ? sortBy : "receipt_date";
+        List<BoardReceipt> allResults = queryDao.findByStatusAndDateRange(upperStatus, start, end, dbSortBy, sortDir);
         int startIdx = (int) pageable.getOffset();
         int endIdx = Math.min(startIdx + pageable.getPageSize(), allResults.size());
         List<BoardReceipt> pageContent = (startIdx > endIdx) ? java.util.Collections.emptyList() : allResults.subList(startIdx, endIdx);

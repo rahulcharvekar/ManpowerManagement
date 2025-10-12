@@ -8,8 +8,10 @@ import com.example.paymentreconciliation.auth.repository.CapabilityRepository;
 import com.example.paymentreconciliation.auth.repository.EndpointRepository;
 import com.example.paymentreconciliation.auth.repository.PageActionRepository;
 import com.example.paymentreconciliation.auth.repository.UIPageRepository;
+
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,7 +26,7 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/api/admin/page-actions")
-@PreAuthorize("hasRole('ADMIN')")
+@SecurityRequirement(name = "Bearer Authentication")
 public class PageActionController {
 
     private final PageActionRepository pageActionRepository;

@@ -10,15 +10,25 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpHeaders;
 import jakarta.servlet.http.HttpServletRequest;
 import com.example.paymentreconciliation.common.util.ETagUtil;
+
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
+import com.example.paymentreconciliation.audit.annotation.Audited;
 import org.springframework.security.access.prepost.PreAuthorize;
+
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Admin controller for managing endpoints and their policy assignments
@@ -26,8 +36,13 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/api/admin/endpoints")
-@PreAuthorize("hasRole('ROLE_ADMIN')")
+@SecurityRequirement(name = "Bearer Authentication")
 public class EndpointController {
+
+    private static final Logger logger = LoggerFactory.getLogger(EndpointController.class);
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private final EndpointRepository endpointRepository;
     private final PolicyRepository policyRepository;
@@ -42,17 +57,19 @@ public class EndpointController {
         this.endpointPolicyRepository = endpointPolicyRepository;
     }
 
-    /**
+        /**
      * Get all endpoints with their policies
      */
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> getAllEndpoints(HttpServletRequest request) {
         List<Endpoint> endpoints = endpointRepository.findAll();
         List<Map<String, Object>> response = endpoints.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
         try {
-            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(response);
+            String responseJson = objectMapper.writeValueAsString(response);
             String eTag = ETagUtil.generateETag(responseJson);
             String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
             if (eTag.equals(ifNoneMatch)) {
@@ -60,6 +77,7 @@ public class EndpointController {
             }
             return ResponseEntity.ok().eTag(eTag).body(response);
         } catch (Exception e) {
+            logger.error("Error processing endpoints response", e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -69,12 +87,13 @@ public class EndpointController {
      */
     @GetMapping("/{id}")
     @SuppressWarnings("unchecked")
+    @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> getEndpointById(@PathVariable Long id, HttpServletRequest request) {
         return endpointRepository.findById(id)
                 .map(endpoint -> {
                     Map<String, Object> response = convertToResponse(endpoint);
                     try {
-                        String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(response);
+                        String responseJson = objectMapper.writeValueAsString(response);
                         String eTag = ETagUtil.generateETag(responseJson);
                         String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
                         if (eTag.equals(ifNoneMatch)) {
@@ -82,6 +101,7 @@ public class EndpointController {
                         }
                         return (ResponseEntity<Map<String, Object>>) (ResponseEntity<?>) ResponseEntity.ok().eTag(eTag).body(response);
                     } catch (Exception e) {
+                        logger.error("Error processing endpoint response", e);
                         return (ResponseEntity<Map<String, Object>>) (ResponseEntity<?>) ResponseEntity.internalServerError().build();
                     }
                 })
@@ -93,6 +113,8 @@ public class EndpointController {
      */
     @PostMapping
     @Transactional
+    @Audited(action = "CREATE_ENDPOINT", resourceType = "ENDPOINT")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> createEndpoint(@RequestBody EndpointRequest request) {
         Endpoint endpoint = new Endpoint(
                 request.getService(),
@@ -117,6 +139,7 @@ public class EndpointController {
      */
     @PutMapping("/{id}")
     @Transactional
+    @Audited(action = "UPDATE_ENDPOINT", resourceType = "ENDPOINT")
     public ResponseEntity<Map<String, Object>> updateEndpoint(
             @PathVariable Long id,
             @RequestBody EndpointRequest request) {
@@ -151,6 +174,7 @@ public class EndpointController {
      */
     @DeleteMapping("/{id}")
     @Transactional
+    @Audited(action = "DELETE_ENDPOINT", resourceType = "ENDPOINT")
     public ResponseEntity<Void> deleteEndpoint(@PathVariable Long id) {
         if (endpointRepository.existsById(id)) {
             // Delete endpoint policies first
@@ -166,6 +190,7 @@ public class EndpointController {
      * Toggle endpoint active status
      */
     @PatchMapping("/{id}/toggle-active")
+    @Audited(action = "TOGGLE_ENDPOINT_ACTIVE", resourceType = "ENDPOINT")
     public ResponseEntity<Map<String, Object>> toggleActive(@PathVariable Long id) {
         return endpointRepository.findById(id)
                 .map(endpoint -> {
@@ -180,13 +205,14 @@ public class EndpointController {
      * Get policies assigned to an endpoint
      */
     @GetMapping("/{id}/policies")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<Policy>> getEndpointPolicies(@PathVariable Long id, HttpServletRequest request) {
         List<EndpointPolicy> endpointPolicies = endpointPolicyRepository.findByEndpointId(id);
         List<Policy> policies = endpointPolicies.stream()
                 .map(EndpointPolicy::getPolicy)
                 .collect(Collectors.toList());
         try {
-            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(policies);
+            String responseJson = objectMapper.writeValueAsString(policies);
             String eTag = ETagUtil.generateETag(responseJson);
             String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
             if (eTag.equals(ifNoneMatch)) {
@@ -194,6 +220,7 @@ public class EndpointController {
             }
             return ResponseEntity.ok().eTag(eTag).body(policies);
         } catch (Exception e) {
+            logger.error("Error processing policies response", e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -203,6 +230,7 @@ public class EndpointController {
      */
     @PostMapping("/{id}/policies")
     @Transactional
+    @Audited(action = "ASSIGN_POLICIES_TO_ENDPOINT", resourceType = "ENDPOINT")
     public ResponseEntity<Map<String, Object>> assignPoliciesToEndpoint(
             @PathVariable Long id,
             @RequestBody PolicyAssignmentRequest request) {
@@ -221,6 +249,7 @@ public class EndpointController {
      */
     @DeleteMapping("/{id}/policies/{policyId}")
     @Transactional
+    @Audited(action = "REMOVE_POLICY_FROM_ENDPOINT", resourceType = "ENDPOINT")
     public ResponseEntity<Void> removePolicyFromEndpoint(
             @PathVariable Long id,
             @PathVariable Long policyId) {

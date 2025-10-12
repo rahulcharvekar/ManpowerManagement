@@ -14,23 +14,34 @@ import jakarta.servlet.http.HttpServletRequest;
 import com.example.paymentreconciliation.common.util.ETagUtil;
 import org.springframework.web.bind.annotation.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 
+/**
+ * Admin controller for managing roles
+ */
 @RestController
 @RequestMapping("/api/admin/roles")
 @Tag(name = "Role Management", description = "APIs for managing roles")
 @SecurityRequirement(name = "Bearer Authentication")
 public class RoleController {
-    
+
+    private static final Logger logger = LoggerFactory.getLogger(RoleController.class);
+
     @Autowired
     private RoleService roleService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
     
     @GetMapping
     @Operation(summary = "Get all roles")
     public ResponseEntity<List<Role>> getAllRoles(HttpServletRequest request) {
         List<Role> roles = roleService.getAllRoles();
         try {
-            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(roles);
+            String responseJson = objectMapper.writeValueAsString(roles);
             String eTag = ETagUtil.generateETag(responseJson);
             String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
             if (eTag.equals(ifNoneMatch)) {
@@ -38,6 +49,7 @@ public class RoleController {
             }
             return ResponseEntity.ok().eTag(eTag).body(roles);
         } catch (Exception e) {
+            logger.error("Error processing roles response", e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -47,7 +59,7 @@ public class RoleController {
     public ResponseEntity<List<RoleWithPermissionCount>> getAllRolesWithPermissions(HttpServletRequest request) {
         List<RoleWithPermissionCount> roles = roleService.getAllRolesWithPermissionCounts();
         try {
-            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(roles);
+            String responseJson = objectMapper.writeValueAsString(roles);
             String eTag = ETagUtil.generateETag(responseJson);
             String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
             if (eTag.equals(ifNoneMatch)) {
@@ -55,6 +67,7 @@ public class RoleController {
             }
             return ResponseEntity.ok().eTag(eTag).body(roles);
         } catch (Exception e) {
+            logger.error("Error processing roles with permissions response", e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -66,7 +79,7 @@ public class RoleController {
         return roleService.getRoleById(id)
                 .map(role -> {
                     try {
-                        String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(role);
+                        String responseJson = objectMapper.writeValueAsString(role);
                         String eTag = ETagUtil.generateETag(responseJson);
                         String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
                         if (eTag.equals(ifNoneMatch)) {
@@ -74,6 +87,7 @@ public class RoleController {
                         }
                         return (ResponseEntity<Role>) (ResponseEntity<?>) ResponseEntity.ok().eTag(eTag).body(role);
                     } catch (Exception e) {
+                        logger.error("Error processing role response", e);
                         return (ResponseEntity<Role>) (ResponseEntity<?>) ResponseEntity.internalServerError().build();
                     }
                 })

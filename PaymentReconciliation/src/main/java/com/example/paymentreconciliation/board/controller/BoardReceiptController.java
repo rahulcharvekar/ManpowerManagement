@@ -67,7 +67,7 @@ public class BoardReceiptController {
             // Use only nextPageToken and filters for cursor-based pagination
             String nextPageToken = request.getPageToken();
             org.springframework.data.domain.Page<BoardReceipt> receiptsPage =
-                service.findByStatusAndDateRangeWithToken(request.getStatus(), validation.getStartDateTime(), validation.getEndDateTime(), nextPageToken);
+                service.findByStatusAndDateRangeWithToken(request.getStatus(), validation.getStartDateTime(), validation.getEndDateTime(), nextPageToken, request.getSortBy(), request.getSortDir());
             com.example.paymentreconciliation.common.dto.SecurePaginationResponse<BoardReceipt> response =
                 com.example.paymentreconciliation.common.util.SecurePaginationUtil.createSecureResponse(receiptsPage, request);
             com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();

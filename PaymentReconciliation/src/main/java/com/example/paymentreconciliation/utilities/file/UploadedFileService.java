@@ -144,8 +144,8 @@ public class UploadedFileService {
             }
             
             // Create sort object with validation
-            // Map createdAt to uploadDate for UploadedFile entity
-            String actualSortBy = "createdAt".equals(sortBy) ? "uploadDate" : sortBy;
+            // Map createdAt and receiptDate to uploadDate for UploadedFile entity
+            String actualSortBy = "createdAt".equals(sortBy) || "receiptDate".equals(sortBy) ? "uploadDate" : sortBy;
             org.springframework.data.domain.Sort sort;
             if ("asc".equalsIgnoreCase(sortDir)) {
                 sort = org.springframework.data.domain.Sort.by(actualSortBy).ascending();

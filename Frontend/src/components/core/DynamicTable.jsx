@@ -2,15 +2,20 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import './DynamicTable.css';
 
-const DynamicTable = ({ endpoint }) => {
+const DynamicTable = ({ endpoint, startDate, endDate }) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [rawResponse, setRawResponse] = useState(null);
-  const [page, setPage] = useState(0);
+  const [pageToken, setPageToken] = useState(null);
   const [pageSize, setPageSize] = useState(20);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [nextPageToken, setNextPageToken] = useState(null);
+  const [previousPageToken, setPreviousPageToken] = useState(null);
+  const [hasNext, setHasNext] = useState(false);
+  const [hasPrevious, setHasPrevious] = useState(false);
 
   useEffect(() => {
     if (!endpoint) return;
@@ -22,27 +27,30 @@ const DynamicTable = ({ endpoint }) => {
         const token = localStorage.getItem('authToken');
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
         if (endpoint.method === 'GET') {
-          response = await axios.get(endpoint.path, { headers, params: { page, size: pageSize } });
+          response = await axios.get(endpoint.path, { headers, params: { page: currentPage, size: pageSize } });
         } else if (endpoint.method === 'POST') {
           const today = new Date().toISOString().slice(0, 10);
-          response = await axios.post(
-            endpoint.path,
-            {
-              startDate: today,
-              endDate: today,
-              page,
-              size: pageSize,
-              sortBy: 'createdAt',
-              sortDir: 'desc',
-              sessionToken: 'string'
-            },
-            { headers }
-          );
+          const body = {
+            startDate: startDate || today,
+            endDate: endDate || today,
+            size: pageSize,
+            sortBy: 'createdAt',
+            sortDir: 'desc',
+            status: "",
+            sortByColumn: "string"
+          };
+          if (pageToken) body.pageToken = pageToken;
+          response = await axios.post(endpoint.path, body, { headers });
         }
         setRawResponse(response.data);
         setData(response.data.content || response.data.data || []);
         setTotalPages(response.data.totalPages || 0);
         setTotalElements(response.data.totalElements || 0);
+        setCurrentPage(response.data.currentPage || 0);
+        setNextPageToken(response.data.nextPageToken || null);
+        setPreviousPageToken(response.data.previousPageToken || null);
+        setHasNext(response.data.hasNext || false);
+        setHasPrevious(response.data.hasPrevious || false);
         setError(null);
       } catch (e) {
         setError(e.message || 'API error');
@@ -50,13 +58,18 @@ const DynamicTable = ({ endpoint }) => {
         setData([]);
         setTotalPages(0);
         setTotalElements(0);
+        setCurrentPage(0);
+        setNextPageToken(null);
+        setPreviousPageToken(null);
+        setHasNext(false);
+        setHasPrevious(false);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [endpoint, page, pageSize]);
+  }, [endpoint, pageToken, pageSize, startDate, endDate]);
 
 
   if (loading) return <div>Loading table...</div>;
@@ -83,11 +96,11 @@ const DynamicTable = ({ endpoint }) => {
       {/* Pagination Controls */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
         <div style={{ fontSize: 14, color: '#555' }}>
-          Page {page + 1} of {totalPages} | Total: {totalElements}
+          Page {currentPage + 1} of {totalPages} | Total: {totalElements}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => setPage(page - 1)} disabled={page === 0} style={{ padding: '4px 12px' }}>Previous</button>
-          <button onClick={() => setPage(page + 1)} disabled={page >= totalPages - 1} style={{ padding: '4px 12px' }}>Next</button>
+          <button onClick={() => setPageToken(previousPageToken)} disabled={!hasPrevious} style={{ padding: '4px 12px' }}>Previous</button>
+          <button onClick={() => setPageToken(nextPageToken)} disabled={!hasNext} style={{ padding: '4px 12px' }}>Next</button>
         </div>
       </div>
     </div>

@@ -24,9 +24,12 @@ import org.springframework.web.bind.annotation.*;
 
 import com.example.paymentreconciliation.audit.annotation.Audited;
 import java.util.List;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 
-
+/**
+ * Controller for authentication and user management
+ */
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Authentication", description = "User authentication and registration APIs")
@@ -38,12 +41,11 @@ public class AuthController {
     @Autowired
     private AuthService authService;
     
-    // DEPRECATED: Old PermissionService - replaced by AuthorizationService with Capability+Policy system
-    // @Autowired
-    // private PermissionService permissionService;
-    
     @Autowired
     private UIConfigService uiConfigService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
     
     @PostMapping("/login")
     @Audited(action = "LOGIN_ATTEMPT", resourceType = "USER")
@@ -93,7 +95,7 @@ public class AuthController {
         try {
             PermissionResponse uiConfig = uiConfigService.getUserUIConfig();
             if (uiConfig != null) {
-                String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(uiConfig);
+                String responseJson = objectMapper.writeValueAsString(uiConfig);
                 String eTag = ETagUtil.generateETag(responseJson);
                 String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
                 if (eTag.equals(ifNoneMatch)) {
@@ -119,7 +121,7 @@ public class AuthController {
     public ResponseEntity<List<User>> getAllUsers(HttpServletRequest request) {
         List<User> users = authService.getAllUsers();
         try {
-            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(users);
+            String responseJson = objectMapper.writeValueAsString(users);
             String eTag = ETagUtil.generateETag(responseJson);
             String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
             if (eTag.equals(ifNoneMatch)) {
@@ -127,6 +129,7 @@ public class AuthController {
             }
             return ResponseEntity.ok().eTag(eTag).body(users);
         } catch (Exception e) {
+            logger.error("Error processing users response", e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -139,7 +142,7 @@ public class AuthController {
         HttpServletRequest request) {
         List<User> users = authService.getUsersByRole(role);
         try {
-            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(users);
+            String responseJson = objectMapper.writeValueAsString(users);
             String eTag = ETagUtil.generateETag(responseJson);
             String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
             if (eTag.equals(ifNoneMatch)) {
@@ -147,6 +150,7 @@ public class AuthController {
             }
             return ResponseEntity.ok().eTag(eTag).body(users);
         } catch (Exception e) {
+            logger.error("Error processing users by role response", e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -213,7 +217,7 @@ public class AuthController {
     public ResponseEntity<UserRole[]> getAvailableRoles(HttpServletRequest request) {
         UserRole[] roles = UserRole.values();
         try {
-            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(roles);
+            String responseJson = objectMapper.writeValueAsString(roles);
             String eTag = ETagUtil.generateETag(responseJson);
             String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
             if (eTag.equals(ifNoneMatch)) {
@@ -221,6 +225,7 @@ public class AuthController {
             }
             return ResponseEntity.ok().eTag(eTag).body(roles);
         } catch (Exception e) {
+            logger.error("Error processing roles response", e);
             return ResponseEntity.internalServerError().build();
         }
     }

@@ -10,7 +10,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpHeaders;
 import jakarta.servlet.http.HttpServletRequest;
 import com.example.paymentreconciliation.common.util.ETagUtil;
-import org.springframework.security.access.prepost.PreAuthorize;
+
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +21,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Admin controller for managing policies and their capability assignments
@@ -26,8 +32,13 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/api/admin/policies")
-@PreAuthorize("hasRole('ADMIN')")
+@SecurityRequirement(name = "Bearer Authentication")
 public class PolicyController {
+
+    private static final Logger logger = LoggerFactory.getLogger(PolicyController.class);
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private final PolicyRepository policyRepository;
     private final CapabilityRepository capabilityRepository;
@@ -52,7 +63,7 @@ public class PolicyController {
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
         try {
-            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(response);
+            String responseJson = objectMapper.writeValueAsString(response);
             String eTag = ETagUtil.generateETag(responseJson);
             String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
             if (eTag.equals(ifNoneMatch)) {
@@ -60,6 +71,7 @@ public class PolicyController {
             }
             return ResponseEntity.ok().eTag(eTag).body(response);
         } catch (Exception e) {
+            logger.error("Error processing policies response", e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -74,7 +86,7 @@ public class PolicyController {
                 .map(policy -> {
                     Map<String, Object> response = convertToResponse(policy);
                     try {
-                        String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(response);
+                        String responseJson = objectMapper.writeValueAsString(response);
                         String eTag = ETagUtil.generateETag(responseJson);
                         String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
                         if (eTag.equals(ifNoneMatch)) {
@@ -82,6 +94,7 @@ public class PolicyController {
                         }
                         return (ResponseEntity<Map<String, Object>>) (ResponseEntity<?>) ResponseEntity.ok().eTag(eTag).body(response);
                     } catch (Exception e) {
+                        logger.error("Error processing policy response", e);
                         return (ResponseEntity<Map<String, Object>>) (ResponseEntity<?>) ResponseEntity.internalServerError().build();
                     }
                 })
@@ -186,7 +199,7 @@ public class PolicyController {
                 .map(PolicyCapability::getCapability)
                 .collect(Collectors.toList());
         try {
-            String responseJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(capabilities);
+            String responseJson = objectMapper.writeValueAsString(capabilities);
             String eTag = ETagUtil.generateETag(responseJson);
             String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
             if (eTag.equals(ifNoneMatch)) {
@@ -194,6 +207,7 @@ public class PolicyController {
             }
             return ResponseEntity.ok().eTag(eTag).body(capabilities);
         } catch (Exception e) {
+            logger.error("Error processing capabilities response", e);
             return ResponseEntity.internalServerError().build();
         }
     }

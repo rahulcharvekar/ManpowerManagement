@@ -42,7 +42,7 @@ public class Endpoint {
     private LocalDateTime updatedAt;
 
     // Many-to-Many relationship with Policy through EndpointPolicy
-    @OneToMany(mappedBy = "endpoint", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "endpoint", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private Set<EndpointPolicy> endpointPolicies = new HashSet<>();
 
     public Endpoint() {

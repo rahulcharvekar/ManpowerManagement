@@ -18,7 +18,7 @@ public class PolicyCapability {
     @JoinColumn(name = "policy_id", nullable = false)
     private Policy policy;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "capability_id", nullable = false)
     private Capability capability;
 
