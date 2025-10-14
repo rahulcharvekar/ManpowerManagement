@@ -1,0 +1,27 @@
+-- Move reconciliation tables to reconciliation_db
+CREATE TABLE reconciliation_db.statement_file LIKE paymentreconciliation_dev.statement_file;
+INSERT INTO reconciliation_db.statement_file SELECT * FROM paymentreconciliation_dev.statement_file;
+
+CREATE TABLE reconciliation_db.statement_transaction LIKE paymentreconciliation_dev.statement_transaction;
+INSERT INTO reconciliation_db.statement_transaction SELECT * FROM paymentreconciliation_dev.statement_transaction;
+
+CREATE TABLE reconciliation_db.statement_balance LIKE paymentreconciliation_dev.statement_balance;
+INSERT INTO reconciliation_db.statement_balance SELECT * FROM paymentreconciliation_dev.statement_balance;
+
+CREATE TABLE reconciliation_db.raw_statement_line LIKE paymentreconciliation_dev.raw_statement_line;
+INSERT INTO reconciliation_db.raw_statement_line SELECT * FROM paymentreconciliation_dev.raw_statement_line;
+
+CREATE TABLE reconciliation_db.transaction_86_segment LIKE paymentreconciliation_dev.transaction_86_segment;
+INSERT INTO reconciliation_db.transaction_86_segment SELECT * FROM paymentreconciliation_dev.transaction_86_segment;
+
+CREATE TABLE reconciliation_db.import_run LIKE paymentreconciliation_dev.import_run;
+INSERT INTO reconciliation_db.import_run SELECT * FROM paymentreconciliation_dev.import_run;
+
+CREATE TABLE reconciliation_db.import_error LIKE paymentreconciliation_dev.import_error;
+INSERT INTO reconciliation_db.import_error SELECT * FROM paymentreconciliation_dev.import_error;
+
+CREATE TABLE reconciliation_db.file_processing_queue LIKE paymentreconciliation_dev.file_processing_queue;
+INSERT INTO reconciliation_db.file_processing_queue SELECT * FROM paymentreconciliation_dev.file_processing_queue;
+
+CREATE TABLE reconciliation_db.uploaded_files LIKE paymentreconciliation_dev.uploaded_files;
+INSERT INTO reconciliation_db.uploaded_files SELECT * FROM paymentreconciliation_dev.uploaded_files;

@@ -1,0 +1,27 @@
+-- Move payment flow tables to payment_flow_db
+CREATE TABLE payment_flow_db.board_master LIKE paymentreconciliation_dev.board_master;
+INSERT INTO payment_flow_db.board_master SELECT * FROM paymentreconciliation_dev.board_master;
+
+CREATE TABLE payment_flow_db.employer_master LIKE paymentreconciliation_dev.employer_master;
+INSERT INTO payment_flow_db.employer_master SELECT * FROM paymentreconciliation_dev.employer_master;
+
+CREATE TABLE payment_flow_db.employer_toli_relation LIKE paymentreconciliation_dev.employer_toli_relation;
+INSERT INTO payment_flow_db.employer_toli_relation SELECT * FROM paymentreconciliation_dev.employer_toli_relation;
+
+CREATE TABLE payment_flow_db.worker_master LIKE paymentreconciliation_dev.worker_master;
+INSERT INTO payment_flow_db.worker_master SELECT * FROM paymentreconciliation_dev.worker_master;
+
+CREATE TABLE payment_flow_db.worker_uploaded_data LIKE paymentreconciliation_dev.worker_uploaded_data;
+INSERT INTO payment_flow_db.worker_uploaded_data SELECT * FROM paymentreconciliation_dev.worker_uploaded_data;
+
+CREATE TABLE payment_flow_db.worker_payments LIKE paymentreconciliation_dev.worker_payments;
+INSERT INTO payment_flow_db.worker_payments SELECT * FROM paymentreconciliation_dev.worker_payments;
+
+CREATE TABLE payment_flow_db.worker_payment_receipts LIKE paymentreconciliation_dev.worker_payment_receipts;
+INSERT INTO payment_flow_db.worker_payment_receipts SELECT * FROM paymentreconciliation_dev.worker_payment_receipts;
+
+CREATE TABLE payment_flow_db.employer_payment_receipts LIKE paymentreconciliation_dev.employer_payment_receipts;
+INSERT INTO payment_flow_db.employer_payment_receipts SELECT * FROM paymentreconciliation_dev.employer_payment_receipts;
+
+CREATE TABLE payment_flow_db.board_receipts LIKE paymentreconciliation_dev.board_receipts;
+INSERT INTO payment_flow_db.board_receipts SELECT * FROM paymentreconciliation_dev.board_receipts;
