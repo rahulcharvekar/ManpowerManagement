@@ -15,6 +15,7 @@ import Dashboard from './components/Dashboard';
 
 // Admin Components
 import UserManagement from './components/admin/UserManagement';
+import RoleManagement from './components/admin/RoleManagement';
 import SystemSettings from './components/admin/SystemSettings';
 import SystemLogs from './components/admin/SystemLogs';
 
@@ -24,7 +25,7 @@ import ReconciliationDashboard from './components/reconciliation/ReconciliationD
 
 // Worker Components
 import WorkerDashboard from './components/worker/WorkerDashboard';
-import DynamicPage from './pages/DynamicPage';
+import DynamicPage from './components/common/DynamicPage';
 import WorkerList from './components/worker/WorkerList';
 import WorkerUploadPaginatedTable from './components/worker/WorkerUploadPaginatedTable';
 import WorkerUploadFilesSummary from './components/worker/WorkerUploadFilesSummary';
@@ -155,6 +156,13 @@ const AppContent = () => {
             <Route path="admin/users" element={
               <ProtectedRoute componentKey="14">
                 <UserManagement />
+              </ProtectedRoute>
+            } />
+            
+            {/* Admin - Role Management */}
+            <Route path="admin/roles" element={
+              <ProtectedRoute componentKey="role-management">
+                <RoleManagement />
               </ProtectedRoute>
             } />
             

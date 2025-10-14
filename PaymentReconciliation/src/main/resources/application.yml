@@ -1,3 +1,10 @@
+# MT940 file ingestion configuration
+mt940:
+  base-dir: mt940/
+  inbox-dir: mt940/inbox/
+  processing-dir: mt940/processing/
+  archive-dir: mt940/archive/
+  quarantine-dir: mt940/quarantine/
 # Common configuration for all environments
 spring:
   application:

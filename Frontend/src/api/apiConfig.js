@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
     ME: '/api/auth/me',
     UI_CONFIG: '/api/auth/ui-config',
     USERS: '/api/auth/users', // Admin only
+    ROLES: '/api/admin/roles', // Admin only
     AUTHORIZATIONS: '/api/me/authorizations', // New capability-based endpoint
     REFRESH_AUTHORIZATIONS: '/api/me/authorizations/refresh', // Force refresh
   },
